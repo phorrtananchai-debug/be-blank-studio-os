@@ -1,0 +1,26 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isStudioOwner() {
+      return request.auth != null
+        && request.auth.token.email == "REPLACE_WITH_ALLOWED_STUDIO_EMAIL";
+    }
+
+    match /projects/{projectId} {
+      allow read, write: if isStudioOwner();
+    }
+
+    match /contentPosts/{postId} {
+      allow read, write: if isStudioOwner();
+    }
+
+    match /portfolioItems/{itemId} {
+      allow read, write: if isStudioOwner();
+    }
+
+    match /agentInbox/{itemId} {
+      allow read, write: if isStudioOwner();
+    }
+  }
+}

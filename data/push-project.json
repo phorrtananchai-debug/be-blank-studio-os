@@ -1,0 +1,18 @@
+{
+  "name": "Sample Agent Project",
+  "client": "Local API Client",
+  "location": "Bangkok, TH",
+  "status": "concept",
+  "startDate": "2026-05-01",
+  "handoverDate": "2026-06-15",
+  "openingDate": "2026-06-22",
+  "notes": "Created from data/push-project.json using npm run push:project.",
+  "nextAction": "Review imported project brief.",
+  "blocker": "",
+  "riskLevel": "Low",
+  "areaSqm": "120",
+  "ratePerSqm": "15000",
+  "projectValue": "1800000",
+  "targetCost": "1200000",
+  "actualCost": "0"
+}
