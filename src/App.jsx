@@ -25,6 +25,7 @@ import { SectionCard } from './components/SectionCard.jsx';
 import { StatusSelect } from './components/StatusSelect.jsx';
 import { useLocalStorage } from './hooks/useLocalStorage.js';
 import {
+  getFirebaseDebugInfo,
   isAllowedUser,
   isFirebaseConfigured,
   onStudioAuthChange,
@@ -66,6 +67,7 @@ const tabs = [
 ];
 
 const drawingStatuses = ['draft', 'review', 'approved', 'issued'];
+const firebaseDebugInfo = getFirebaseDebugInfo();
 
 function App() {
   const [activeTab, setActiveTab] = useState('projects');
@@ -78,6 +80,10 @@ function App() {
   const [authMessage, setAuthMessage] = useState('');
   const [dataMode, setDataMode] = useState(isFirebaseConfigured() ? 'firebase-auth' : 'checking');
   const importInputRef = useRef(null);
+
+  useEffect(() => {
+    console.info('Firebase config debug', firebaseDebugInfo);
+  }, []);
 
   const statusCounts = useMemo(() => countByStatus(projects, projectStatuses), [projects]);
   const activeProjects = projects.filter((project) => project.status !== 'open').length;
@@ -302,6 +308,19 @@ function App() {
               <FileJson size={16} />
               Export Backup
             </Button>
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-white/[0.08] bg-black/20 p-4 text-xs text-studio-muted">
+          <p className="mb-3 font-bold uppercase tracking-[0.2em] text-studio-orange">Firebase Debug</p>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <span>apiKeyExists: {String(firebaseDebugInfo.apiKeyExists)}</span>
+            <span>configSource: {firebaseDebugInfo.configSource}</span>
+            <span>apiKeySuffix: {firebaseDebugInfo.apiKeySuffix || 'missing'}</span>
+            <span>projectId: {firebaseDebugInfo.projectId || 'missing'}</span>
+            <span>authDomain: {firebaseDebugInfo.authDomain || 'missing'}</span>
+            <span>appIdExists: {String(firebaseDebugInfo.appIdExists)}</span>
+            <span>storageBucket: {firebaseDebugInfo.storageBucket || 'missing'}</span>
           </div>
         </section>
 

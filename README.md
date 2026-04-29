@@ -47,9 +47,9 @@ Install Command: npm install
 VITE_FIREBASE_API_KEY=
 VITE_FIREBASE_AUTH_DOMAIN=be-blank-studio-os.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=be-blank-studio-os
-VITE_FIREBASE_STORAGE_BUCKET=be-blank-studio-os.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=
-VITE_FIREBASE_APP_ID=
+VITE_FIREBASE_STORAGE_BUCKET=be-blank-studio-os.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=290937844212
+VITE_FIREBASE_APP_ID=1:290937844212:web:ac514b9d1a0fe07593c9a1
 VITE_ALLOWED_STUDIO_EMAIL=phorr.tananchai@beblanktobehindstudio.com
 ```
 
@@ -144,12 +144,12 @@ Firebase is the primary online architecture when configured. The local API and `
 
 ```bash
 VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
-VITE_FIREBASE_PROJECT_ID=
-VITE_FIREBASE_STORAGE_BUCKET=
-VITE_FIREBASE_MESSAGING_SENDER_ID=
-VITE_FIREBASE_APP_ID=
-VITE_ALLOWED_STUDIO_EMAIL=you@example.com
+VITE_FIREBASE_AUTH_DOMAIN=be-blank-studio-os.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=be-blank-studio-os
+VITE_FIREBASE_STORAGE_BUCKET=be-blank-studio-os.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=290937844212
+VITE_FIREBASE_APP_ID=1:290937844212:web:ac514b9d1a0fe07593c9a1
+VITE_ALLOWED_STUDIO_EMAIL=phorr.tananchai@beblanktobehindstudio.com
 ```
 
 Install dependencies after pulling this change:

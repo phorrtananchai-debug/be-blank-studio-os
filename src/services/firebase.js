@@ -23,7 +23,16 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 
-const firebaseConfig = {
+const productionFallbackFirebaseConfig = {
+  apiKey: 'AIzaSyDRuqMLnGULvQx9RidKIIkMgYY2wSdu48',
+  authDomain: 'be-blank-studio-os.firebaseapp.com',
+  projectId: 'be-blank-studio-os',
+  storageBucket: 'be-blank-studio-os.firebasestorage.app',
+  messagingSenderId: '290937844212',
+  appId: '1:290937844212:web:ac514b9d1a0fe07593c9a1',
+};
+
+const firebaseEnvConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
@@ -32,10 +41,39 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+const firebaseConfig = {
+  apiKey: firebaseEnvConfig.apiKey || productionFallbackFirebaseConfig.apiKey,
+  authDomain: firebaseEnvConfig.authDomain || productionFallbackFirebaseConfig.authDomain,
+  projectId: firebaseEnvConfig.projectId || productionFallbackFirebaseConfig.projectId,
+  storageBucket: firebaseEnvConfig.storageBucket || productionFallbackFirebaseConfig.storageBucket,
+  messagingSenderId: firebaseEnvConfig.messagingSenderId || productionFallbackFirebaseConfig.messagingSenderId,
+  appId: firebaseEnvConfig.appId || productionFallbackFirebaseConfig.appId,
+};
+
+const firebaseConfigSource = firebaseEnvConfig.apiKey ? 'env' : 'fallback';
+
 export const allowedStudioEmail = import.meta.env.VITE_ALLOWED_STUDIO_EMAIL;
+
+export function getFirebaseDebugInfo() {
+  return {
+    configSource: firebaseConfigSource,
+    apiKeyExists: Boolean(firebaseConfig.apiKey),
+    apiKeySuffix: firebaseConfig.apiKey ? firebaseConfig.apiKey.slice(-6) : '',
+    projectId: firebaseConfig.projectId || '',
+    authDomain: firebaseConfig.authDomain || '',
+    appIdExists: Boolean(firebaseConfig.appId),
+    storageBucket: firebaseConfig.storageBucket || '',
+  };
+}
 
 export function isFirebaseConfigured() {
   return Boolean(firebaseConfig.apiKey && firebaseConfig.authDomain && firebaseConfig.projectId && firebaseConfig.appId);
+}
+
+if (isFirebaseConfigured()) {
+  console.info('Firebase config source:', firebaseConfigSource);
+  console.info('Firebase apiKeySuffix:', firebaseConfig.apiKey.slice(-6));
+  console.info('Firebase projectId:', firebaseConfig.projectId);
 }
 
 const app = isFirebaseConfigured() ? initializeApp(firebaseConfig) : null;
@@ -44,6 +82,8 @@ export const auth = app ? getAuth(app) : null;
 export const db = app ? getFirestore(app) : null;
 export const googleProvider = new GoogleAuthProvider();
 
+googleProvider.addScope('email');
+googleProvider.addScope('profile');
 googleProvider.setCustomParameters({
   prompt: 'select_account',
 });
@@ -58,13 +98,18 @@ export function isAllowedUser(user) {
 
 function getFirebaseAuthMessage(error) {
   const code = error?.code || '';
+  const message = error?.message || '';
 
   if (code === 'auth/api-key-not-valid' || code === 'auth/invalid-api-key') {
-    return 'Firebase sign-in failed: the API key is not valid. Check VITE_FIREBASE_API_KEY in .env.local and restart npm run dev.';
+    return 'Firebase sign-in failed: the API key is not valid. Check VITE_FIREBASE_API_KEY in Vercel Environment Variables, then redeploy.';
   }
 
   if (code === 'auth/unauthorized-domain') {
-    return 'Firebase sign-in failed: this domain is not authorized. Add localhost and 127.0.0.1 in Firebase Authentication > Settings > Authorized domains.';
+    return 'Firebase sign-in failed: this domain is not authorized. Add be-blank-studio-os.vercel.app in Firebase Authentication > Settings > Authorized domains.';
+  }
+
+  if (message.toLowerCase().includes('requested action is invalid')) {
+    return 'Firebase sign-in popup failed: the auth handler rejected the request. Check Vercel Firebase env values and add be-blank-studio-os.vercel.app to Firebase Authorized domains.';
   }
 
   if (code === 'auth/popup-blocked') {
@@ -79,7 +124,7 @@ function getFirebaseAuthMessage(error) {
     return 'Firebase sign-in failed: Google sign-in is not enabled in Firebase Authentication.';
   }
 
-  return error?.message || 'Firebase sign-in failed. Check your Firebase environment variables and try again.';
+  return message || 'Firebase sign-in popup failed. Check Firebase environment variables and try again.';
 }
 
 export function onStudioAuthChange(callback) {
