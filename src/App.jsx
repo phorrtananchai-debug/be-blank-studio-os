@@ -72,6 +72,10 @@ const tabs = [
 
 const drawingStatuses = ['draft', 'review', 'approved', 'issued'];
 const firebaseDebugInfo = getFirebaseDebugInfo();
+const SOCIAL_LINKS = {
+  instagram: '',
+  facebook: '',
+};
 
 function getRoutePath() {
   return window.location.pathname || '/';
@@ -597,8 +601,8 @@ function PublicHomepage({ portfolioItems, navigate }) {
   }, [layoutInteraction]);
 
   const titleStyle = {
-    opacity: 1 - scrollProgress * 0.38,
-    transform: `scale(${1 - scrollProgress * 0.42})`,
+    opacity: 1 - scrollProgress * 0.25,
+    transform: `scale(${1 - scrollProgress * 0.46})`,
   };
   const canEditLayout = Boolean(publicUser);
   const canvasHeight = getPortfolioCanvasHeight(layoutItems);
@@ -656,43 +660,38 @@ function PublicHomepage({ portfolioItems, navigate }) {
   return (
     <div className="min-h-screen bg-[#12110f] text-[#d8d5cc]">
       <header className="fixed left-0 right-0 top-0 z-50 border-b border-[#d8d5cc]/10 bg-[#12110f]/82 px-5 py-4 backdrop-blur md:px-8">
-        <nav className="flex items-center justify-between gap-6 text-[11px] font-bold uppercase tracking-[0.22em] text-[#a9a49a]">
-          <button className="text-left transition hover:text-[#d8d5cc]" type="button" onClick={() => navigate('/')}>
-            Be Blank
-          </button>
-          <div className="flex flex-wrap justify-end gap-x-5 gap-y-2">
-            <a className="transition hover:text-[#d8d5cc]" href="#projects">projects</a>
+        <nav className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 text-[11px] font-bold uppercase tracking-[0.2em] text-[#a9a49a]">
+          <a className="justify-self-start transition hover:text-[#d8d5cc]" href="#contact">
+            contact
+          </a>
+          <div className="flex flex-wrap justify-center gap-x-5 gap-y-2">
+            <a className="transition hover:text-[#d8d5cc]" href="#projects">[projects]</a>
             <a className="transition hover:text-[#d8d5cc]" href="#collections">collections</a>
+            <a className="transition hover:text-[#d8d5cc]" href="#archives">archives</a>
             <a className="transition hover:text-[#d8d5cc]" href="#about">about</a>
-            <a className="transition hover:text-[#d8d5cc]" href="#contact">contact</a>
-            <button
-              className="font-bold uppercase tracking-[0.22em] transition hover:text-[#d8d5cc]"
-              type="button"
-              onClick={() => navigate('/os')}
-            >
-              studio os
-            </button>
-            {publicUser ? (
-              <button className="font-bold uppercase tracking-[0.22em] transition hover:text-[#d8d5cc]" type="button" onClick={handlePublicSignOut}>
-                sign out
-              </button>
-            ) : (
-              <button className="font-bold uppercase tracking-[0.22em] transition hover:text-[#d8d5cc]" type="button" onClick={handlePublicSignIn}>
-                sign in
-              </button>
-            )}
+          </div>
+          <div className="flex justify-end gap-4">
+            <a className="transition hover:text-[#d8d5cc]" href={SOCIAL_LINKS.instagram || '#instagram'}>instagram</a>
+            <a className="transition hover:text-[#d8d5cc]" href={SOCIAL_LINKS.facebook || '#facebook'}>facebook</a>
           </div>
         </nav>
       </header>
 
       <main>
-        <section className="min-h-[118vh] px-5 pb-10 pt-24 md:px-8 md:pb-16">
-          <div className="sticky top-20 origin-top-left transition duration-300 ease-out" style={titleStyle}>
-            <h1 className="max-w-[1240px] text-[clamp(4.5rem,16vw,14rem)] font-black uppercase leading-[0.78] tracking-normal text-[#d8d5cc]">
+        <section className="min-h-[118vh] px-5 pb-10 pt-24 text-center md:px-8 md:pb-16">
+          <div className="sticky top-16 z-20 mx-auto origin-top transition duration-300 ease-out" style={titleStyle}>
+            <h1 className="mx-auto max-w-[1280px] text-center text-[clamp(4.5rem,16vw,14rem)] font-black uppercase leading-[0.78] tracking-normal text-[#8c867a]">
               BE BLANK TO BEHIND STUDIO
             </h1>
           </div>
-          <div className="mt-[42vh] grid gap-6 border-t border-[#d8d5cc]/18 pt-5 text-sm leading-6 text-[#a9a49a] md:grid-cols-[1fr_1.5fr_1fr]">
+          <div className="mx-auto mt-7 flex flex-wrap justify-center gap-x-5 gap-y-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#777269]">
+            <a className="text-[#d8d5cc] transition hover:text-[#d8d5cc]" href="#projects">[all]</a>
+            <a className="transition hover:text-[#d8d5cc]" href="#interior">interior</a>
+            <a className="transition hover:text-[#d8d5cc]" href="#architecture">architecture</a>
+            <a className="transition hover:text-[#d8d5cc]" href="#retail">retail</a>
+            <a className="transition hover:text-[#d8d5cc]" href="#food-beverage">food & beverage</a>
+          </div>
+          <div className="mx-auto mt-[36vh] grid max-w-7xl gap-6 border-t border-[#d8d5cc]/18 pt-5 text-left text-sm leading-6 text-[#a9a49a] md:grid-cols-[1fr_1.5fr_1fr]">
             <p className="font-bold uppercase tracking-[0.2em] text-[#d8d5cc]">Architecture / Interior / Objects</p>
             <p className="max-w-2xl text-[#a9a49a]">
               A Bangkok-based architecture and interior studio shaping spatial identities for hospitality, residential,
@@ -700,8 +699,21 @@ function PublicHomepage({ portfolioItems, navigate }) {
             </p>
             <p className="text-[#777269] md:text-right">Selected works, project notes, and studio operations.</p>
           </div>
-          {(canEditLayout || publicAuthMessage || saveMessage) && (
-            <div className="mt-6 flex flex-wrap items-center gap-3 text-[11px] font-bold uppercase tracking-[0.18em] text-[#a9a49a]">
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-[11px] font-bold uppercase tracking-[0.18em] text-[#a9a49a]">
+            <button className="border border-[#d8d5cc]/20 px-4 py-2 transition hover:border-[#d8d5cc]/60 hover:text-[#d8d5cc]" type="button" onClick={() => navigate('/os')}>
+              Studio OS
+            </button>
+            {publicUser ? (
+              <button className="border border-[#d8d5cc]/20 px-4 py-2 transition hover:border-[#d8d5cc]/60 hover:text-[#d8d5cc]" type="button" onClick={handlePublicSignOut}>
+                Sign Out
+              </button>
+            ) : (
+              <button className="border border-[#d8d5cc]/20 px-4 py-2 transition hover:border-[#d8d5cc]/60 hover:text-[#d8d5cc]" type="button" onClick={handlePublicSignIn}>
+                Sign In
+              </button>
+            )}
+            {(canEditLayout || publicAuthMessage || saveMessage) && (
+              <>
               {canEditLayout && !isEditingLayout && (
                 <button className="border border-[#d8d5cc]/20 px-4 py-2 transition hover:border-[#d8d5cc]/60 hover:text-[#d8d5cc]" type="button" onClick={() => setIsEditingLayout(true)}>
                   Edit Layout
@@ -719,8 +731,9 @@ function PublicHomepage({ portfolioItems, navigate }) {
               )}
               {publicAuthMessage && <span className="text-red-200">{publicAuthMessage}</span>}
               {saveMessage && <span>{saveMessage}</span>}
-            </div>
-          )}
+              </>
+            )}
+          </div>
         </section>
 
         <section id="projects" className="px-5 pb-20 md:px-8">
@@ -835,15 +848,26 @@ function PortfolioGridCard({ item, navigate }) {
 
 function PortfolioCardMeta({ item }) {
   return (
-    <span className="grid gap-2 font-serif text-[#d8d5cc]" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
+    <span className="grid gap-2" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
       <span className="flex items-start justify-between gap-4">
-        <span className="text-2xl font-bold leading-none">{item.title}</span>
-        <span className="shrink-0 pt-1 text-right text-xs text-[#a9a49a]">
+        <span
+          className="block"
+          style={{
+            color: '#d8d5cc',
+            fontSize: 'clamp(28px, 3vw, 52px)',
+            fontWeight: 500,
+            letterSpacing: '-0.03em',
+            lineHeight: 0.95,
+          }}
+        >
+          {item.title}
+        </span>
+        <span className="shrink-0 pt-1 text-right text-[12px] text-[#a9a49a]">
           {[item.year, item.areaSqm ? `${item.areaSqm} sqm` : ''].filter(Boolean).join(' / ')}
         </span>
       </span>
-      <span className="text-sm leading-5 text-[#a9a49a]">{item.subtitle || item.description || item.location}</span>
-      <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#777269]">
+      <span className="text-[13px] leading-[1.35] text-[#a9a49a]">{item.subtitle || item.description || item.location}</span>
+      <span className="text-[11px] uppercase tracking-[0.16em] text-[#8c867a]">
         {[item.category, item.location].filter(Boolean).join(' / ')}
       </span>
     </span>
