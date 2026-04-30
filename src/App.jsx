@@ -25,12 +25,16 @@ import { SectionCard } from './components/SectionCard.jsx';
 import { StatusSelect } from './components/StatusSelect.jsx';
 import { useLocalStorage } from './hooks/useLocalStorage.js';
 import {
+  addCollectionItem,
+  deleteCollectionItem,
   getFirebaseDebugInfo,
   isAllowedUser,
   isFirebaseConfigured,
   onStudioAuthChange,
   signInToStudio,
   signOutOfStudio,
+  subscribeToCollection,
+  updateCollectionItem,
 } from './services/firebase.js';
 import {
   createFirebaseProject,
@@ -69,11 +73,61 @@ const tabs = [
 const drawingStatuses = ['draft', 'review', 'approved', 'issued'];
 const firebaseDebugInfo = getFirebaseDebugInfo();
 
+function getRoutePath() {
+  return window.location.pathname || '/';
+}
+
 function App() {
+  const [routePath, setRoutePath] = useState(getRoutePath);
+  const [publicPortfolioItems, setPublicPortfolioItems] = useState(initialPortfolioItems);
+
+  useEffect(() => {
+    const handleRouteChange = () => setRoutePath(getRoutePath());
+    window.addEventListener('popstate', handleRouteChange);
+    return () => window.removeEventListener('popstate', handleRouteChange);
+  }, []);
+
+  useEffect(() => {
+    if (!isFirebaseConfigured()) {
+      setPublicPortfolioItems(initialPortfolioItems);
+      return undefined;
+    }
+
+    try {
+      return subscribeToCollection(
+        'portfolioItems',
+        (items) => setPublicPortfolioItems(items.length ? items : initialPortfolioItems),
+        () => setPublicPortfolioItems(initialPortfolioItems),
+      );
+    } catch {
+      setPublicPortfolioItems(initialPortfolioItems);
+      return undefined;
+    }
+  }, []);
+
+  const navigate = (path) => {
+    window.history.pushState({}, '', path);
+    setRoutePath(path);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  if (routePath === '/os' || routePath === '/dashboard') {
+    return <StudioOSApp navigate={navigate} />;
+  }
+
+  if (routePath.startsWith('/portfolio/')) {
+    const portfolioId = decodeURIComponent(routePath.replace('/portfolio/', ''));
+    return <PortfolioDetailPage item={publicPortfolioItems.find((item) => item.id === portfolioId)} navigate={navigate} />;
+  }
+
+  return <PublicHomepage portfolioItems={publicPortfolioItems} navigate={navigate} />;
+}
+
+function StudioOSApp({ navigate }) {
   const [activeTab, setActiveTab] = useState('projects');
   const [projects, setProjects] = useState([]);
   const [contentItems, setContentItems] = useLocalStorage('beBlank.content', initialContentItems);
-  const [portfolioItems, setPortfolioItems] = useLocalStorage('beBlank.portfolio', initialPortfolioItems);
+  const [portfolioItems, setPortfolioItems] = useState(initialPortfolioItems);
   const [copiedId, setCopiedId] = useState('');
   const [backupMessage, setBackupMessage] = useState('');
   const [studioUser, setStudioUser] = useState(null);
@@ -84,6 +138,28 @@ function App() {
   useEffect(() => {
     console.info('Firebase config debug', firebaseDebugInfo);
   }, []);
+
+  useEffect(() => {
+    if (!studioUser || !isFirebaseConfigured()) {
+      return undefined;
+    }
+
+    let didSeedPortfolio = false;
+
+    return subscribeToCollection(
+      'portfolioItems',
+      async (items) => {
+        if (!items.length && !didSeedPortfolio) {
+          didSeedPortfolio = true;
+          await Promise.all(initialPortfolioItems.map((item) => addCollectionItem('portfolioItems', item)));
+          return;
+        }
+
+        setPortfolioItems(items.length ? items : initialPortfolioItems);
+      },
+      () => setPortfolioItems(initialPortfolioItems),
+    );
+  }, [studioUser]);
 
   const statusCounts = useMemo(() => countByStatus(projects, projectStatuses), [projects]);
   const activeProjects = projects.filter((project) => project.status !== 'open').length;
@@ -197,8 +273,31 @@ function App() {
     setContentItems((items) => items.map((item) => (item.id === id ? { ...item, ...updates } : item)));
   };
 
-  const updatePortfolio = (id, updates) => {
-    setPortfolioItems((items) => items.map((item) => (item.id === id ? { ...item, ...updates } : item)));
+  const addPortfolio = async () => {
+    if (!studioUser) {
+      setAuthMessage('Sign in before creating portfolio items.');
+      return;
+    }
+
+    await addCollectionItem('portfolioItems', createPortfolioItem());
+  };
+
+  const updatePortfolio = async (id, updates) => {
+    if (!studioUser) {
+      setAuthMessage('Sign in before updating portfolio items.');
+      return;
+    }
+
+    await updateCollectionItem('portfolioItems', id, updates);
+  };
+
+  const deletePortfolio = async (id) => {
+    if (!studioUser) {
+      setAuthMessage('Sign in before deleting portfolio items.');
+      return;
+    }
+
+    await deleteCollectionItem('portfolioItems', id);
   };
 
   const copyCaption = async (item) => {
@@ -263,6 +362,13 @@ function App() {
             <p className="mt-4 max-w-2xl text-base leading-7 text-studio-muted">
               Internal command center for projects, timelines, content, and portfolio assets.
             </p>
+            <button
+              className="mt-5 text-xs font-bold uppercase tracking-[0.24em] text-studio-orange transition hover:text-white"
+              type="button"
+              onClick={() => navigate('/')}
+            >
+              Public portfolio
+            </button>
           </div>
           <div className="grid w-full grid-cols-2 gap-4 sm:grid-cols-4">
             <MetricCard label="Active projects" value={activeProjects} />
@@ -276,7 +382,7 @@ function App() {
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-studio-orange">Local database</p>
             <p className="mt-1 text-sm text-studio-muted">
-              Projects sync from Firestore. Content and portfolio keep local backup tools.
+              Projects and portfolio sync from Firestore. Content keeps local backup tools.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -373,8 +479,8 @@ function App() {
         {activeTab === 'portfolio' && (
           <PortfolioManager
             portfolioItems={portfolioItems}
-            onAdd={() => setPortfolioItems((items) => [createPortfolioItem(), ...items])}
-            onDelete={(id) => setPortfolioItems((items) => items.filter((item) => item.id !== id))}
+            onAdd={addPortfolio}
+            onDelete={deletePortfolio}
             onExport={() => downloadJson('be-blank-portfolio.json', portfolioItems)}
             onUpdate={updatePortfolio}
           />
@@ -382,6 +488,206 @@ function App() {
       </div>
     </div>
   );
+}
+
+function PublicHomepage({ portfolioItems, navigate }) {
+  const featuredItems = portfolioItems.length ? portfolioItems : initialPortfolioItems;
+
+  return (
+    <div className="min-h-screen bg-white text-black">
+      <header className="fixed left-0 right-0 top-0 z-50 border-b border-black/10 bg-white/82 px-5 py-4 backdrop-blur md:px-8">
+        <nav className="flex items-center justify-between gap-6 text-[11px] font-bold uppercase tracking-[0.22em]">
+          <button className="text-left" type="button" onClick={() => navigate('/')}>
+            Be Blank
+          </button>
+          <div className="flex flex-wrap justify-end gap-x-5 gap-y-2">
+            <a href="#projects">projects</a>
+            <a href="#collections">collections</a>
+            <a href="#about">about</a>
+            <a href="#contact">contact</a>
+            <button className="font-bold uppercase tracking-[0.22em]" type="button" onClick={() => navigate('/os')}>
+              studio os
+            </button>
+          </div>
+        </nav>
+      </header>
+
+      <main>
+        <section className="px-5 pb-10 pt-28 md:px-8 md:pb-16">
+          <h1 className="max-w-[1180px] text-[clamp(4.2rem,15vw,13.5rem)] font-black uppercase leading-[0.78] tracking-normal">
+            BE BLANK TO BEHIND STUDIO
+          </h1>
+          <div className="mt-8 grid gap-6 border-t border-black pt-5 text-sm leading-6 md:grid-cols-[1fr_1.5fr_1fr]">
+            <p className="font-bold uppercase tracking-[0.2em]">Architecture / Interior / Objects</p>
+            <p className="max-w-2xl">
+              A Bangkok-based architecture and interior studio shaping spatial identities for hospitality, residential,
+              and cultural work.
+            </p>
+            <p className="md:text-right">Selected works, project notes, and studio operations.</p>
+          </div>
+        </section>
+
+        <section id="projects" className="px-5 pb-20 md:px-8">
+          <div className="relative hidden min-h-[980px] border-t border-black pt-6 lg:block">
+            {featuredItems.map((item, index) => (
+              <PortfolioCanvasCard key={item.id} index={index} item={item} navigate={navigate} />
+            ))}
+          </div>
+
+          <div className="grid gap-10 border-t border-black pt-6 lg:hidden">
+            {featuredItems.map((item) => (
+              <PortfolioGridCard key={item.id} item={item} navigate={navigate} />
+            ))}
+          </div>
+        </section>
+
+        <section id="collections" className="grid gap-8 border-y border-black px-5 py-14 md:grid-cols-[1fr_2fr] md:px-8">
+          <p className="text-xs font-black uppercase tracking-[0.24em]">Collections</p>
+          <div className="grid gap-4 text-[clamp(2rem,5vw,5.6rem)] font-black uppercase leading-none">
+            <span>Hospitality</span>
+            <span>Residence</span>
+            <span>Retail</span>
+          </div>
+        </section>
+
+        <section id="about" className="grid gap-8 px-5 py-16 md:grid-cols-[1fr_2fr] md:px-8">
+          <p className="text-xs font-black uppercase tracking-[0.24em]">About</p>
+          <p className="max-w-4xl text-[clamp(1.8rem,4vw,4.4rem)] font-black leading-[0.95]">
+            We design quiet spatial systems: clear plans, tactile material stories, and details built for real use.
+          </p>
+        </section>
+
+        <footer id="contact" className="flex flex-col gap-5 border-t border-black px-5 py-8 text-xs font-bold uppercase tracking-[0.2em] md:flex-row md:items-center md:justify-between md:px-8">
+          <span>Bangkok / Phuket / Chiang Mai</span>
+          <a href="mailto:studio@beblanktobehindstudio.com">studio@beblanktobehindstudio.com</a>
+        </footer>
+      </main>
+    </div>
+  );
+}
+
+function PortfolioCanvasCard({ item, index, navigate }) {
+  const style = {
+    left: `${toLayoutNumber(item.x, 8 + index * 18)}%`,
+    top: `${toLayoutNumber(item.y, 18 + index * 12)}%`,
+    width: `${toLayoutNumber(item.width, 28)}%`,
+    height: `${toLayoutNumber(item.height, 36)}%`,
+    zIndex: toLayoutNumber(item.zIndex, index + 1),
+  };
+
+  return (
+    <button
+      className="group absolute overflow-hidden bg-white text-left"
+      style={style}
+      type="button"
+      onClick={() => navigate(`/portfolio/${encodeURIComponent(item.id)}`)}
+    >
+      <img alt={item.title} className="h-full w-full object-cover grayscale transition duration-500 group-hover:grayscale-0" src={item.imageUrl} />
+      <span className="absolute inset-x-0 bottom-0 bg-white/88 p-3 text-black backdrop-blur">
+        <PortfolioCardMeta item={item} />
+      </span>
+    </button>
+  );
+}
+
+function PortfolioGridCard({ item, navigate }) {
+  return (
+    <button className="text-left" type="button" onClick={() => navigate(`/portfolio/${encodeURIComponent(item.id)}`)}>
+      <div className="aspect-[4/5] overflow-hidden bg-neutral-100">
+        <img alt={item.title} className="h-full w-full object-cover grayscale" src={item.imageUrl} />
+      </div>
+      <div className="mt-3">
+        <PortfolioCardMeta item={item} />
+      </div>
+    </button>
+  );
+}
+
+function PortfolioCardMeta({ item }) {
+  return (
+    <span className="block">
+      <span className="block text-2xl font-black uppercase leading-none">{item.title}</span>
+      <span className="mt-2 block text-xs font-bold uppercase tracking-[0.18em]">
+        {[item.subtitle || item.location, item.category, item.year, item.areaSqm ? `${item.areaSqm} sqm` : '']
+          .filter(Boolean)
+          .join(' / ')}
+      </span>
+    </span>
+  );
+}
+
+function PortfolioDetailPage({ item, navigate }) {
+  const portfolioItem = item || initialPortfolioItems[0];
+  const gallery = getGalleryImages(portfolioItem);
+
+  return (
+    <div className="min-h-screen bg-white text-black">
+      <header className="flex items-center justify-between border-b border-black px-5 py-5 text-xs font-black uppercase tracking-[0.22em] md:px-8">
+        <button type="button" onClick={() => navigate('/')}>
+          projects
+        </button>
+        <button type="button" onClick={() => navigate('/os')}>
+          studio os
+        </button>
+      </header>
+      <main>
+        <section className="grid gap-10 px-5 py-10 md:grid-cols-[1.1fr_0.9fr] md:px-8">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.22em]">{portfolioItem.category || 'Project'}</p>
+            <h1 className="mt-4 text-[clamp(3.5rem,12vw,11rem)] font-black uppercase leading-[0.8]">{portfolioItem.title}</h1>
+          </div>
+          <div className="grid content-end gap-5 text-sm leading-6">
+            <ProjectFact label="Client" value={portfolioItem.client} />
+            <ProjectFact label="Location" value={portfolioItem.location} />
+            <ProjectFact label="Year" value={portfolioItem.year} />
+            <ProjectFact label="Area" value={portfolioItem.areaSqm ? `${portfolioItem.areaSqm} sqm` : ''} />
+          </div>
+        </section>
+
+        <section className="px-5 md:px-8">
+          <img alt={portfolioItem.title} className="max-h-[78vh] w-full object-cover" src={portfolioItem.imageUrl} />
+        </section>
+
+        <section className="grid gap-10 px-5 py-14 md:grid-cols-[1fr_2fr] md:px-8">
+          <p className="text-xs font-black uppercase tracking-[0.22em]">Design story</p>
+          <div className="grid gap-8">
+            <p className="max-w-4xl text-3xl font-black leading-tight md:text-5xl">{portfolioItem.description}</p>
+            <p className="max-w-3xl text-lg leading-8">{portfolioItem.concept || portfolioItem.description}</p>
+            {portfolioItem.credits && <p className="text-xs font-bold uppercase tracking-[0.18em]">{portfolioItem.credits}</p>}
+          </div>
+        </section>
+
+        <section className="grid gap-4 px-5 pb-16 md:grid-cols-2 md:px-8">
+          {gallery.map((imageUrl) => (
+            <img key={imageUrl} alt={portfolioItem.title} className="aspect-[4/3] w-full object-cover" src={imageUrl} />
+          ))}
+        </section>
+      </main>
+    </div>
+  );
+}
+
+function ProjectFact({ label, value }) {
+  return (
+    <div className="grid grid-cols-[90px_1fr] border-t border-black pt-3">
+      <span className="text-xs font-black uppercase tracking-[0.2em]">{label}</span>
+      <span>{value || '-'}</span>
+    </div>
+  );
+}
+
+function getGalleryImages(item) {
+  const gallery = String(item.galleryUrls || '')
+    .split(/\n|,/)
+    .map((url) => url.trim())
+    .filter(Boolean);
+
+  return gallery.length ? gallery : [item.imageUrl].filter(Boolean);
+}
+
+function toLayoutNumber(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
 }
 
 function ProjectDashboard({ projects, statusCounts, onAdd, onDelete, onUpdate }) {
@@ -1412,19 +1718,43 @@ function PortfolioManager({ portfolioItems, onAdd, onDelete, onExport, onUpdate 
                   value={item.category}
                   onChange={(value) => onUpdate(item.id, { category: value })}
                 />
-                <Field
-                  label="Image URL"
-                  value={item.imageUrl}
-                  onChange={(value) => onUpdate(item.id, { imageUrl: value })}
-                />
+                <Field label="Location" value={item.location || ''} onChange={(value) => onUpdate(item.id, { location: value })} />
+                <Field label="Client" value={item.client || ''} onChange={(value) => onUpdate(item.id, { client: value })} />
+                <Field label="Year" value={item.year || ''} onChange={(value) => onUpdate(item.id, { year: value })} />
+                <Field label="Area / sqm" value={item.areaSqm || ''} onChange={(value) => onUpdate(item.id, { areaSqm: value })} />
+                <Field label="Cover image URL" value={item.imageUrl || ''} onChange={(value) => onUpdate(item.id, { imageUrl: value })} />
               </div>
+              <Field label="Subtitle" value={item.subtitle || ''} onChange={(value) => onUpdate(item.id, { subtitle: value })} />
+              <Field
+                label="Gallery image URLs"
+                multiline
+                value={item.galleryUrls || ''}
+                onChange={(value) => onUpdate(item.id, { galleryUrls: value })}
+              />
               <Field
                 label="Description"
                 multiline
                 value={item.description}
                 onChange={(value) => onUpdate(item.id, { description: value })}
               />
+              <Field
+                label="Design story / concept"
+                multiline
+                value={item.concept || ''}
+                onChange={(value) => onUpdate(item.id, { concept: value })}
+              />
+              <Field label="Credits" value={item.credits || ''} onChange={(value) => onUpdate(item.id, { credits: value })} />
               <Field label="Tags" value={item.tags} onChange={(value) => onUpdate(item.id, { tags: value })} />
+              <div>
+                <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-studio-muted">Homepage card layout</p>
+                <div className="grid gap-4 sm:grid-cols-5">
+                  <Field label="X %" value={item.x || ''} onChange={(value) => onUpdate(item.id, { x: value })} />
+                  <Field label="Y %" value={item.y || ''} onChange={(value) => onUpdate(item.id, { y: value })} />
+                  <Field label="Width %" value={item.width || ''} onChange={(value) => onUpdate(item.id, { width: value })} />
+                  <Field label="Height %" value={item.height || ''} onChange={(value) => onUpdate(item.id, { height: value })} />
+                  <Field label="Z index" value={item.zIndex || ''} onChange={(value) => onUpdate(item.id, { zIndex: value })} />
+                </div>
+              </div>
             </div>
           </article>
         ))}

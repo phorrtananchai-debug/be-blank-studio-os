@@ -180,10 +180,23 @@ export function createPortfolioItem() {
   return {
     id: createId('portfolio'),
     title: 'Untitled Project',
+    subtitle: '',
+    client: '',
+    location: '',
+    year: '',
     category: '',
+    areaSqm: '',
     imageUrl: '',
+    galleryUrls: '',
     description: '',
+    concept: '',
+    credits: '',
     tags: '',
+    x: '8',
+    y: '18',
+    width: '30',
+    height: '36',
+    zIndex: '1',
   };
 }
 
