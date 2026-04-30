@@ -304,7 +304,9 @@ async function createCalendarEventLater(command) {
 }
 
 async function executeCommand(command) {
-  switch (command.action) {
+  const action = command.action || (normalizeProject(command).name ? 'create_project' : '');
+
+  switch (action) {
     case 'create_project':
       return createOrUpdateProject(command);
     case 'update_project':

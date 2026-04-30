@@ -2,16 +2,21 @@ openapi: 3.1.0
 info:
   title: Be Blank Studio OS Agent API
   version: 1.0.0
-  description: ChatGPT Action schema for creating and updating Be Blank Studio OS projects in Firebase.
+  description: ChatGPT Action schema for creating Be Blank Studio OS projects in Firebase.
 servers:
   - url: https://agent-euweanpera-as.a.run.app
     description: Deployed Be Blank Studio OS agent endpoint.
 paths:
   /project:
     post:
-      operationId: executeStudioProjectCommand
-      summary: Execute a Studio OS project command
-      description: Creates, updates, deletes, annotates, or queues calendar work for a Studio OS project.
+      operationId: create_project
+      summary: Create a Studio OS project
+      description: |-
+        Creates a Studio OS project from structured JSON or natural language extracted into JSON fields.
+
+        Accepts natural language such as:
+        - Karun Phuket deadline 15 June
+        - สร้างโปรเจค Karun Phuket ลูกค้า Karun ที่ภูเก็ต ส่งงาน 15 มิ.ย.
       security:
         - AgentKey: []
       requestBody:
@@ -19,37 +24,34 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AgentCommand"
+              $ref: "#/components/schemas/CreateProjectRequest"
             examples:
-              createProject:
+              structuredProject:
+                summary: Structured create_project fields.
                 value:
-                  action: create_project
-                  payload:
-                    projectName: Ari Lobby Renovation
-                    ลูกค้า: Be Blank Client
-                    สถานที่: Bangkok
-                    สถานะ: คอนเซปต์
-                    startDate: "2026-05-01"
-                    deadline: "2026-06-15"
-                    openingDate: "2026-06-22"
-                    notes: Created from ChatGPT Action.
-                    nextAction: Confirm project brief.
-                    blocker: ""
-                    areaSqm: "120"
-                    ratePerSqm: "15000"
-                    targetCost: "1200000"
-                    actualCost: "0"
-              updateProject:
+                  name: Karun Phuket
+                  client: Karun
+                  location: Phuket
+                  handoverDate: "2026-06-15"
+                  status: design
+              naturalLanguageMapping:
+                summary: Parse casual English text into project fields.
+                description: 'User input: "Karun Phuket deadline 15 June"'
                 value:
-                  action: update_project
-                  projectName: Ari Lobby Renovation
-                  payload:
-                    status: ออกแบบ
-                    dueDate: "2026-06-20"
-                    nextAction: Send updated concept pack.
+                  name: Karun Phuket
+                  handoverDate: "2026-06-15"
+              thaiNaturalLanguageMapping:
+                summary: Parse casual Thai text into project fields.
+                description: 'User input: "สร้างโปรเจค Karun Phuket ลูกค้า Karun ที่ภูเก็ต ส่งงาน 15 มิ.ย."'
+                value:
+                  name: Karun Phuket
+                  client: Karun
+                  location: Phuket
+                  handoverDate: "2026-06-15"
+                  status: design
       responses:
         "200":
-          description: Command executed.
+          description: Project created or updated.
           content:
             application/json:
               schema:
@@ -73,64 +75,40 @@ components:
       in: header
       name: x-agent-key
   schemas:
-    AgentCommand:
+    CreateProjectRequest:
       type: object
       required:
-        - action
+        - name
+      additionalProperties: true
       properties:
-        action:
-          type: string
-          enum:
-            - create_project
-            - update_project
-            - delete_project
-            - add_note
-            - create_calendar_event_later
-        projectName:
-          type: string
-          description: Existing project name for update, delete, note, and calendar actions.
         name:
           type: string
-          description: Project name, accepted at top level for convenience.
-        note:
+          description: Project name.
+        client:
           type: string
-          description: Note text for add_note.
-        payload:
-          type: object
-          additionalProperties: true
-          properties:
-            name:
-              type: string
-            client:
-              type: string
-            location:
-              type: string
-            status:
-              type: string
-            startDate:
-              type: string
-            handoverDate:
-              type: string
-            openingDate:
-              type: string
-            notes:
-              type: string
-            nextAction:
-              type: string
-            blocker:
-              type: string
-            riskLevel:
-              type: string
-            areaSqm:
-              type: string
-            ratePerSqm:
-              type: string
-            projectValue:
-              type: string
-            targetCost:
-              type: string
-            actualCost:
-              type: string
+          description: Client name.
+        location:
+          type: string
+          description: Project location.
+        handoverDate:
+          type: string
+          format: date
+          description: Target handover date.
+        status:
+          type: string
+          description: Project status.
+          enum:
+            - concept
+            - design
+            - construction
+            - handover
+            - open
+        notes:
+          type: string
+          description: Optional project notes.
+        nextAction:
+          type: string
+          description: Optional next action.
     AgentResponse:
       type: object
       required:
