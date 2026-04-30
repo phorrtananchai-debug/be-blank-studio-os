@@ -493,6 +493,40 @@ function StudioOSApp({ navigate }) {
 function PublicHomepage({ portfolioItems, navigate }) {
   const featuredItems = portfolioItems.length ? portfolioItems : initialPortfolioItems;
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [layoutItems, setLayoutItems] = useState(featuredItems);
+  const [publicUser, setPublicUser] = useState(null);
+  const [publicAuthMessage, setPublicAuthMessage] = useState('');
+  const [isEditingLayout, setIsEditingLayout] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
+  const [layoutInteraction, setLayoutInteraction] = useState(null);
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (!isEditingLayout) {
+      setLayoutItems(featuredItems);
+    }
+  }, [featuredItems, isEditingLayout]);
+
+  useEffect(() => {
+    if (!isFirebaseConfigured()) {
+      return undefined;
+    }
+
+    return onStudioAuthChange((user) => {
+      if (user && isAllowedUser(user)) {
+        setPublicUser(user);
+        setPublicAuthMessage('');
+        return;
+      }
+
+      setPublicUser(null);
+      setIsEditingLayout(false);
+      if (user && !isAllowedUser(user)) {
+        setPublicAuthMessage('This Google account is not allowed.');
+        signOutOfStudio();
+      }
+    });
+  }, []);
 
   useEffect(() => {
     const updateScrollProgress = () => {
@@ -504,9 +538,119 @@ function PublicHomepage({ portfolioItems, navigate }) {
     return () => window.removeEventListener('scroll', updateScrollProgress);
   }, []);
 
+  useEffect(() => {
+    if (!layoutInteraction) {
+      return undefined;
+    }
+
+    const handlePointerMove = (event) => {
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        return;
+      }
+
+      const dx = event.clientX - layoutInteraction.startX;
+      const dy = event.clientY - layoutInteraction.startY;
+      const canvasWidth = canvas.getBoundingClientRect().width || 1;
+      const dxPercent = (dx / canvasWidth) * 100;
+
+      setLayoutItems((items) =>
+        items.map((item, index) => {
+          if (item.id !== layoutInteraction.itemId) {
+            return item;
+          }
+
+          const initial = layoutInteraction.initialLayout;
+          const nextLayout =
+            layoutInteraction.mode === 'resize'
+              ? {
+                  width: clampNumber(initial.width + dxPercent, 16, 70),
+                  height: clampNumber(initial.height + dy, 180, 760),
+                }
+              : {
+                  x: clampNumber(initial.x + dxPercent, 0, 78),
+                  y: Math.max(0, initial.y + dy),
+                };
+
+          return {
+            ...item,
+            ...stringifyLayout({
+              ...getPortfolioLayout(item, index),
+              ...nextLayout,
+            }),
+          };
+        }),
+      );
+    };
+
+    const stopInteraction = () => setLayoutInteraction(null);
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', stopInteraction);
+    window.addEventListener('pointercancel', stopInteraction);
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', stopInteraction);
+      window.removeEventListener('pointercancel', stopInteraction);
+    };
+  }, [layoutInteraction]);
+
   const titleStyle = {
     opacity: 1 - scrollProgress * 0.38,
     transform: `scale(${1 - scrollProgress * 0.42})`,
+  };
+  const canEditLayout = Boolean(publicUser);
+  const canvasHeight = getPortfolioCanvasHeight(layoutItems);
+
+  const handlePublicSignIn = async () => {
+    try {
+      setPublicAuthMessage('');
+      await signInToStudio();
+    } catch (error) {
+      setPublicAuthMessage(error.message);
+    }
+  };
+
+  const handlePublicSignOut = async () => {
+    await signOutOfStudio();
+    setPublicUser(null);
+    setIsEditingLayout(false);
+  };
+
+  const beginLayoutInteraction = (event, item, index, mode) => {
+    if (!isEditingLayout) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    setLayoutInteraction({
+      itemId: item.id,
+      mode,
+      startX: event.clientX,
+      startY: event.clientY,
+      initialLayout: getPortfolioLayout(item, index),
+    });
+  };
+
+  const saveLayout = async () => {
+    if (!canEditLayout) {
+      setPublicAuthMessage('Sign in with the studio account before saving layout.');
+      return;
+    }
+
+    await Promise.all(
+      layoutItems.map((item, index) =>
+        addCollectionItem('portfolioItems', {
+          ...item,
+          ...stringifyLayout(getPortfolioLayout(item, index)),
+        }),
+      ),
+    );
+    setSaveMessage('Layout saved');
+    window.setTimeout(() => setSaveMessage(''), 1600);
   };
 
   return (
@@ -528,6 +672,15 @@ function PublicHomepage({ portfolioItems, navigate }) {
             >
               studio os
             </button>
+            {publicUser ? (
+              <button className="font-bold uppercase tracking-[0.22em] transition hover:text-[#d8d5cc]" type="button" onClick={handlePublicSignOut}>
+                sign out
+              </button>
+            ) : (
+              <button className="font-bold uppercase tracking-[0.22em] transition hover:text-[#d8d5cc]" type="button" onClick={handlePublicSignIn}>
+                sign in
+              </button>
+            )}
           </div>
         </nav>
       </header>
@@ -547,17 +700,45 @@ function PublicHomepage({ portfolioItems, navigate }) {
             </p>
             <p className="text-[#777269] md:text-right">Selected works, project notes, and studio operations.</p>
           </div>
+          {(canEditLayout || publicAuthMessage || saveMessage) && (
+            <div className="mt-6 flex flex-wrap items-center gap-3 text-[11px] font-bold uppercase tracking-[0.18em] text-[#a9a49a]">
+              {canEditLayout && !isEditingLayout && (
+                <button className="border border-[#d8d5cc]/20 px-4 py-2 transition hover:border-[#d8d5cc]/60 hover:text-[#d8d5cc]" type="button" onClick={() => setIsEditingLayout(true)}>
+                  Edit Layout
+                </button>
+              )}
+              {canEditLayout && isEditingLayout && (
+                <>
+                  <button className="border border-[#d8d5cc]/20 px-4 py-2 transition hover:border-[#d8d5cc]/60 hover:text-[#d8d5cc]" type="button" onClick={saveLayout}>
+                    Save Layout
+                  </button>
+                  <button className="border border-[#d8d5cc]/20 px-4 py-2 transition hover:border-[#d8d5cc]/60 hover:text-[#d8d5cc]" type="button" onClick={() => setIsEditingLayout(false)}>
+                    Exit Edit
+                  </button>
+                </>
+              )}
+              {publicAuthMessage && <span className="text-red-200">{publicAuthMessage}</span>}
+              {saveMessage && <span>{saveMessage}</span>}
+            </div>
+          )}
         </section>
 
         <section id="projects" className="px-5 pb-20 md:px-8">
-          <div className="relative hidden min-h-[980px] border-t border-[#d8d5cc]/18 pt-6 lg:block">
-            {featuredItems.map((item, index) => (
-              <PortfolioCanvasCard key={item.id} index={index} item={item} navigate={navigate} />
+          <div ref={canvasRef} className="relative hidden border-t border-[#d8d5cc]/18 pt-10 lg:block" style={{ minHeight: canvasHeight }}>
+            {layoutItems.map((item, index) => (
+              <PortfolioCanvasCard
+                key={item.id}
+                index={index}
+                isEditing={isEditingLayout}
+                item={item}
+                navigate={navigate}
+                onPointerDown={beginLayoutInteraction}
+              />
             ))}
           </div>
 
           <div className="grid gap-10 border-t border-[#d8d5cc]/18 pt-6 lg:hidden">
-            {featuredItems.map((item) => (
+            {layoutItems.map((item) => (
               <PortfolioGridCard key={item.id} item={item} navigate={navigate} />
             ))}
           </div>
@@ -590,27 +771,52 @@ function PublicHomepage({ portfolioItems, navigate }) {
   );
 }
 
-function PortfolioCanvasCard({ item, index, navigate }) {
+function PortfolioCanvasCard({ isEditing, item, index, navigate, onPointerDown }) {
+  const layout = getPortfolioLayout(item, index);
   const style = {
-    left: `${toLayoutNumber(item.x, 8 + index * 18)}%`,
-    top: `${toLayoutNumber(item.y, 18 + index * 12)}%`,
-    width: `${toLayoutNumber(item.width, 28)}%`,
-    height: `${toLayoutNumber(item.height, 36)}%`,
-    zIndex: toLayoutNumber(item.zIndex, index + 1),
+    left: `${layout.x}%`,
+    top: `${layout.y}px`,
+    width: `${layout.width}%`,
+    zIndex: layout.zIndex,
   };
 
   return (
-    <button
-      className="group absolute overflow-hidden bg-[#1a1916] text-left"
+    <article
+      className={`group absolute text-left ${isEditing ? 'cursor-grab select-none outline outline-1 outline-[#d8d5cc]/25' : ''}`}
       style={style}
-      type="button"
-      onClick={() => navigate(`/portfolio/${encodeURIComponent(item.id)}`)}
+      onPointerDown={(event) => onPointerDown(event, item, index, 'drag')}
     >
-      <img alt={item.title} className="h-full w-full object-cover grayscale transition duration-500 group-hover:grayscale-0" src={item.imageUrl} />
-      <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#12110f]/88 via-[#12110f]/44 to-transparent p-3 pt-12">
-        <PortfolioCardMeta item={item} />
-      </span>
-    </button>
+      <button
+        className="block w-full text-left"
+        type="button"
+        onClick={(event) => {
+          if (isEditing) {
+            event.preventDefault();
+            return;
+          }
+          navigate(`/portfolio/${encodeURIComponent(item.id)}`);
+        }}
+      >
+        <img
+          alt={item.title}
+          className="w-full object-cover"
+          src={item.imageUrl}
+          style={{ height: `${layout.height}px` }}
+        />
+        <div className="mt-3">
+          <PortfolioCardMeta item={item} />
+        </div>
+      </button>
+      {isEditing && (
+        <button
+          aria-label={`Resize ${item.title}`}
+          className="absolute right-0 size-7 translate-x-1/2 -translate-y-1/2 cursor-nwse-resize border border-[#d8d5cc]/60 bg-[#12110f] text-[#d8d5cc]"
+          style={{ top: `${layout.height}px` }}
+          type="button"
+          onPointerDown={(event) => onPointerDown(event, item, index, 'resize')}
+        />
+      )}
+    </article>
   );
 }
 
@@ -618,7 +824,7 @@ function PortfolioGridCard({ item, navigate }) {
   return (
     <button className="text-left" type="button" onClick={() => navigate(`/portfolio/${encodeURIComponent(item.id)}`)}>
       <div className="aspect-[4/5] overflow-hidden bg-[#1a1916]">
-        <img alt={item.title} className="h-full w-full object-cover grayscale" src={item.imageUrl} />
+        <img alt={item.title} className="h-full w-full object-cover" src={item.imageUrl} />
       </div>
       <div className="mt-3">
         <PortfolioCardMeta item={item} />
@@ -629,12 +835,16 @@ function PortfolioGridCard({ item, navigate }) {
 
 function PortfolioCardMeta({ item }) {
   return (
-    <span className="block">
-      <span className="block text-2xl font-black uppercase leading-none text-[#d8d5cc]">{item.title}</span>
-      <span className="mt-2 block text-xs font-bold uppercase tracking-[0.18em] text-[#a9a49a]">
-        {[item.subtitle || item.location, item.category, item.year, item.areaSqm ? `${item.areaSqm} sqm` : '']
-          .filter(Boolean)
-          .join(' / ')}
+    <span className="grid gap-2 font-serif text-[#d8d5cc]" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
+      <span className="flex items-start justify-between gap-4">
+        <span className="text-2xl font-bold leading-none">{item.title}</span>
+        <span className="shrink-0 pt-1 text-right text-xs text-[#a9a49a]">
+          {[item.year, item.areaSqm ? `${item.areaSqm} sqm` : ''].filter(Boolean).join(' / ')}
+        </span>
+      </span>
+      <span className="text-sm leading-5 text-[#a9a49a]">{item.subtitle || item.description || item.location}</span>
+      <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#777269]">
+        {[item.category, item.location].filter(Boolean).join(' / ')}
       </span>
     </span>
   );
@@ -711,6 +921,50 @@ function getGalleryImages(item) {
     .filter(Boolean);
 
   return gallery.length ? gallery : [item.imageUrl].filter(Boolean);
+}
+
+function getPortfolioLayout(item, index) {
+  const defaultLayout = {
+    x: index % 2 === 0 ? 6 : 50,
+    y: 60 + index * 450,
+    width: index % 2 === 0 ? 34 : 30,
+    height: index % 2 === 0 ? 360 : 320,
+    zIndex: index + 1,
+  };
+  const y = toLayoutNumber(item.y, defaultLayout.y);
+  const height = toLayoutNumber(item.height, defaultLayout.height);
+
+  return {
+    x: clampNumber(toLayoutNumber(item.x, defaultLayout.x), 0, 78),
+    y: y < 120 && index > 0 ? defaultLayout.y : y,
+    width: clampNumber(toLayoutNumber(item.width, defaultLayout.width), 16, 70),
+    height: height < 160 ? defaultLayout.height : height,
+    zIndex: Math.max(1, Math.round(toLayoutNumber(item.zIndex, defaultLayout.zIndex))),
+  };
+}
+
+function getPortfolioCanvasHeight(items) {
+  return Math.max(
+    980,
+    ...items.map((item, index) => {
+      const layout = getPortfolioLayout(item, index);
+      return layout.y + layout.height + 180;
+    }),
+  );
+}
+
+function stringifyLayout(layout) {
+  return {
+    x: String(Math.round(layout.x * 10) / 10),
+    y: String(Math.round(layout.y)),
+    width: String(Math.round(layout.width * 10) / 10),
+    height: String(Math.round(layout.height)),
+    zIndex: String(Math.round(layout.zIndex)),
+  };
+}
+
+function clampNumber(value, min, max) {
+  return Math.min(Math.max(value, min), max);
 }
 
 function toLayoutNumber(value, fallback) {

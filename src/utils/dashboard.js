@@ -193,9 +193,9 @@ export function createPortfolioItem() {
     credits: '',
     tags: '',
     x: '8',
-    y: '18',
+    y: '80',
     width: '30',
-    height: '36',
+    height: '340',
     zIndex: '1',
   };
 }
