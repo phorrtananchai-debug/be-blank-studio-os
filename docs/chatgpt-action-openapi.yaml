@@ -25,12 +25,12 @@ paths:
                 value:
                   action: create_project
                   payload:
-                    name: Ari Lobby Renovation
-                    client: Be Blank Client
-                    location: Bangkok
-                    status: concept
+                    projectName: Ari Lobby Renovation
+                    ลูกค้า: Be Blank Client
+                    สถานที่: Bangkok
+                    สถานะ: คอนเซปต์
                     startDate: "2026-05-01"
-                    handoverDate: "2026-06-15"
+                    deadline: "2026-06-15"
                     openingDate: "2026-06-22"
                     notes: Created from ChatGPT Action.
                     nextAction: Confirm project brief.
@@ -44,7 +44,8 @@ paths:
                   action: update_project
                   projectName: Ari Lobby Renovation
                   payload:
-                    status: design
+                    status: ออกแบบ
+                    dueDate: "2026-06-20"
                     nextAction: Send updated concept pack.
       responses:
         "200":
