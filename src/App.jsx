@@ -492,20 +492,40 @@ function StudioOSApp({ navigate }) {
 
 function PublicHomepage({ portfolioItems, navigate }) {
   const featuredItems = portfolioItems.length ? portfolioItems : initialPortfolioItems;
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  useEffect(() => {
+    const updateScrollProgress = () => {
+      setScrollProgress(Math.min(window.scrollY / 520, 1));
+    };
+
+    updateScrollProgress();
+    window.addEventListener('scroll', updateScrollProgress, { passive: true });
+    return () => window.removeEventListener('scroll', updateScrollProgress);
+  }, []);
+
+  const titleStyle = {
+    opacity: 1 - scrollProgress * 0.38,
+    transform: `scale(${1 - scrollProgress * 0.42})`,
+  };
 
   return (
-    <div className="min-h-screen bg-white text-black">
-      <header className="fixed left-0 right-0 top-0 z-50 border-b border-black/10 bg-white/82 px-5 py-4 backdrop-blur md:px-8">
-        <nav className="flex items-center justify-between gap-6 text-[11px] font-bold uppercase tracking-[0.22em]">
-          <button className="text-left" type="button" onClick={() => navigate('/')}>
+    <div className="min-h-screen bg-[#12110f] text-[#d8d5cc]">
+      <header className="fixed left-0 right-0 top-0 z-50 border-b border-[#d8d5cc]/10 bg-[#12110f]/82 px-5 py-4 backdrop-blur md:px-8">
+        <nav className="flex items-center justify-between gap-6 text-[11px] font-bold uppercase tracking-[0.22em] text-[#a9a49a]">
+          <button className="text-left transition hover:text-[#d8d5cc]" type="button" onClick={() => navigate('/')}>
             Be Blank
           </button>
           <div className="flex flex-wrap justify-end gap-x-5 gap-y-2">
-            <a href="#projects">projects</a>
-            <a href="#collections">collections</a>
-            <a href="#about">about</a>
-            <a href="#contact">contact</a>
-            <button className="font-bold uppercase tracking-[0.22em]" type="button" onClick={() => navigate('/os')}>
+            <a className="transition hover:text-[#d8d5cc]" href="#projects">projects</a>
+            <a className="transition hover:text-[#d8d5cc]" href="#collections">collections</a>
+            <a className="transition hover:text-[#d8d5cc]" href="#about">about</a>
+            <a className="transition hover:text-[#d8d5cc]" href="#contact">contact</a>
+            <button
+              className="font-bold uppercase tracking-[0.22em] transition hover:text-[#d8d5cc]"
+              type="button"
+              onClick={() => navigate('/os')}
+            >
               studio os
             </button>
           </div>
@@ -513,37 +533,39 @@ function PublicHomepage({ portfolioItems, navigate }) {
       </header>
 
       <main>
-        <section className="px-5 pb-10 pt-28 md:px-8 md:pb-16">
-          <h1 className="max-w-[1180px] text-[clamp(4.2rem,15vw,13.5rem)] font-black uppercase leading-[0.78] tracking-normal">
-            BE BLANK TO BEHIND STUDIO
-          </h1>
-          <div className="mt-8 grid gap-6 border-t border-black pt-5 text-sm leading-6 md:grid-cols-[1fr_1.5fr_1fr]">
-            <p className="font-bold uppercase tracking-[0.2em]">Architecture / Interior / Objects</p>
-            <p className="max-w-2xl">
+        <section className="min-h-[118vh] px-5 pb-10 pt-24 md:px-8 md:pb-16">
+          <div className="sticky top-20 origin-top-left transition duration-300 ease-out" style={titleStyle}>
+            <h1 className="max-w-[1240px] text-[clamp(4.5rem,16vw,14rem)] font-black uppercase leading-[0.78] tracking-normal text-[#d8d5cc]">
+              BE BLANK TO BEHIND STUDIO
+            </h1>
+          </div>
+          <div className="mt-[42vh] grid gap-6 border-t border-[#d8d5cc]/18 pt-5 text-sm leading-6 text-[#a9a49a] md:grid-cols-[1fr_1.5fr_1fr]">
+            <p className="font-bold uppercase tracking-[0.2em] text-[#d8d5cc]">Architecture / Interior / Objects</p>
+            <p className="max-w-2xl text-[#a9a49a]">
               A Bangkok-based architecture and interior studio shaping spatial identities for hospitality, residential,
               and cultural work.
             </p>
-            <p className="md:text-right">Selected works, project notes, and studio operations.</p>
+            <p className="text-[#777269] md:text-right">Selected works, project notes, and studio operations.</p>
           </div>
         </section>
 
         <section id="projects" className="px-5 pb-20 md:px-8">
-          <div className="relative hidden min-h-[980px] border-t border-black pt-6 lg:block">
+          <div className="relative hidden min-h-[980px] border-t border-[#d8d5cc]/18 pt-6 lg:block">
             {featuredItems.map((item, index) => (
               <PortfolioCanvasCard key={item.id} index={index} item={item} navigate={navigate} />
             ))}
           </div>
 
-          <div className="grid gap-10 border-t border-black pt-6 lg:hidden">
+          <div className="grid gap-10 border-t border-[#d8d5cc]/18 pt-6 lg:hidden">
             {featuredItems.map((item) => (
               <PortfolioGridCard key={item.id} item={item} navigate={navigate} />
             ))}
           </div>
         </section>
 
-        <section id="collections" className="grid gap-8 border-y border-black px-5 py-14 md:grid-cols-[1fr_2fr] md:px-8">
-          <p className="text-xs font-black uppercase tracking-[0.24em]">Collections</p>
-          <div className="grid gap-4 text-[clamp(2rem,5vw,5.6rem)] font-black uppercase leading-none">
+        <section id="collections" className="grid gap-8 border-y border-[#d8d5cc]/18 px-5 py-14 md:grid-cols-[1fr_2fr] md:px-8">
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-[#777269]">Collections</p>
+          <div className="grid gap-4 text-[clamp(2rem,5vw,5.6rem)] font-black uppercase leading-none text-[#d8d5cc]">
             <span>Hospitality</span>
             <span>Residence</span>
             <span>Retail</span>
@@ -551,15 +573,17 @@ function PublicHomepage({ portfolioItems, navigate }) {
         </section>
 
         <section id="about" className="grid gap-8 px-5 py-16 md:grid-cols-[1fr_2fr] md:px-8">
-          <p className="text-xs font-black uppercase tracking-[0.24em]">About</p>
-          <p className="max-w-4xl text-[clamp(1.8rem,4vw,4.4rem)] font-black leading-[0.95]">
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-[#777269]">About</p>
+          <p className="max-w-4xl text-[clamp(1.8rem,4vw,4.4rem)] font-black leading-[0.95] text-[#d8d5cc]">
             We design quiet spatial systems: clear plans, tactile material stories, and details built for real use.
           </p>
         </section>
 
-        <footer id="contact" className="flex flex-col gap-5 border-t border-black px-5 py-8 text-xs font-bold uppercase tracking-[0.2em] md:flex-row md:items-center md:justify-between md:px-8">
+        <footer id="contact" className="flex flex-col gap-5 border-t border-[#d8d5cc]/18 px-5 py-8 text-xs font-bold uppercase tracking-[0.2em] text-[#a9a49a] md:flex-row md:items-center md:justify-between md:px-8">
           <span>Bangkok / Phuket / Chiang Mai</span>
-          <a href="mailto:studio@beblanktobehindstudio.com">studio@beblanktobehindstudio.com</a>
+          <a className="transition hover:text-[#d8d5cc]" href="mailto:studio@beblanktobehindstudio.com">
+            studio@beblanktobehindstudio.com
+          </a>
         </footer>
       </main>
     </div>
@@ -577,13 +601,13 @@ function PortfolioCanvasCard({ item, index, navigate }) {
 
   return (
     <button
-      className="group absolute overflow-hidden bg-white text-left"
+      className="group absolute overflow-hidden bg-[#1a1916] text-left"
       style={style}
       type="button"
       onClick={() => navigate(`/portfolio/${encodeURIComponent(item.id)}`)}
     >
       <img alt={item.title} className="h-full w-full object-cover grayscale transition duration-500 group-hover:grayscale-0" src={item.imageUrl} />
-      <span className="absolute inset-x-0 bottom-0 bg-white/88 p-3 text-black backdrop-blur">
+      <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#12110f]/88 via-[#12110f]/44 to-transparent p-3 pt-12">
         <PortfolioCardMeta item={item} />
       </span>
     </button>
@@ -593,7 +617,7 @@ function PortfolioCanvasCard({ item, index, navigate }) {
 function PortfolioGridCard({ item, navigate }) {
   return (
     <button className="text-left" type="button" onClick={() => navigate(`/portfolio/${encodeURIComponent(item.id)}`)}>
-      <div className="aspect-[4/5] overflow-hidden bg-neutral-100">
+      <div className="aspect-[4/5] overflow-hidden bg-[#1a1916]">
         <img alt={item.title} className="h-full w-full object-cover grayscale" src={item.imageUrl} />
       </div>
       <div className="mt-3">
@@ -606,8 +630,8 @@ function PortfolioGridCard({ item, navigate }) {
 function PortfolioCardMeta({ item }) {
   return (
     <span className="block">
-      <span className="block text-2xl font-black uppercase leading-none">{item.title}</span>
-      <span className="mt-2 block text-xs font-bold uppercase tracking-[0.18em]">
+      <span className="block text-2xl font-black uppercase leading-none text-[#d8d5cc]">{item.title}</span>
+      <span className="mt-2 block text-xs font-bold uppercase tracking-[0.18em] text-[#a9a49a]">
         {[item.subtitle || item.location, item.category, item.year, item.areaSqm ? `${item.areaSqm} sqm` : '']
           .filter(Boolean)
           .join(' / ')}
@@ -621,22 +645,24 @@ function PortfolioDetailPage({ item, navigate }) {
   const gallery = getGalleryImages(portfolioItem);
 
   return (
-    <div className="min-h-screen bg-white text-black">
-      <header className="flex items-center justify-between border-b border-black px-5 py-5 text-xs font-black uppercase tracking-[0.22em] md:px-8">
-        <button type="button" onClick={() => navigate('/')}>
+    <div className="min-h-screen bg-[#12110f] text-[#d8d5cc]">
+      <header className="flex items-center justify-between border-b border-[#d8d5cc]/18 px-5 py-5 text-xs font-black uppercase tracking-[0.22em] text-[#a9a49a] md:px-8">
+        <button className="transition hover:text-[#d8d5cc]" type="button" onClick={() => navigate('/')}>
           projects
         </button>
-        <button type="button" onClick={() => navigate('/os')}>
+        <button className="transition hover:text-[#d8d5cc]" type="button" onClick={() => navigate('/os')}>
           studio os
         </button>
       </header>
       <main>
         <section className="grid gap-10 px-5 py-10 md:grid-cols-[1.1fr_0.9fr] md:px-8">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.22em]">{portfolioItem.category || 'Project'}</p>
-            <h1 className="mt-4 text-[clamp(3.5rem,12vw,11rem)] font-black uppercase leading-[0.8]">{portfolioItem.title}</h1>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-[#777269]">{portfolioItem.category || 'Project'}</p>
+            <h1 className="mt-4 text-[clamp(3.5rem,12vw,11rem)] font-black uppercase leading-[0.8] text-[#d8d5cc]">
+              {portfolioItem.title}
+            </h1>
           </div>
-          <div className="grid content-end gap-5 text-sm leading-6">
+          <div className="grid content-end gap-5 text-sm leading-6 text-[#a9a49a]">
             <ProjectFact label="Client" value={portfolioItem.client} />
             <ProjectFact label="Location" value={portfolioItem.location} />
             <ProjectFact label="Year" value={portfolioItem.year} />
@@ -649,11 +675,13 @@ function PortfolioDetailPage({ item, navigate }) {
         </section>
 
         <section className="grid gap-10 px-5 py-14 md:grid-cols-[1fr_2fr] md:px-8">
-          <p className="text-xs font-black uppercase tracking-[0.22em]">Design story</p>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#777269]">Design story</p>
           <div className="grid gap-8">
-            <p className="max-w-4xl text-3xl font-black leading-tight md:text-5xl">{portfolioItem.description}</p>
-            <p className="max-w-3xl text-lg leading-8">{portfolioItem.concept || portfolioItem.description}</p>
-            {portfolioItem.credits && <p className="text-xs font-bold uppercase tracking-[0.18em]">{portfolioItem.credits}</p>}
+            <p className="max-w-4xl text-3xl font-black leading-tight text-[#d8d5cc] md:text-5xl">{portfolioItem.description}</p>
+            <p className="max-w-3xl text-lg leading-8 text-[#a9a49a]">{portfolioItem.concept || portfolioItem.description}</p>
+            {portfolioItem.credits && (
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#777269]">{portfolioItem.credits}</p>
+            )}
           </div>
         </section>
 
@@ -669,9 +697,9 @@ function PortfolioDetailPage({ item, navigate }) {
 
 function ProjectFact({ label, value }) {
   return (
-    <div className="grid grid-cols-[90px_1fr] border-t border-black pt-3">
-      <span className="text-xs font-black uppercase tracking-[0.2em]">{label}</span>
-      <span>{value || '-'}</span>
+    <div className="grid grid-cols-[90px_1fr] border-t border-[#d8d5cc]/18 pt-3">
+      <span className="text-xs font-black uppercase tracking-[0.2em] text-[#777269]">{label}</span>
+      <span className="text-[#a9a49a]">{value || '-'}</span>
     </div>
   );
 }
