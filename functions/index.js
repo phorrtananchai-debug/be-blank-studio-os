@@ -30,6 +30,29 @@ const projectFieldAliases = {
   สถานะ: 'status',
 };
 
+const supportedProjectFields = [
+  'name',
+  'client',
+  'location',
+  'status',
+  'startDate',
+  'handoverDate',
+  'openingDate',
+  'deadline',
+  'dueDate',
+  'targetDate',
+  'notes',
+  'nextAction',
+  'blocker',
+  'riskLevel',
+  'areaSqm',
+  'ratePerSqm',
+  'projectValue',
+  'targetCost',
+  'actualCost',
+  ...Object.keys(projectFieldAliases),
+];
+
 const statusAliases = {
   design: 'design',
   ดีไซน์: 'design',
@@ -46,6 +69,18 @@ const statusAliases = {
 
 function hasValue(value) {
   return value !== undefined && value !== null && value !== '';
+}
+
+function pickProjectFields(source = {}) {
+  const picked = {};
+
+  for (const field of supportedProjectFields) {
+    if (hasValue(source[field])) {
+      picked[field] = source[field];
+    }
+  }
+
+  return picked;
 }
 
 function normalizeStatus(status) {
@@ -83,21 +118,31 @@ function applyProjectAliases(project = {}, source = {}) {
 }
 
 function normalizeProject(input = {}) {
-  const payload =
+  const nestedPayload =
     input.payload && typeof input.payload === 'object'
       ? input.payload
       : input.project && typeof input.project === 'object'
         ? input.project
-        : input;
+        : {};
 
+  const topLevelFields = pickProjectFields(input);
+  const payloadFields = pickProjectFields(nestedPayload);
   const project = applyProjectAliases(
     {
-      ...payload,
+      ...topLevelFields,
+      ...payloadFields,
     },
-    input,
+    {
+      ...input,
+      ...nestedPayload,
+    },
   );
 
-  const aliasedProject = applyProjectAliases(project, payload);
+  const aliasedProject = applyProjectAliases(project, nestedPayload);
+
+  if (!hasValue(aliasedProject.name) && typeof input.project === 'string') {
+    aliasedProject.name = input.project;
+  }
 
   if (aliasedProject.blocker && !aliasedProject.blockers) {
     aliasedProject.blockers = aliasedProject.blocker;
@@ -183,6 +228,11 @@ async function createOrUpdateProject(command) {
   const now = admin.firestore.FieldValue.serverTimestamp();
 
   if (existingProject) {
+    const savedProject = {
+      ...existingProject.data,
+      ...project,
+    };
+
     await db.collection('projects').doc(existingProject.id).set(
       {
         ...project,
@@ -195,11 +245,16 @@ async function createOrUpdateProject(command) {
       action: 'update_project',
       projectId: existingProject.id,
       message: `Updated existing project: ${project.name}`,
+      project: {
+        id: existingProject.id,
+        ...savedProject,
+      },
     };
   }
 
+  const savedProject = withProjectDefaults(project);
   const ref = await db.collection('projects').add({
-    ...withProjectDefaults(project),
+    ...savedProject,
     createdAt: now,
     updatedAt: now,
   });
@@ -208,6 +263,10 @@ async function createOrUpdateProject(command) {
     action: 'create_project',
     projectId: ref.id,
     message: `Created project: ${project.name}`,
+    project: {
+      id: ref.id,
+      ...savedProject,
+    },
   };
 }
 
@@ -219,6 +278,11 @@ async function updateProject(command) {
   if (!existingProject) {
     throw new Error(`Project not found: ${projectName || updates.name || 'unknown project'}`);
   }
+
+  const savedProject = {
+    ...existingProject.data,
+    ...updates,
+  };
 
   await db.collection('projects').doc(existingProject.id).set(
     {
@@ -232,6 +296,10 @@ async function updateProject(command) {
     action: 'update_project',
     projectId: existingProject.id,
     message: `Updated project: ${existingProject.data.name}`,
+    project: {
+      id: existingProject.id,
+      ...savedProject,
+    },
   };
 }
 
