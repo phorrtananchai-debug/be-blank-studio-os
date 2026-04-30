@@ -850,17 +850,26 @@ function PortfolioCardMeta({ item }) {
   return (
     <span className="grid gap-2.5 font-sans">
       <span className="flex items-start justify-between gap-4">
-        <span className="block text-[13px] font-semibold uppercase leading-none tracking-[0.28em] text-[#e8e1d2] md:text-[16px]">
+        <span
+          className="block"
+          style={{
+            color: '#d8d5cc',
+            fontSize: 'clamp(34px, 3.8vw, 58px)',
+            fontWeight: 700,
+            letterSpacing: '-0.02em',
+            lineHeight: 0.95,
+          }}
+        >
           {item.title}
         </span>
-        <span className="shrink-0 pt-0.5 text-right text-[11px] font-light uppercase tracking-[0.18em] text-[#cfc7b8]">
+        <span className="shrink-0 pt-1 text-right text-[12px] font-normal text-[#b9b4aa]">
           {[item.year, item.areaSqm ? `${item.areaSqm} sqm` : ''].filter(Boolean).join(' / ')}
         </span>
       </span>
-      <span className="text-[13px] font-light leading-relaxed tracking-[0.01em] text-[#b9b0a2]">
+      <span className="text-[14px] font-light leading-[1.4] text-[#b9b4aa]">
         {item.subtitle || item.description || item.location}
       </span>
-      <span className="text-[10px] font-light uppercase tracking-[0.32em] text-[#9f9688]">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9a9488]">
         {[item.category, item.location].filter(Boolean).join(' / ')}
       </span>
     </span>
