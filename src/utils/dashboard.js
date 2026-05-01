@@ -106,16 +106,16 @@ export function calculateTimeline(project) {
     riskLevel,
     deliveryPressure,
     riskClass: riskLevel === 'High'
-      ? 'border-red-400/45 bg-red-500/10 text-red-100'
+      ? 'border-red-700/20 bg-red-100/50 text-red-800'
       : riskLevel === 'Medium'
-        ? 'border-amber-300/40 bg-amber-400/10 text-amber-100'
-        : 'border-emerald-400/35 bg-emerald-500/10 text-emerald-100',
+        ? 'border-amber-700/20 bg-amber-100/50 text-amber-800'
+        : 'border-emerald-700/20 bg-emerald-100/50 text-emerald-800',
     riskBarClass: riskLevel === 'High'
       ? 'bg-red-400 shadow-[0_0_16px_rgba(248,113,113,0.14)]'
       : riskLevel === 'Medium'
         ? 'bg-amber-300 shadow-[0_0_16px_rgba(252,211,77,0.12)]'
         : 'bg-studio-orange shadow-[0_0_16px_rgba(255,136,0,0.14)]',
-    riskTextClass: riskLevel === 'High' ? 'text-red-200' : riskLevel === 'Medium' ? 'text-amber-100' : 'text-emerald-200',
+    riskTextClass: riskLevel === 'High' ? 'text-red-700' : riskLevel === 'Medium' ? 'text-amber-700' : 'text-emerald-700',
   };
 }
 

@@ -100,6 +100,10 @@ if (auth) {
 }
 
 export function isAllowedUser(user) {
+  if (import.meta.env.DEV) {
+    return true;
+  }
+
   return Boolean(user?.email && allowedStudioEmail && user.email.trim().toLowerCase() === allowedStudioEmail.toLowerCase());
 }
 

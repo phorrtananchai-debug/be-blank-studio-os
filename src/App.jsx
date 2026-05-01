@@ -350,28 +350,27 @@ function StudioOSApp({ navigate }) {
   };
 
   return (
-    <div className="min-h-screen bg-studio-black text-studio-ink">
-      <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_12%_0%,rgba(255,136,0,0.12),transparent_30%),radial-gradient(circle_at_78%_8%,rgba(200,155,60,0.07),transparent_28%),linear-gradient(135deg,#0b0b0b_0%,#101010_48%,#050505_100%)]" />
+    <div className="min-h-screen bg-[#e9e8e4] text-[#111111]">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-9 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-        <header className="grid gap-8 border-b border-white/[0.08] pb-8 xl:grid-cols-[minmax(0,1fr)_minmax(560px,0.85fr)] xl:items-end">
+        <header className="grid gap-8 border-b border-black/[0.08] pb-8 xl:grid-cols-[minmax(0,1fr)_minmax(560px,0.85fr)] xl:items-end">
           <div>
-            <div className="mb-4 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.34em] text-studio-orange">
+            <button
+              className="mb-6 text-xs font-medium uppercase tracking-[0.16em] text-[#111111] transition hover:text-[#777777]"
+              type="button"
+              onClick={() => navigate('/')}
+            >
+              ← Back to Site
+            </button>
+            <div className="mb-4 flex items-center gap-3 text-xs font-medium uppercase tracking-[0.2em] text-studio-orange">
               <Sparkles size={18} />
               Studio Operations
             </div>
-            <h1 className="max-w-3xl text-4xl font-extrabold leading-tight tracking-normal text-white sm:text-5xl">
+            <h1 className="max-w-3xl text-4xl font-semibold leading-tight tracking-normal text-[#111111] sm:text-5xl">
               Be Blank Studio OS
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-studio-muted">
               Internal command center for projects, timelines, content, and portfolio assets.
             </p>
-            <button
-              className="mt-5 text-xs font-bold uppercase tracking-[0.24em] text-studio-orange transition hover:text-white"
-              type="button"
-              onClick={() => navigate('/')}
-            >
-              Public portfolio
-            </button>
           </div>
           <div className="grid w-full grid-cols-2 gap-4 sm:grid-cols-4">
             <MetricCard label="Active projects" value={activeProjects} />
@@ -381,9 +380,9 @@ function StudioOSApp({ navigate }) {
           </div>
         </header>
 
-        <section className="flex flex-col gap-5 rounded-lg border border-white/[0.08] bg-white/[0.03] p-5 shadow-studioSoft sm:flex-row sm:items-center sm:justify-between">
+        <section className="flex flex-col gap-5 rounded-lg border border-black/[0.08] bg-[#f3f2ee] p-5 shadow-studioSoft sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-studio-orange">Local database</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-studio-orange">Local database</p>
             <p className="mt-1 text-sm text-studio-muted">
               Projects and portfolio sync from Firestore. Content keeps local backup tools.
             </p>
@@ -406,7 +405,7 @@ function StudioOSApp({ navigate }) {
                 Sign In
               </Button>
             )}
-            {authMessage && <span className="text-sm font-semibold text-red-200">{authMessage}</span>}
+            {authMessage && <span className="text-sm font-semibold text-red-700">{authMessage}</span>}
             {backupMessage && <span className="text-sm font-semibold text-studio-orange">{backupMessage}</span>}
             <input ref={importInputRef} accept="application/json" className="hidden" type="file" onChange={importBackup} />
             <Button variant="secondary" onClick={() => importInputRef.current?.click()}>
@@ -420,8 +419,8 @@ function StudioOSApp({ navigate }) {
           </div>
         </section>
 
-        <section className="rounded-lg border border-white/[0.08] bg-black/20 p-4 text-xs text-studio-muted">
-          <p className="mb-3 font-bold uppercase tracking-[0.2em] text-studio-orange">Firebase Debug</p>
+        <section className="rounded-lg border border-black/[0.08] bg-[#f3f2ee] p-4 text-xs text-studio-muted shadow-studioSoft">
+          <p className="mb-3 font-semibold uppercase tracking-[0.16em] text-studio-orange">Firebase Debug</p>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             <span>apiKeyExists: {String(firebaseDebugInfo.apiKeyExists)}</span>
             <span>configSource: {firebaseDebugInfo.configSource}</span>
@@ -433,7 +432,7 @@ function StudioOSApp({ navigate }) {
           </div>
         </section>
 
-        <nav className="grid grid-cols-2 gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] p-2 shadow-studioSoft backdrop-blur sm:grid-cols-4">
+        <nav className="grid grid-cols-2 gap-2 rounded-full border border-black/[0.08] bg-[#f3f2ee] p-2 shadow-studioSoft backdrop-blur sm:grid-cols-4">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -443,8 +442,8 @@ function StudioOSApp({ navigate }) {
                 key={tab.id}
                 className={`flex h-11 items-center justify-center gap-2 rounded-full text-sm font-bold transition ${
                   isActive
-                    ? 'bg-studio-orange text-black shadow-[0_8px_22px_rgba(255,136,0,0.12)]'
-                    : 'text-studio-muted hover:bg-white/[0.055] hover:text-white'
+                    ? 'bg-[#111111] text-[#f3f2ee] shadow-[0_12px_30px_rgba(0,0,0,0.06)]'
+                    : 'text-studio-muted hover:bg-black/[0.04] hover:text-[#111111]'
                 }`}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
@@ -1287,7 +1286,7 @@ function ProjectDashboard({ projects, statusCounts, onAdd, onDelete, onUpdate })
               <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-studio-muted">{status}</p>
               <Badge tone={status}>{status}</Badge>
             </div>
-            <p className="mt-5 text-3xl font-extrabold text-white">{statusCounts[status]}</p>
+            <p className="mt-5 text-3xl font-extrabold text-[#111111]">{statusCounts[status]}</p>
           </SectionCard>
         ))}
       </div>
@@ -1302,15 +1301,15 @@ function ProjectDashboard({ projects, statusCounts, onAdd, onDelete, onUpdate })
         eyebrow="Project Dashboard"
         title="Studio Pipeline"
       >
-        <div className="mb-6 grid gap-3 rounded-lg border border-white/[0.08] bg-black/20 p-4 lg:grid-cols-[1fr_240px]">
+        <div className="mb-6 grid gap-3 rounded-lg border border-black/[0.08] bg-[#efeee9] p-4 lg:grid-cols-[1fr_240px]">
           <label className="block">
             <span className="mb-2 block text-[11px] font-bold uppercase tracking-[0.18em] text-studio-muted">
               Search projects
             </span>
-            <div className="flex min-h-11 items-center gap-3 rounded-lg border border-white/[0.08] bg-black/25 px-3.5 focus-within:border-studio-orange focus-within:ring-2 focus-within:ring-studio-orange/15">
+            <div className="flex min-h-11 items-center gap-3 rounded-lg border border-black/[0.08] bg-[#f3f2ee] px-3.5 focus-within:border-studio-orange focus-within:ring-2 focus-within:ring-studio-orange/15">
               <Search size={17} className="text-studio-muted" />
               <input
-                className="h-10 w-full bg-transparent text-sm text-white outline-none placeholder:text-studio-muted/60"
+                className="h-10 w-full bg-transparent text-sm text-[#111111] outline-none placeholder:text-studio-muted/60"
                 placeholder="Name, client, location, or notes"
                 type="search"
                 value={searchQuery}
@@ -1323,7 +1322,7 @@ function ProjectDashboard({ projects, statusCounts, onAdd, onDelete, onUpdate })
               Filter status
             </span>
             <select
-              className="h-11 w-full rounded-lg border border-white/[0.08] bg-black/25 px-3.5 text-sm font-semibold capitalize text-white outline-none transition focus:border-studio-orange focus:bg-black/35 focus:ring-2 focus:ring-studio-orange/15"
+              className="h-11 w-full rounded-lg border border-black/[0.08] bg-[#f3f2ee] px-3.5 text-sm font-semibold capitalize text-[#111111] outline-none transition focus:border-studio-orange focus:bg-[#f7f6f2] focus:ring-2 focus:ring-studio-orange/15"
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
             >
@@ -1346,7 +1345,7 @@ function ProjectDashboard({ projects, statusCounts, onAdd, onDelete, onUpdate })
             {filteredProjects.map((project) => (
               <article
                 key={project.id}
-                className="cursor-pointer rounded-lg border border-white/[0.08] bg-white/[0.035] p-5 shadow-studioSoft transition hover:border-studio-orange/25 hover:bg-white/[0.05]"
+                className="cursor-pointer rounded-lg border border-black/[0.08] bg-[#f3f2ee] p-5 shadow-studioSoft transition hover:border-studio-orange/25 hover:bg-[#f3f2ee]"
                 role="button"
                 tabIndex={0}
                 onClick={() => setSelectedProjectId(project.id)}
@@ -1360,7 +1359,7 @@ function ProjectDashboard({ projects, statusCounts, onAdd, onDelete, onUpdate })
                   <div>
                     <input
                       aria-label="Project name"
-                      className="w-full bg-transparent text-2xl font-bold text-white outline-none transition focus:text-studio-orange"
+                      className="w-full bg-transparent text-2xl font-bold text-[#111111] outline-none transition focus:text-studio-orange"
                       value={project.name}
                       onClick={(event) => event.stopPropagation()}
                       onChange={(event) => onUpdate(project.id, { name: event.target.value })}
@@ -1379,7 +1378,7 @@ function ProjectDashboard({ projects, statusCounts, onAdd, onDelete, onUpdate })
                     </Button>
                     <button
                       aria-label="Delete project"
-                      className="grid size-9 place-items-center rounded-full border border-white/[0.08] text-studio-muted transition hover:border-red-400 hover:bg-red-500/10 hover:text-red-300"
+                      className="grid size-9 place-items-center rounded-full border border-black/[0.08] text-studio-muted transition hover:border-red-400 hover:bg-red-500/10 hover:text-red-300"
                       type="button"
                       onClick={(event) => {
                         event.stopPropagation();
@@ -1482,7 +1481,7 @@ function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
               Back
             </Button>
             <button
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-red-400/45 bg-red-500/10 px-4 text-sm font-bold text-red-200 transition hover:bg-red-500/15"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-red-400/45 bg-red-500/10 px-4 text-sm font-bold text-red-700 transition hover:bg-red-500/15"
               type="button"
               onClick={onDelete}
             >
@@ -1495,7 +1494,7 @@ function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
         title={project.name}
       >
         <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-lg border border-white/[0.08] bg-black/20 p-5">
+          <div className="rounded-lg border border-black/[0.08] bg-[#efeee9] p-5">
             <div className="mb-6 flex flex-wrap items-center gap-3">
               <Badge tone={project.status}>{project.status}</Badge>
               <Badge tone={timeline.deliveryPressure}>{timeline.deliveryPressure}</Badge>
@@ -1561,11 +1560,11 @@ function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
           </div>
 
           <div className="grid gap-5">
-            <div className="rounded-lg border border-white/[0.08] bg-black/20 p-5">
+            <div className="rounded-lg border border-black/[0.08] bg-[#efeee9] p-5">
               <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-studio-orange">Timeline</p>
               <div className="mt-4 flex items-end justify-between gap-4">
                 <div>
-                  <p className="text-4xl font-extrabold text-white">{timeline.progressPercent}%</p>
+                  <p className="text-4xl font-extrabold text-[#111111]">{timeline.progressPercent}%</p>
                   <p className="mt-1 text-sm text-studio-muted">delivery progress</p>
                 </div>
                 <div className="text-right">
@@ -1573,7 +1572,7 @@ function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
                   <p className="text-xs text-studio-muted">days left</p>
                 </div>
               </div>
-              <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-white/[0.08]">
+              <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-[#f3f2ee]">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${timeline.riskBarClass}`}
                   style={{ width: `${timeline.progressPercent}%` }}
@@ -1587,7 +1586,7 @@ function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
                   <p className="mt-2 text-2xl font-extrabold">{timeline.riskLevel}</p>
                 </div>
               </div>
-              <div className="mt-5 rounded-lg border border-white/[0.06] bg-black/20 p-4">
+              <div className="mt-5 rounded-lg border border-black/[0.08] bg-[#efeee9] p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-studio-muted">
                     Delivery pressure
@@ -1597,7 +1596,7 @@ function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
               </div>
             </div>
 
-            <div className="grid gap-3 rounded-lg border border-white/[0.08] bg-black/20 p-5">
+            <div className="grid gap-3 rounded-lg border border-black/[0.08] bg-[#efeee9] p-5">
               <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-studio-orange">Key dates</p>
               <KeyDate calendarLabel="Start date" label="Start" project={project} value={project.startDate} />
               <KeyDate label="Design complete" value={project.designCompleteDate} />
@@ -1608,7 +1607,7 @@ function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
         </div>
 
         <div className="mt-6 grid gap-5 xl:grid-cols-2">
-          <div className="rounded-lg border border-white/[0.08] bg-black/20 p-5">
+          <div className="rounded-lg border border-black/[0.08] bg-[#efeee9] p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-studio-orange">
@@ -1718,11 +1717,11 @@ function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
             <div className="mt-5">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <span className="text-xs font-semibold text-studio-muted">Cost used against project value</span>
-                <span className="text-sm font-bold text-white">
+                <span className="text-sm font-bold text-[#111111]">
                   {financials.projectValue ? Math.round((financials.totalCost / financials.projectValue) * 100) : 0}%
                 </span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-white/[0.08]">
+              <div className="h-2 overflow-hidden rounded-full bg-[#f3f2ee]">
                 <div
                   className={`h-full rounded-full ${getProfitBarClass(financials.profitStatus)}`}
                   style={{
@@ -1733,7 +1732,7 @@ function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
             </div>
           </div>
 
-          <div className="rounded-lg border border-white/[0.08] bg-black/20 p-5">
+          <div className="rounded-lg border border-black/[0.08] bg-[#efeee9] p-5">
             <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-studio-orange">File control</p>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <Field
@@ -1759,7 +1758,7 @@ function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
           </div>
         </div>
 
-        <div className="mt-6 rounded-lg border border-white/[0.08] bg-black/20 p-5">
+        <div className="mt-6 rounded-lg border border-black/[0.08] bg-[#efeee9] p-5">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-studio-orange">Site log</p>
@@ -1775,7 +1774,7 @@ function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
               <EmptyState message="No site logs yet. Add the first site update when work begins." />
             ) : (
               siteLogs.map((log) => (
-                <article key={log.id} className="rounded-lg border border-white/[0.06] bg-white/[0.025] p-4">
+                <article key={log.id} className="rounded-lg border border-black/[0.08] bg-[#f3f2ee] p-4">
                   <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                     <Field
                       label="Date"
@@ -1786,7 +1785,7 @@ function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
                     />
                     <button
                       aria-label="Delete site log"
-                      className="grid size-10 place-items-center rounded-full border border-white/[0.08] text-studio-muted transition hover:border-red-400 hover:bg-red-500/10 hover:text-red-300"
+                      className="grid size-10 place-items-center rounded-full border border-black/[0.08] text-studio-muted transition hover:border-red-400 hover:bg-red-500/10 hover:text-red-300"
                       type="button"
                       onClick={() => deleteSiteLog(log.id)}
                     >
@@ -1824,10 +1823,10 @@ function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
 
 function KeyDate({ calendarLabel, label, project, value }) {
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-white/[0.06] pb-3 last:border-b-0 last:pb-0">
+    <div className="flex items-center justify-between gap-4 border-b border-black/[0.08] pb-3 last:border-b-0 last:pb-0">
       <span className="text-sm text-studio-muted">{label}</span>
       <span className="flex items-center gap-2">
-        <span className="text-sm font-bold text-white">{value ? formatDate(value) : 'TBD'}</span>
+        <span className="text-sm font-bold text-[#111111]">{value ? formatDate(value) : 'TBD'}</span>
         {project && calendarLabel && value && <CalendarActions date={value} label={calendarLabel} project={project} />}
       </span>
     </div>
@@ -1843,7 +1842,7 @@ function CalendarActions({ date, label, project }) {
     <span className="flex shrink-0 items-center gap-1">
       <button
         aria-label={`Add ${label} to Google Calendar`}
-        className="grid size-8 place-items-center rounded-full border border-white/[0.08] text-studio-muted transition hover:border-studio-orange hover:text-studio-orange"
+        className="grid size-8 place-items-center rounded-full border border-black/[0.08] text-studio-muted transition hover:border-studio-orange hover:text-studio-orange"
         title="Add to Google Calendar"
         type="button"
         onClick={openGoogleCalendar}
@@ -1852,7 +1851,7 @@ function CalendarActions({ date, label, project }) {
       </button>
       <button
         aria-label={`Download ${label} ICS file`}
-        className="grid size-8 place-items-center rounded-full border border-white/[0.08] text-studio-muted transition hover:border-studio-orange hover:text-studio-orange"
+        className="grid size-8 place-items-center rounded-full border border-black/[0.08] text-studio-muted transition hover:border-studio-orange hover:text-studio-orange"
         title="Download .ics"
         type="button"
         onClick={() => downloadIcsCalendarEvent(project, date, label)}
@@ -1865,14 +1864,14 @@ function CalendarActions({ date, label, project }) {
 
 function FinanceStat({ label, value, tone = 'neutral' }) {
   const toneClass = {
-    healthy: 'text-emerald-200',
-    watch: 'text-amber-100',
-    loss: 'text-red-200',
-    neutral: 'text-white',
+    healthy: 'text-emerald-700',
+    watch: 'text-amber-700',
+    loss: 'text-red-700',
+    neutral: 'text-[#111111]',
   }[tone];
 
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-white/[0.025] p-4">
+    <div className="rounded-lg border border-black/[0.08] bg-[#f3f2ee] p-4">
       <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-studio-muted">{label}</p>
       <p className={`mt-2 text-xl font-extrabold leading-tight ${toneClass}`}>{value}</p>
     </div>
@@ -1924,12 +1923,12 @@ function TimelineCalculator({ projects, onUpdate }) {
     <main className="grid gap-6">
       <SectionCard
         action={
-          <div className="grid grid-cols-2 gap-2 rounded-full border border-white/[0.08] bg-black/25 p-1">
+          <div className="grid grid-cols-2 gap-2 rounded-full border border-black/[0.08] bg-[#f3f2ee] p-1">
             {['overview', 'detail'].map((mode) => (
               <button
                 key={mode}
                 className={`h-9 rounded-full px-4 text-sm font-bold capitalize transition ${
-                  viewMode === mode ? 'bg-studio-orange text-black' : 'text-studio-muted hover:bg-white/[0.06] hover:text-white'
+                  viewMode === mode ? 'bg-[#111111] text-[#f3f2ee]' : 'text-studio-muted hover:bg-black/[0.04] hover:text-[#111111]'
                 }`}
                 type="button"
                 onClick={() => setViewMode(mode)}
@@ -1964,10 +1963,10 @@ function TimelineOverview({ projects }) {
         const timeline = calculateTimeline(project);
 
         return (
-          <article key={project.id} className="rounded-lg border border-white/[0.08] bg-white/[0.03] p-5 shadow-studioSoft">
+          <article key={project.id} className="rounded-lg border border-black/[0.08] bg-[#f3f2ee] p-5 shadow-studioSoft">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
-                <h3 className="truncate text-xl font-extrabold text-white">{project.name}</h3>
+                <h3 className="truncate text-xl font-extrabold text-[#111111]">{project.name}</h3>
                 <p className="mt-1 text-sm leading-6 text-studio-muted">
                   {project.client || 'Client TBD'} / {project.location || 'Location TBD'}
                 </p>
@@ -1988,7 +1987,7 @@ function TimelineOverview({ projects }) {
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-studio-muted">Total project days</p>
-                <p className="mt-1 text-2xl font-extrabold text-white">{timeline.totalProjectDays}</p>
+                <p className="mt-1 text-2xl font-extrabold text-[#111111]">{timeline.totalProjectDays}</p>
               </div>
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-studio-muted">Days to opening</p>
@@ -1999,9 +1998,9 @@ function TimelineOverview({ projects }) {
             <div className="mt-5">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <span className="text-xs font-semibold text-studio-muted">Progress</span>
-                <span className="text-xs font-bold text-white">{timeline.progressPercent}%</span>
+                <span className="text-xs font-bold text-[#111111]">{timeline.progressPercent}%</span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-white/[0.08]">
+              <div className="h-2 overflow-hidden rounded-full bg-[#f3f2ee]">
                 <div className={`h-full rounded-full ${timeline.riskBarClass}`} style={{ width: `${timeline.progressPercent}%` }} />
               </div>
             </div>
@@ -2021,18 +2020,18 @@ function TimelineDetail({ expandedProjectIds, projects, onToggleExpanded, onUpda
         const phases = getTimelinePhases(project, timeline);
 
         return (
-          <article key={project.id} className="rounded-lg border border-white/[0.08] bg-white/[0.03] shadow-studioSoft">
+          <article key={project.id} className="rounded-lg border border-black/[0.08] bg-[#f3f2ee] shadow-studioSoft">
             <button
               className="flex w-full flex-col gap-4 p-5 text-left sm:flex-row sm:items-center sm:justify-between"
               type="button"
               onClick={() => onToggleExpanded(project.id)}
             >
               <div className="flex min-w-0 items-start gap-3">
-                <span className="mt-1 grid size-8 shrink-0 place-items-center rounded-full border border-white/[0.08] bg-black/20 text-studio-orange">
+                <span className="mt-1 grid size-8 shrink-0 place-items-center rounded-full border border-black/[0.08] bg-[#efeee9] text-studio-orange">
                   {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                 </span>
                 <div className="min-w-0">
-                  <h3 className="truncate text-xl font-extrabold text-white">{project.name}</h3>
+                  <h3 className="truncate text-xl font-extrabold text-[#111111]">{project.name}</h3>
                   <p className="mt-1 text-sm text-studio-muted">
                     {project.client || 'Client TBD'} / {project.location || 'Location TBD'}
                   </p>
@@ -2046,15 +2045,15 @@ function TimelineDetail({ expandedProjectIds, projects, onToggleExpanded, onUpda
             </button>
 
             {isExpanded && (
-              <div className="border-t border-white/[0.08] p-5">
+              <div className="border-t border-black/[0.08] p-5">
                 <div className="grid gap-3">
                   {phases.map((phase) => (
                     <div
                       key={phase.name}
-                      className="grid gap-3 rounded-lg border border-white/[0.06] bg-black/20 p-4 sm:grid-cols-[1fr_auto]"
+                      className="grid gap-3 rounded-lg border border-black/[0.08] bg-[#efeee9] p-4 sm:grid-cols-[1fr_auto]"
                     >
                       <div>
-                        <p className="text-sm font-bold text-white">{phase.name}</p>
+                        <p className="text-sm font-bold text-[#111111]">{phase.name}</p>
                         <p className="mt-1 text-xs text-studio-muted">{phase.range}</p>
                       </div>
                       <p className="text-lg font-extrabold text-studio-orange">{phase.duration}d</p>
@@ -2093,10 +2092,10 @@ function TimelineDetail({ expandedProjectIds, projects, onToggleExpanded, onUpda
 
 function TimelineDate({ calendarLabel, label, project, value }) {
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-black/20 p-3">
+    <div className="rounded-lg border border-black/[0.08] bg-[#efeee9] p-3">
       <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-studio-muted">{label}</p>
       <div className="mt-2 flex items-center justify-between gap-2">
-        <p className="text-sm font-bold text-white">{value ? formatDate(value) : 'TBD'}</p>
+        <p className="text-sm font-bold text-[#111111]">{value ? formatDate(value) : 'TBD'}</p>
         {project && calendarLabel && value && <CalendarActions date={value} label={calendarLabel} project={project} />}
       </div>
     </div>
@@ -2155,7 +2154,7 @@ function ContentPlanner({ contentItems, copiedId, onAdd, onCopy, onDelete, onUpd
     >
       <div className="grid gap-6">
         {contentItems.map((item) => (
-          <article key={item.id} className="rounded-lg border border-white/[0.08] bg-white/[0.035] p-5 shadow-studioSoft">
+          <article key={item.id} className="rounded-lg border border-black/[0.08] bg-[#f3f2ee] p-5 shadow-studioSoft">
             <div className="mb-6 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <Field
                 label="Post title"
@@ -2170,7 +2169,7 @@ function ContentPlanner({ contentItems, copiedId, onAdd, onCopy, onDelete, onUpd
                 </Button>
                 <button
                   aria-label="Delete post"
-                  className="grid size-10 place-items-center rounded-full border border-white/[0.08] text-studio-muted transition hover:border-red-400 hover:bg-red-500/10 hover:text-red-300"
+                  className="grid size-10 place-items-center rounded-full border border-black/[0.08] text-studio-muted transition hover:border-red-400 hover:bg-red-500/10 hover:text-red-300"
                   type="button"
                   onClick={() => onDelete(item.id)}
                 >
@@ -2235,7 +2234,7 @@ function PortfolioManager({ portfolioItems, onAdd, onDelete, onExport, onUpdate 
     >
       <div className="grid gap-6 lg:grid-cols-2">
         {portfolioItems.map((item) => (
-          <article key={item.id} className="overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.035] shadow-studioSoft">
+          <article key={item.id} className="overflow-hidden rounded-lg border border-black/[0.08] bg-[#f3f2ee] shadow-studioSoft">
             <div className="aspect-[16/9] bg-studio-black">
               {item.imageUrl ? (
                 <img alt={item.title} className="h-full w-full object-cover" src={item.imageUrl} />
@@ -2255,7 +2254,7 @@ function PortfolioManager({ portfolioItems, onAdd, onDelete, onExport, onUpdate 
                 />
                 <button
                   aria-label="Delete portfolio item"
-                  className="mt-7 grid size-10 place-items-center rounded-full border border-white/[0.08] text-studio-muted transition hover:border-red-400 hover:bg-red-500/10 hover:text-red-300"
+                  className="mt-7 grid size-10 place-items-center rounded-full border border-black/[0.08] text-studio-muted transition hover:border-red-400 hover:bg-red-500/10 hover:text-red-300"
                   type="button"
                   onClick={() => onDelete(item.id)}
                 >
