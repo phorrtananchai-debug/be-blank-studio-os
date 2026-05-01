@@ -4,9 +4,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
 :root {
-  color: #f5efe6;
-  background: #0b0b0b;
+  color: #111111;
+  background: #e9e8e4;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -21,7 +22,13 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #0b0b0b;
+  background: #e9e8e4;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  background: #e9e8e4;
 }
 
 button,
@@ -41,14 +48,14 @@ img {
 }
 
 ::-webkit-scrollbar-track {
-  background: #101010;
+  background: #e9e8e4;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #343434;
+  background: #c9c9c3;
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #ff8800;
+  background: #8d8d86;
 }

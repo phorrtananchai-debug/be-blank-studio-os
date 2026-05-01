@@ -59,7 +59,7 @@ const firebaseConfig = isVercelDeployment
 
 const firebaseConfigSource = isVercelDeployment ? 'vercel-fallback' : localFirebaseEnvConfig.apiKey ? 'env' : 'fallback';
 
-export const allowedStudioEmail = import.meta.env.VITE_ALLOWED_STUDIO_EMAIL;
+export const allowedStudioEmail = String(import.meta.env.VITE_ALLOWED_STUDIO_EMAIL || '').trim();
 
 export function getFirebaseDebugInfo() {
   return {
@@ -100,7 +100,7 @@ if (auth) {
 }
 
 export function isAllowedUser(user) {
-  return Boolean(user?.email && allowedStudioEmail && user.email.toLowerCase() === allowedStudioEmail.toLowerCase());
+  return Boolean(user?.email && allowedStudioEmail && user.email.trim().toLowerCase() === allowedStudioEmail.toLowerCase());
 }
 
 function getFirebaseAuthMessage(error) {
@@ -158,6 +158,9 @@ export async function signInToStudio() {
 
   if (!isAllowedUser(result.user)) {
     await signOut(auth);
+    if (!allowedStudioEmail) {
+      throw new Error('VITE_ALLOWED_STUDIO_EMAIL is missing. Add the studio Google email to the environment and restart the app.');
+    }
     throw new Error(`This Google account is not allowed. Sign in with ${allowedStudioEmail}.`);
   }
 
