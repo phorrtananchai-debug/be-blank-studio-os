@@ -20,10 +20,13 @@ import { Badge } from './components/Badge.jsx';
 import { Button } from './components/Button.jsx';
 import { EmptyState } from './components/EmptyState.jsx';
 import { Field } from './components/Field.jsx';
+import { LoginPage } from './components/LoginPage.jsx';
 import { MetricCard } from './components/MetricCard.jsx';
 import { SectionCard } from './components/SectionCard.jsx';
 import { StatusSelect } from './components/StatusSelect.jsx';
 import { useLocalStorage } from './hooks/useLocalStorage.js';
+import { MobileDashboard } from './pages/MobileDashboard.jsx';
+import { MobileLogin } from './pages/MobileLogin.jsx';
 import {
   addCollectionItem,
   deleteCollectionItem,
@@ -80,6 +83,14 @@ function getRoutePath() {
   return window.location.pathname || '/';
 }
 
+function isMobileDevice() {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return window.matchMedia('(max-width: 767px), (pointer: coarse)').matches;
+}
+
 function App() {
   const [routePath, setRoutePath] = useState(getRoutePath);
   const [publicPortfolioItems, setPublicPortfolioItems] = useState(initialPortfolioItems);
@@ -89,6 +100,13 @@ function App() {
     window.addEventListener('popstate', handleRouteChange);
     return () => window.removeEventListener('popstate', handleRouteChange);
   }, []);
+
+  useEffect(() => {
+    if (routePath === '/' && isMobileDevice()) {
+      window.history.replaceState({}, '', '/m');
+      setRoutePath('/m');
+    }
+  }, [routePath]);
 
   useEffect(() => {
     if (!isFirebaseConfigured()) {
@@ -114,6 +132,10 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  if (routePath === '/m') {
+    return <MobileStudioApp navigate={navigate} />;
+  }
+
   if (routePath === '/os' || routePath === '/dashboard') {
     return <StudioOSApp navigate={navigate} />;
   }
@@ -124,6 +146,91 @@ function App() {
   }
 
   return <PublicHomepage portfolioItems={publicPortfolioItems} navigate={navigate} />;
+}
+
+function MobileStudioApp({ navigate }) {
+  const [mobileUser, setMobileUser] = useState(null);
+  const [authMessage, setAuthMessage] = useState('');
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    if (!isFirebaseConfigured()) {
+      setAuthMessage('Firebase is not configured.');
+      setIsCheckingAuth(false);
+      return undefined;
+    }
+
+    return onStudioAuthChange((user) => {
+      setIsCheckingAuth(false);
+
+      if (!user) {
+        setMobileUser(null);
+        return;
+      }
+
+      if (!isAllowedUser(user)) {
+        setMobileUser(null);
+        setAuthMessage('Access restricted');
+        signOutOfStudio();
+        return;
+      }
+
+      setMobileUser(user);
+      setAuthMessage('');
+    });
+  }, []);
+
+  const handleMobileSignIn = async () => {
+    try {
+      setAuthMessage('');
+      const user = await signInToStudio();
+      setMobileUser(user);
+    } catch (error) {
+      setAuthMessage(error.message?.toLowerCase().includes('not allowed') ? 'Access restricted' : error.message);
+    }
+  };
+
+  const handleMobileSignOut = async () => {
+    await signOutOfStudio();
+    setMobileUser(null);
+  };
+
+  const previewMobileDashboard = () => {
+    if (import.meta.env.DEV) {
+      setMobileUser({ email: 'preview@local.dev' });
+      setAuthMessage('');
+    }
+  };
+
+  if (isCheckingAuth) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[#f5f5f5] px-5 text-[#111111]">
+        <div className="text-center">
+          <p className="whitespace-nowrap text-[15px] font-medium tracking-[0.03em]">Be blank to behind studio</p>
+          <div className="mx-auto my-4 h-px w-10 bg-black/[0.18]" />
+          <p className="text-sm tracking-[0.08em] text-[#777777]">Studio OS</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!mobileUser) {
+    return (
+      <MobileLogin
+        errorMessage={authMessage}
+        onPreviewDashboard={previewMobileDashboard}
+        onSignIn={handleMobileSignIn}
+      />
+    );
+  }
+
+  return (
+    <MobileDashboard
+      user={mobileUser}
+      onOpenDesktop={() => navigate('/os')}
+      onSignOut={handleMobileSignOut}
+    />
+  );
 }
 
 function StudioOSApp({ navigate }) {
@@ -243,6 +350,10 @@ function StudioOSApp({ navigate }) {
     setStudioUser(null);
   };
 
+  if (!studioUser && dataMode === 'firebase-auth') {
+    return <LoginPage errorMessage={authMessage} onBack={() => navigate('/')} onSignIn={handleFirebaseSignIn} />;
+  }
+
   const updateProject = async (id, updates) => {
     if (!studioUser) {
       setAuthMessage('Sign in before updating Firestore projects.');
@@ -350,7 +461,7 @@ function StudioOSApp({ navigate }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#e9e8e4] text-[#111111]">
+    <div className="os-dashboard-enter min-h-screen bg-[#e9e8e4] text-[#111111]">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-9 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
         <header className="grid gap-8 border-b border-black/[0.08] pb-8 xl:grid-cols-[minmax(0,1fr)_minmax(560px,0.85fr)] xl:items-end">
           <div>
