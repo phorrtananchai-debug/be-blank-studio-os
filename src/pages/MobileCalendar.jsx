@@ -1,5 +1,6 @@
 import { AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { DEMO_MODE } from './mobileConfig.js';
 import { RangeTaskCard as SharedRangeTaskCard, TaskRow as SharedTaskRow } from './mobileComponents.jsx';
 
 const modes = ['Week', 'Month', 'Year'];
@@ -453,6 +454,7 @@ function Dot({ completed = false, count, selected = false }) {
 }
 
 export function MobileCalendar({ initialDate, onDeleteTask, onDoneTask, onDuplicateTask, onEditTask, onMoveTask, onOpenTask, projects = [], tasks }) {
+  const modeOptions = DEMO_MODE ? modes : modes;
   const [mode, setMode] = useState('Week');
   const [selectedDate, setSelectedDate] = useState(() => startOfDay(initialDate) || new Date());
   const [expandedTasks, setExpandedTasks] = useState([]);
@@ -496,7 +498,7 @@ export function MobileCalendar({ initialDate, onDeleteTask, onDoneTask, onDuplic
   return (
     <div className="page-fade pb-32">
       <div className="sticky top-0 z-30 grid grid-cols-3 rounded-full border border-[rgba(33,33,33,0.08)] bg-white/95 p-1 shadow-[0_10px_24px_rgba(33,33,33,0.04)] backdrop-blur-xl">
-        {modes.map((item) => (
+        {modeOptions.map((item) => (
           <button
             key={item}
             className={`h-10 rounded-full text-sm font-medium transition duration-[120ms] ease-out active:scale-95 ${mode === item ? 'bg-[#212121] text-[#F5F5FA]' : 'text-[#777777]'}`}

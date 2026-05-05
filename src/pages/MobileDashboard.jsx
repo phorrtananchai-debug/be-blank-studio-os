@@ -9,6 +9,7 @@ import {
 } from '../services/firebase.js';
 import { subscribeToProjects } from '../services/firebaseProjects.js';
 import { MobileCalendar } from './MobileCalendar.jsx';
+import { DEMO_MODE } from './mobileConfig.js';
 import { ProfileAvatar, TaskRow as SharedTaskRow } from './mobileComponents.jsx';
 import { compressProfileImage, getProfileImage, removeProfileImage, setProfileImage } from './mobileUtils.js';
 import { MobileProjects } from './MobileProjects.jsx';
@@ -17,7 +18,6 @@ const tabs = ['Home', 'Calendar', '+', 'Projects', 'More'];
 const taskCollection = 'tasks';
 const notesCollection = 'notes';
 const dayInMs = 24 * 60 * 60 * 1000;
-const DEMO_MODE = true;
 const demoFocusDate = new Date(2026, 4, 5);
 const demoProjects = [
   {

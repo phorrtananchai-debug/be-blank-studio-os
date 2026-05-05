@@ -1,5 +1,6 @@
 import { Briefcase, CalendarDays, CheckCircle, Clock } from 'lucide-react';
 import { useState } from 'react';
+import { DEMO_MODE } from './mobileConfig.js';
 import { ProgressBar } from './mobileComponents.jsx';
 import {
   formatDaysLeftFromEnd,
@@ -325,6 +326,7 @@ export function MobileProjects({ notes, onSelectProject, projects, selectedProje
   const setSelectedProjectId = onSelectProject || setLocalSelectedProjectId;
   const selectedProject = projects.find((project) => project.id === currentSelectedProjectId);
   const groupedProjects = getGroupedProjects(projects, tasks);
+  const visibleGroupedProjects = DEMO_MODE ? groupedProjects : groupedProjects;
 
   if (selectedProject) {
     return (
@@ -347,7 +349,7 @@ export function MobileProjects({ notes, onSelectProject, projects, selectedProje
       </div>
 
       <div className="mt-6 space-y-7">
-        {Object.entries(groupedProjects).map(([label, groupProjects]) => (
+        {Object.entries(visibleGroupedProjects).map(([label, groupProjects]) => (
           groupProjects.length ? (
             <section key={label}>
               <div className="mb-2 flex items-center justify-between px-1 text-[11px] font-medium uppercase tracking-[0.14em] text-[#777777]">
