@@ -1297,14 +1297,6 @@ function saveHomepageLayout(layoutById) {
   window.localStorage.setItem(HOMEPAGE_LAYOUT_STORAGE_KEY, JSON.stringify(layoutById));
 }
 
-function getHomepageBackground() {
-  if (typeof window === 'undefined') {
-    return DEFAULT_HOMEPAGE_BACKGROUND;
-  }
-
-  return window.localStorage.getItem(HOMEPAGE_BACKGROUND_STORAGE_KEY) || DEFAULT_HOMEPAGE_BACKGROUND;
-}
-
 function saveHomepageBackground(backgroundColor) {
   if (typeof window === 'undefined') {
     return;
