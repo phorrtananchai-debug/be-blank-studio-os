@@ -5,6 +5,8 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Montserrat', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        serif: ['Cormorant Garamond', 'serif'],
+        urbanist: ['Urbanist', 'sans-serif'],
       },
       colors: {
         studio: {
