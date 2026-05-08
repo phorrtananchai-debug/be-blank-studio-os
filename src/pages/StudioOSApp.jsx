@@ -298,39 +298,41 @@ export function StudioOSApp({ navigate }) {
           </nav>
         </div>
 
-        <div className="space-y-32">
-          {activeTab === 'projects' && (
-            <ProjectDashboard
-              projects={projects}
-              statusCounts={statusCounts}
-              onAdd={addProject}
-              onDelete={deleteProject}
-              onUpdate={updateProject}
-            />
-          )}
+        <div className="space-y-32 page-fade">
+          <div key={activeTab} className="page-fade">
+            {activeTab === 'projects' && (
+              <ProjectDashboard
+                projects={projects}
+                statusCounts={statusCounts}
+                onAdd={addProject}
+                onDelete={deleteProject}
+                onUpdate={updateProject}
+              />
+            )}
 
-          {activeTab === 'timeline' && <TimelineCalculator projects={projects} onUpdate={updateProject} />}
+            {activeTab === 'timeline' && <TimelineCalculator projects={projects} onUpdate={updateProject} />}
 
-          {activeTab === 'content' && (
-            <ContentPlanner
-              contentItems={contentItems}
-              copiedId={copiedId}
-              onAdd={() => setContentItems((items) => [createContentItem(), ...items])}
-              onCopy={copyCaption}
-              onDelete={(id) => setContentItems((items) => items.filter((item) => item.id !== id))}
-              onUpdate={updateContent}
-            />
-          )}
+            {activeTab === 'content' && (
+              <ContentPlanner
+                contentItems={contentItems}
+                copiedId={copiedId}
+                onAdd={() => setContentItems((items) => [createContentItem(), ...items])}
+                onCopy={copyCaption}
+                onDelete={(id) => setContentItems((items) => items.filter((item) => item.id !== id))}
+                onUpdate={updateContent}
+              />
+            )}
 
-          {activeTab === 'portfolio' && (
-            <PortfolioManager
-              portfolioItems={portfolioItems}
-              onAdd={addPortfolio}
-              onDelete={deletePortfolio}
-              onExport={() => downloadJson('be-blank-portfolio.json', portfolioItems)}
-              onUpdate={updatePortfolio}
-            />
-          )}
+            {activeTab === 'portfolio' && (
+              <PortfolioManager
+                portfolioItems={portfolioItems}
+                onAdd={addPortfolio}
+                onDelete={deletePortfolio}
+                onExport={() => downloadJson('be-blank-portfolio.json', portfolioItems)}
+                onUpdate={updatePortfolio}
+              />
+            )}
+          </div>
         </div>
 
         <footer className="border-t border-black/[0.03] pt-16 pb-24 text-center">

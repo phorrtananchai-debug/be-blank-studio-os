@@ -28,6 +28,18 @@ export default {
         studio: '0 12px 30px rgba(0, 0, 0, 0.04)',
         studioSoft: '0 8px 24px rgba(0, 0, 0, 0.02)',
         premium: '0 30px 60px -12px rgba(0, 0, 0, 0.08)',
+        deep: '0 50px 100px -20px rgba(0, 0, 0, 0.12)',
+      },
+      transitionTimingFunction: {
+        'studio-out': 'cubic-bezier(0.16, 1, 0.3, 1)',
+        'studio-in-out': 'cubic-bezier(0.65, 0, 0.35, 1)',
+        'cinema': 'cubic-bezier(0.22, 1, 0.36, 1)',
+      },
+      transitionDuration: {
+        '700': '700ms',
+        '1000': '1000ms',
+        '1500': '1500ms',
+        '2000': '2000ms',
       },
       letterSpacing: {
         tightest: '-.03em',

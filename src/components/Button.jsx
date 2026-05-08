@@ -1,7 +1,7 @@
 export function Button({ children, variant = 'primary', ...props }) {
   const variants = {
-    primary: 'border-studio-ink bg-studio-ink text-white shadow-premium hover:bg-studio-inkLight hover:shadow-studio active:scale-[0.98]',
-    secondary: 'border-black/[0.03] bg-white/50 backdrop-blur text-studio-ink hover:bg-white hover:border-black/[0.1] hover:shadow-studioSoft active:scale-[0.98]',
+    primary: 'border-studio-ink bg-studio-ink text-white shadow-premium hover:bg-studio-inkLight hover:shadow-deep active:scale-[0.98] active:shadow-studio',
+    secondary: 'border-black/[0.03] bg-white/50 backdrop-blur text-studio-ink hover:bg-white hover:border-black/[0.1] hover:shadow-studio active:scale-[0.98]',
   };
 
   return (

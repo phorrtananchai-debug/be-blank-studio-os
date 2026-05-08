@@ -162,8 +162,10 @@ export function PublicHomepage({ portfolioItems, navigate }) {
   const easedScrollProgress = easeOutCubic(scrollProgress);
   const titleStyle = {
     top: `clamp(86px, ${38 - easedScrollProgress * 28}vh, 38vh)`,
-    opacity: clampNumber(1 - easedScrollProgress * 0.1, 0.9, 1),
+    opacity: clampNumber(1 - easedScrollProgress * 0.1, 0, 1),
     transform: `translateX(-50%) scale(${clampNumber(1 - easedScrollProgress * 0.38, 0.62, 1)})`,
+    filter: `blur(${scrollProgress * 20}px)`,
+    transition: 'top 1.2s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 1s linear, filter 1s linear',
   };
   const canSaveToFirebase = Boolean(publicUser && isFirebaseConfigured());
   const heroItems = layoutItems.slice(0, 4);
@@ -317,7 +319,7 @@ export function PublicHomepage({ portfolioItems, navigate }) {
         style={titleStyle}
       >
         <h1
-          className="mx-auto max-w-[96vw] whitespace-nowrap text-center text-[clamp(18px,5vw,72px)] font-medium uppercase text-[#111111] transition-[transform,top,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] md:text-[clamp(32px,5vw,72px)]"
+          className="reveal-mask mx-auto max-w-[96vw] whitespace-nowrap text-center text-[clamp(18px,5vw,72px)] font-medium uppercase text-[#111111] md:text-[clamp(32px,5vw,72px)]"
           style={{
             letterSpacing: '0.03em',
             lineHeight: 1.05,
@@ -379,10 +381,10 @@ export function PublicHomepage({ portfolioItems, navigate }) {
 
         <section id="work" className="bg-[#e9e8e4] px-5 pb-24 md:px-8" style={{ backgroundColor: DEFAULT_HOMEPAGE_BACKGROUND }}>
           <div className="mb-10 flex items-end justify-between border-t border-black/[0.06] pt-6">
-            <h2 className="text-xs font-medium uppercase tracking-[0.16em] text-[#111111]">Work</h2>
-            <span className="text-xs uppercase tracking-[0.08em] text-[#777777]">Selected portfolio</span>
+            <h2 className="text-[10px] font-bold uppercase tracking-cinema text-studio-muted">Work</h2>
+            <span className="text-[10px] font-bold uppercase tracking-architectural text-studio-muted/60">Selected portfolio</span>
           </div>
-          <div className="grid gap-x-10 gap-y-14 md:grid-cols-2 xl:grid-cols-3">
+          <div className="stagger-in grid gap-x-10 gap-y-22 md:grid-cols-2 xl:grid-cols-3">
             {layoutItems.map((item) => (
               <PortfolioGridCard key={item.id} item={item} navigate={navigate} />
             ))}
@@ -427,7 +429,7 @@ function PortfolioCanvasCard({ isEditing, item, index, navigate, onPointerDown, 
 
   return (
     <article
-      className={`group absolute text-left ${
+      className={`group absolute text-left transition-all duration-1000 ease-studio-out ${
         isEditing && selected ? 'cursor-grab select-none outline outline-1 outline-black/50' : isEditing ? 'cursor-grab select-none' : ''
       }`}
       style={style}
@@ -445,10 +447,10 @@ function PortfolioCanvasCard({ isEditing, item, index, navigate, onPointerDown, 
           navigate(`/portfolio/${encodeURIComponent(item.id)}`);
         }}
       >
-        <span className="block overflow-hidden">
+        <span className="block overflow-hidden rounded-sm">
           <img
             alt={item.title}
-            className="w-full object-cover shadow-[0_10px_30px_rgba(0,0,0,0.05)] transition duration-200 ease-out group-hover:scale-[1.02] group-hover:opacity-[0.97]"
+            className="w-full object-cover shadow-studioSoft transition-all duration-[1500ms] ease-studio-out group-hover:scale-[1.04] group-hover:opacity-[0.98] group-hover:shadow-premium"
             src={item.imageUrl}
             style={{
               height: `${layout.height}vh`,
@@ -485,14 +487,14 @@ function PortfolioCanvasCard({ isEditing, item, index, navigate, onPointerDown, 
 function PortfolioGridCard({ item, navigate }) {
   return (
     <button className="group text-left" type="button" onClick={() => navigate(`/portfolio/${encodeURIComponent(item.id)}`)}>
-      <div className="aspect-[4/5] overflow-hidden bg-[#e5e5e1]">
+      <div className="aspect-[4/5] overflow-hidden bg-[#e5e5e1] rounded-sm">
         <img
           alt={item.title}
-          className="h-full w-full object-cover transition duration-200 ease-out group-hover:scale-[1.02] group-hover:opacity-[0.97]"
+          className="h-full w-full object-cover transition-all duration-[1500ms] ease-studio-out group-hover:scale-[1.05] group-hover:opacity-[0.9] filter grayscale group-hover:grayscale-0"
           src={item.imageUrl}
         />
       </div>
-      <div className="mt-3">
+      <div className="mt-6">
         <PortfolioCardMeta item={item} />
       </div>
     </button>
