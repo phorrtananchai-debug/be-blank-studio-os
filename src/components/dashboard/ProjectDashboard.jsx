@@ -19,6 +19,7 @@ import {
 } from '../../utils/dashboard.js';
 import { projectStatuses } from '../../data/seed.js';
 import { KeyDate, FinanceStat, ProfitStatusBadge, getProfitBarClass } from './ProjectFinancials.jsx';
+import { NarrativePanel } from './NarrativePanel.jsx';
 
 const drawingStatuses = ['draft', 'review', 'approved', 'issued'];
 
@@ -260,6 +261,8 @@ export function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
 
   return (
     <main className="grid gap-12">
+      <NarrativePanel project={project} onUpdate={(id, updates) => onUpdate(updates)} />
+
       <SectionCard
         action={
           <div className="flex flex-wrap gap-3">

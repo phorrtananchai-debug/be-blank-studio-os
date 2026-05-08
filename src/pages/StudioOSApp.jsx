@@ -47,6 +47,7 @@ import { TimelineCalculator } from '../components/dashboard/TimelineCalculator.j
 import { ContentPlanner } from '../components/dashboard/ContentPlanner.jsx';
 import { PortfolioManager } from '../components/dashboard/PortfolioManager.jsx';
 import { DailyFlow } from '../components/dashboard/DailyFlow.jsx';
+import { QuickCapture } from '../components/dashboard/QuickCapture.jsx';
 
 const tabs = [
   { id: 'flow', label: 'Daily Flow', icon: Wind },
@@ -346,6 +347,7 @@ export function StudioOSApp({ navigate }) {
           </p>
         </footer>
       </div>
+      <QuickCapture />
     </div>
   );
 }

@@ -162,6 +162,13 @@ export function createProject() {
     drawingVersion: '',
     drawingStatus: 'draft',
     siteLogs: [],
+    // Narrative Layer
+    mood: '',
+    currentFocus: '',
+    timelineEnergy: 'steady',
+    phaseNotes: '',
+    inspirationCount: 0,
+    atmosphericDescriptors: '',
   };
 }
 
