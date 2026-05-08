@@ -60,6 +60,7 @@ function mergeHomepageLayout(items) {
 export function PublicHomepage({ portfolioItems, navigate }) {
   const featuredItems = portfolioItems.length ? portfolioItems : initialPortfolioItems;
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [activeTab, setActiveTab] = useState('WORK');
   const [layoutItems, setLayoutItems] = useState(() => mergeHomepageLayout(featuredItems));
   const [publicUser, setPublicUser] = useState(null);
   const [publicAuthMessage, setPublicAuthMessage] = useState('');
@@ -277,14 +278,21 @@ export function PublicHomepage({ portfolioItems, navigate }) {
         className="fixed left-0 right-0 top-0 z-[100] border-b border-black/[0.05] bg-[#e9e8e4] px-5 py-4 backdrop-blur md:px-8"
         style={{ backgroundColor: DEFAULT_HOMEPAGE_BACKGROUND }}
       >
-        <nav className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 text-[11px] font-medium uppercase tracking-[0.14em] text-[#111111]">
+        <nav className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 text-[10px] font-bold uppercase tracking-cinema text-[#111111]">
           <button className="justify-self-start text-left transition hover:text-[#777777]" type="button" onClick={() => navigate('/')}>
             BE BLANK
           </button>
-          <div className="flex flex-wrap justify-center gap-x-7 gap-y-2">
-            <a className="transition hover:text-[#777777]" href="#work">WORK</a>
-            <a className="transition hover:text-[#777777]" href="#about">ABOUT</a>
-            <a className="transition hover:text-[#777777]" href="#journal">JOURNAL</a>
+          <div className="flex flex-wrap justify-center gap-x-12 gap-y-2">
+            {['WORK', 'ABOUT', 'JOURNAL'].map(item => (
+              <a
+                key={item}
+                className={`transition-all duration-500 hover:text-[#777777] ${activeTab === item ? 'opacity-100' : 'opacity-40'}`}
+                href={`#${item.toLowerCase()}`}
+                onClick={() => setActiveTab(item)}
+              >
+                {item}
+              </a>
+            ))}
           </div>
           <div className="flex flex-wrap justify-end gap-3 text-[10px] tracking-[0.14em]">
             {!publicUser ? (

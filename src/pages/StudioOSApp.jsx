@@ -47,10 +47,10 @@ import { ContentPlanner } from '../components/dashboard/ContentPlanner.jsx';
 import { PortfolioManager } from '../components/dashboard/PortfolioManager.jsx';
 
 const tabs = [
-  { id: 'projects', label: 'Projects', icon: LayoutDashboard },
-  { id: 'timeline', label: 'Timeline', icon: CalendarClock },
-  { id: 'content', label: 'Content', icon: ClipboardCopy },
-  { id: 'portfolio', label: 'Portfolio', icon: ImageIcon },
+  { id: 'projects', label: 'Overview', icon: LayoutDashboard },
+  { id: 'timeline', label: 'Schedule', icon: CalendarClock },
+  { id: 'content', label: 'Journal', icon: ClipboardCopy },
+  { id: 'portfolio', label: 'Gallery', icon: ImageIcon },
 ];
 
 export function StudioOSApp({ navigate }) {
@@ -69,6 +69,7 @@ export function StudioOSApp({ navigate }) {
   const [portfolioItems, setPortfolioItems] = useState(initialPortfolioItems);
   const [copiedId, setCopiedId] = useState('');
   const [backupMessage, setBackupMessage] = useState('');
+  const [showDebug, setShowDebug] = useState(false);
   const importInputRef = useRef(null);
 
   const dataMode = isFirebaseConfigured
@@ -189,143 +190,154 @@ export function StudioOSApp({ navigate }) {
   const firebaseDebugInfo = getFirebaseDebugInfo();
 
   return (
-    <div className="os-dashboard-enter min-h-screen bg-[#e9e8e4] text-[#111111]">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-9 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-        <header className="grid gap-8 border-b border-black/[0.08] pb-8 xl:grid-cols-[minmax(0,1fr)_minmax(560px,0.85fr)] xl:items-end">
-          <div>
+    <div className="os-dashboard-enter min-h-screen bg-studio-bone text-studio-ink selection:bg-studio-orange/10 selection:text-studio-ink">
+      <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-24 px-8 py-12 lg:px-12 lg:py-20">
+        <header className="grid gap-12 xl:grid-cols-[1fr_auto] xl:items-end border-b border-black/[0.03] pb-16">
+          <div className="space-y-10">
             <button
-              className="mb-6 text-xs font-medium uppercase tracking-[0.16em] text-[#111111] transition hover:text-[#777777]"
+              className="text-[9px] font-bold uppercase tracking-cinema text-studio-muted transition hover:text-studio-ink"
               type="button"
               onClick={() => navigate('/')}
             >
-              ← Back to Site
+              &larr; Studio Profile
             </button>
-            <div className="mb-4 flex items-center gap-3 text-xs font-medium uppercase tracking-[0.2em] text-studio-orange">
-              <Sparkles size={18} />
-              Studio Operations
+            <div className="space-y-6">
+              <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-cinema text-studio-orange">
+                <Sparkles size={16} strokeWidth={1.5} />
+                Operating System
+              </div>
+              <h1 className="font-serif text-6xl sm:text-7xl lg:text-8xl font-light tracking-tightest leading-[0.85] max-w-4xl">
+                Be Blank Studio OS
+              </h1>
+              <p className="max-w-2xl text-lg font-medium tracking-tight text-studio-muted leading-relaxed">
+                A calm workspace for architectural delivery, content strategy, and portfolio management.
+              </p>
             </div>
-            <h1 className="max-w-3xl text-4xl font-semibold leading-tight tracking-normal text-[#111111] sm:text-5xl">
-              Be Blank Studio OS
-            </h1>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-studio-muted">
-              Internal command center for projects, timelines, content, and portfolio assets.
-            </p>
           </div>
-          <div className="grid w-full grid-cols-2 gap-4 sm:grid-cols-4">
-            <MetricCard label="Active projects" value={activeProjects} />
+          <div className="grid w-full grid-cols-2 gap-4 sm:grid-cols-4 xl:w-[700px]">
+            <MetricCard label="Active Projects" value={activeProjects} />
             <MetricCard label="Approved posts" value={contentApproved} />
-            <MetricCard label="Portfolio items" value={portfolioItems.length} />
-            <MetricCard label="Next opening" value={nextOpening ? formatDate(nextOpening.openingDate) : 'TBD'} />
+            <MetricCard label="Archive Items" value={portfolioItems.length} />
+            <MetricCard label="Next Handover" value={nextOpening ? formatDate(nextOpening.openingDate) : 'TBD'} />
           </div>
         </header>
 
-        <section className="flex flex-col gap-5 rounded-lg border border-black/[0.08] bg-[#f3f2ee] p-5 shadow-studioSoft sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-studio-orange">Local database</p>
-            <p className="mt-1 text-sm text-studio-muted">
-              Projects and portfolio sync from Firestore. Content keeps local backup tools.
+        <section className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between border-y border-black/[0.02] py-12">
+          <div className="space-y-1">
+            <p className="text-[9px] font-bold uppercase tracking-cinema text-studio-orange">Realtime Workspace</p>
+            <p className="text-sm font-medium text-studio-muted">
+              Projects and assets are synced via Firestore &bull; Local backups remain active.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-4">
             <Badge tone={dataMode === 'firebase' ? 'safe' : 'medium'}>
-              {dataMode === 'firebase'
-                ? 'Firebase connected'
-                : dataMode === 'firebase-error' || projectsError
-                  ? 'Firestore error'
-                  : 'Firebase sign-in required'}
+              {dataMode === 'firebase' ? 'Encrypted Connection' : 'Sync Offline'}
             </Badge>
             {isFirebaseConfigured && studioUser && (
               <Button variant="secondary" onClick={handleFirebaseSignOut}>
-                Sign Out
+                Disconnect
               </Button>
             )}
-            {isFirebaseConfigured && !studioUser && (
-              <Button variant="secondary" onClick={handleFirebaseSignIn}>
-                Sign In
-              </Button>
-            )}
-            {(authMessage || projectsError) && <span className="text-sm font-semibold text-red-700">{authMessage || projectsError}</span>}
-            {backupMessage && <span className="text-sm font-semibold text-studio-orange">{backupMessage}</span>}
+            {(authMessage || projectsError) && <span className="text-[11px] font-bold uppercase tracking-editorial text-red-500">{authMessage || projectsError}</span>}
+            {backupMessage && <span className="text-[11px] font-bold uppercase tracking-editorial text-studio-orange">{backupMessage}</span>}
             <input ref={importInputRef} accept="application/json" className="hidden" type="file" onChange={importBackup} />
             <Button variant="secondary" onClick={() => importInputRef.current?.click()}>
-              <Upload size={16} />
-              Import Backup
+              <Upload size={14} strokeWidth={2.5} />
+              Import
             </Button>
             <Button onClick={exportBackup}>
-              <FileJson size={16} />
-              Export Backup
+              <FileJson size={14} strokeWidth={2.5} />
+              Export
             </Button>
+            <button
+              onClick={() => setShowDebug(!showDebug)}
+              className="size-11 grid place-items-center rounded-full border border-black/[0.03] text-studio-muted hover:text-studio-ink transition-colors"
+            >
+              <LayoutDashboard size={16} strokeWidth={1.5} />
+            </button>
           </div>
         </section>
 
-        <section className="rounded-lg border border-black/[0.08] bg-[#f3f2ee] p-4 text-xs text-studio-muted shadow-studioSoft">
-          <p className="mb-3 font-semibold uppercase tracking-[0.16em] text-studio-orange">Firebase Debug</p>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            <span>apiKeyExists: {String(firebaseDebugInfo.apiKeyExists)}</span>
-            <span>configSource: {firebaseDebugInfo.configSource}</span>
-            <span>apiKeySuffix: {firebaseDebugInfo.apiKeySuffix || 'missing'}</span>
-            <span>projectId: {firebaseDebugInfo.projectId || 'missing'}</span>
-            <span>authDomain: {firebaseDebugInfo.authDomain || 'missing'}</span>
-            <span>appIdExists: {String(firebaseDebugInfo.appIdExists)}</span>
-            <span>storageBucket: {firebaseDebugInfo.storageBucket || 'missing'}</span>
-          </div>
-        </section>
-
-        <nav className="grid grid-cols-2 gap-2 rounded-full border border-black/[0.08] bg-[#f3f2ee] p-2 shadow-studioSoft backdrop-blur sm:grid-cols-4">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-
-            return (
-              <button
-                key={tab.id}
-                className={`flex h-11 items-center justify-center gap-2 rounded-full text-sm font-bold transition ${
-                  isActive
-                    ? 'bg-[#111111] text-[#f3f2ee] shadow-[0_12px_30px_rgba(0,0,0,0.06)]'
-                    : 'text-studio-muted hover:bg-black/[0.04] hover:text-[#111111]'
-                }`}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-              >
-                <Icon size={17} />
-                {tab.label}
-              </button>
-            );
-          })}
-        </nav>
-
-        {activeTab === 'projects' && (
-          <ProjectDashboard
-            projects={projects}
-            statusCounts={statusCounts}
-            onAdd={addProject}
-            onDelete={deleteProject}
-            onUpdate={updateProject}
-          />
+        {showDebug && (
+          <section className="rounded-2xl border border-black/[0.02] bg-[#f9f9f7] p-8 text-[10px] font-bold uppercase tracking-cinema text-studio-muted/50">
+            <p className="mb-6 text-studio-orange">System Debug Trace</p>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <span>apiKeyExists: {String(firebaseDebugInfo.apiKeyExists)}</span>
+              <span>configSource: {firebaseDebugInfo.configSource}</span>
+              <span>apiKeySuffix: {firebaseDebugInfo.apiKeySuffix || 'missing'}</span>
+              <span>projectId: {firebaseDebugInfo.projectId || 'missing'}</span>
+              <span>authDomain: {firebaseDebugInfo.authDomain || 'missing'}</span>
+              <span>appIdExists: {String(firebaseDebugInfo.appIdExists)}</span>
+              <span>storageBucket: {firebaseDebugInfo.storageBucket || 'missing'}</span>
+            </div>
+          </section>
         )}
 
-        {activeTab === 'timeline' && <TimelineCalculator projects={projects} onUpdate={updateProject} />}
+        <div className="sticky top-12 z-[100] flex justify-center">
+          <nav className="flex gap-1 rounded-full border border-white/20 bg-white/40 p-1.5 shadow-premium backdrop-blur-2xl paper-layer">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
 
-        {activeTab === 'content' && (
-          <ContentPlanner
-            contentItems={contentItems}
-            copiedId={copiedId}
-            onAdd={() => setContentItems((items) => [createContentItem(), ...items])}
-            onCopy={copyCaption}
-            onDelete={(id) => setContentItems((items) => items.filter((item) => item.id !== id))}
-            onUpdate={updateContent}
-          />
-        )}
+              return (
+                <button
+                  key={tab.id}
+                  className={`flex h-11 min-w-[140px] items-center justify-center gap-3 rounded-full text-[11px] font-bold uppercase tracking-editorial transition-all duration-500 ${
+                    isActive
+                      ? 'bg-studio-ink text-white shadow-premium'
+                      : 'text-studio-muted hover:bg-black/[0.03] hover:text-studio-ink'
+                  }`}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  <Icon size={14} strokeWidth={isActive ? 2.5 : 1.5} />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
 
-        {activeTab === 'portfolio' && (
-          <PortfolioManager
-            portfolioItems={portfolioItems}
-            onAdd={addPortfolio}
-            onDelete={deletePortfolio}
-            onExport={() => downloadJson('be-blank-portfolio.json', portfolioItems)}
-            onUpdate={updatePortfolio}
-          />
-        )}
+        <div className="space-y-32">
+          {activeTab === 'projects' && (
+            <ProjectDashboard
+              projects={projects}
+              statusCounts={statusCounts}
+              onAdd={addProject}
+              onDelete={deleteProject}
+              onUpdate={updateProject}
+            />
+          )}
+
+          {activeTab === 'timeline' && <TimelineCalculator projects={projects} onUpdate={updateProject} />}
+
+          {activeTab === 'content' && (
+            <ContentPlanner
+              contentItems={contentItems}
+              copiedId={copiedId}
+              onAdd={() => setContentItems((items) => [createContentItem(), ...items])}
+              onCopy={copyCaption}
+              onDelete={(id) => setContentItems((items) => items.filter((item) => item.id !== id))}
+              onUpdate={updateContent}
+            />
+          )}
+
+          {activeTab === 'portfolio' && (
+            <PortfolioManager
+              portfolioItems={portfolioItems}
+              onAdd={addPortfolio}
+              onDelete={deletePortfolio}
+              onExport={() => downloadJson('be-blank-portfolio.json', portfolioItems)}
+              onUpdate={updatePortfolio}
+            />
+          )}
+        </div>
+
+        <footer className="border-t border-black/[0.03] pt-16 pb-24 text-center">
+          <p className="text-[9px] font-bold uppercase tracking-cinema text-studio-muted/40">
+            Be Blank to Behind Studio &bull; Private Environment &bull; v1.0.0
+          </p>
+        </footer>
       </div>
     </div>
   );

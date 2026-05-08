@@ -1,28 +1,30 @@
 export function SectionCard({ action, children, compact = false, eyebrow, title }) {
   return (
     <section
-      className={`rounded-xl border border-black/[0.05] bg-white shadow-studioSoft transition-all hover:shadow-glow ${
-        compact ? 'p-5' : 'p-6 sm:p-8 lg:p-10'
+      className={`rounded-2xl border border-black/[0.02] bg-white/40 backdrop-blur-sm shadow-studioSoft transition-all duration-700 hover:bg-white/60 hover:shadow-glow ${
+        compact ? 'p-6' : 'p-8 sm:p-12 lg:p-16'
       }`}
     >
       {(title || eyebrow || action) && (
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
+        <div className="mb-12 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-4">
             {eyebrow && (
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.25em] text-studio-orange">
+              <p className="text-[9px] font-bold uppercase tracking-cinema text-studio-orange/80">
                 {eyebrow}
               </p>
             )}
             {title && (
-              <h2 className="font-serif text-3xl font-medium tracking-tight text-[#111111] sm:text-4xl">
+              <h2 className="font-serif text-4xl sm:text-5xl font-light tracking-tightest text-studio-ink leading-[0.9]">
                 {title}
               </h2>
             )}
           </div>
-          {action && <div className="shrink-0">{action}</div>}
+          {action && <div className="shrink-0 flex items-center">{action}</div>}
         </div>
       )}
-      {children}
+      <div className="relative">
+        {children}
+      </div>
     </section>
   );
 }
