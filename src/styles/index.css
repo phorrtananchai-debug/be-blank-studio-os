@@ -32,7 +32,11 @@ html,
 }
 
 .paper-layer {
-  @apply bg-white/40 backdrop-blur-xl border border-white/20 shadow-studioSoft;
+  @apply bg-white/40 backdrop-blur-xl border border-white/20 shadow-studioSoft transition-all duration-500 ease-out;
+}
+
+.paper-layer:hover {
+  @apply bg-white/60 border-white/40 shadow-premium;
 }
 
 html,

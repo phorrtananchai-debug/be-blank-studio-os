@@ -85,7 +85,7 @@ export function TimelineOverview({ projects }) {
               </div>
             </div>
 
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            <div className="mt-10 grid gap-6 sm:grid-cols-3">
               <TimelineDate calendarLabel="Start date" label="Project Start" project={project} value={project.startDate} />
               <TimelineDate calendarLabel="Handover date" label="Client Handover" project={project} value={project.handoverDate} />
               <TimelineDate calendarLabel="Opening date" label="Grand Opening" project={project} value={project.openingDate} />
@@ -197,10 +197,10 @@ export function TimelineDetail({ expandedProjectIds, projects, onToggleExpanded,
 
 export function TimelineDate({ calendarLabel, label, project, value }) {
   return (
-    <div className="rounded-lg border border-black/[0.05] bg-[#f9f9f7] p-4 transition-colors hover:bg-white">
-      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-studio-muted/60">{label}</p>
-      <div className="mt-3 flex items-center justify-between gap-4">
-        <p className="text-sm font-bold text-[#111111]">{value ? formatDate(value) : 'TBD'}</p>
+    <div className="rounded-xl border border-black/5 bg-[#f9f9f7]/50 p-5 transition-all duration-300 hover:bg-white hover:shadow-studioSoft">
+      <p className="text-[10px] font-bold uppercase tracking-cinema text-studio-muted/50">{label}</p>
+      <div className="mt-4 flex items-center justify-between gap-4">
+        <p className="text-[15px] font-bold text-[#111111]">{value ? formatDate(value) : 'TBD'}</p>
         {project && calendarLabel && value && <CalendarActions date={value} label={calendarLabel} project={project} />}
       </div>
     </div>

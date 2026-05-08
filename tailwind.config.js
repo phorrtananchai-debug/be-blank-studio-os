@@ -33,6 +33,12 @@ export default {
         tightest: '-.03em',
         editorial: '0.12em',
         cinema: '0.25em',
+        architectural: '0.08em',
+      },
+      spacing: {
+        '18': '4.5rem',
+        '22': '5.5rem',
+        '30': '7.5rem',
       },
     },
   },

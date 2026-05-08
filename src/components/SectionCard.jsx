@@ -1,8 +1,8 @@
 export function SectionCard({ action, children, compact = false, eyebrow, title }) {
   return (
     <section
-      className={`rounded-2xl border border-black/[0.02] bg-white/40 backdrop-blur-sm shadow-studioSoft transition-all duration-700 hover:bg-white/60 hover:shadow-glow ${
-        compact ? 'p-6' : 'p-8 sm:p-12 lg:p-16'
+      className={`rounded-[32px] border border-black/[0.02] bg-white/40 backdrop-blur-xl shadow-studioSoft transition-all duration-700 ease-out hover:bg-white/60 hover:shadow-premium ${
+        compact ? 'p-6' : 'p-8 sm:p-12 lg:p-22'
       }`}
     >
       {(title || eyebrow || action) && (
