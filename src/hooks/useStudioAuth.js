@@ -19,6 +19,13 @@ export function useStudioAuth() {
       return undefined;
     }
 
+    const mockUser = typeof window !== 'undefined' ? window.localStorage.getItem('studio_mock_user') : null;
+    if (mockUser && import.meta.env.DEV) {
+      setUser(JSON.parse(mockUser));
+      setIsCheckingAuth(false);
+      return () => {};
+    }
+
     return onStudioAuthChange((user) => {
       setIsCheckingAuth(false);
 

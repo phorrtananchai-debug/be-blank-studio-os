@@ -6,6 +6,7 @@ import {
   Image as ImageIcon,
   Sparkles,
   Upload,
+  Wind,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '../components/Badge.jsx';
@@ -45,8 +46,10 @@ import { ProjectDashboard } from '../components/dashboard/ProjectDashboard.jsx';
 import { TimelineCalculator } from '../components/dashboard/TimelineCalculator.jsx';
 import { ContentPlanner } from '../components/dashboard/ContentPlanner.jsx';
 import { PortfolioManager } from '../components/dashboard/PortfolioManager.jsx';
+import { DailyFlow } from '../components/dashboard/DailyFlow.jsx';
 
 const tabs = [
+  { id: 'flow', label: 'Daily Flow', icon: Wind },
   { id: 'projects', label: 'Overview', icon: LayoutDashboard },
   { id: 'timeline', label: 'Schedule', icon: CalendarClock },
   { id: 'content', label: 'Journal', icon: ClipboardCopy },
@@ -64,7 +67,7 @@ export function StudioOSApp({ navigate }) {
 
   const { projects, error: projectsError } = useStudioProjects(studioUser);
 
-  const [activeTab, setActiveTab] = useState('projects');
+  const [activeTab, setActiveTab] = useState('flow');
   const [contentItems, setContentItems] = useLocalStorage('beBlank.content', initialContentItems);
   const [portfolioItems, setPortfolioItems] = useState(initialPortfolioItems);
   const [copiedId, setCopiedId] = useState('');
@@ -300,6 +303,8 @@ export function StudioOSApp({ navigate }) {
 
         <div className="space-y-32 page-fade">
           <div key={activeTab} className="page-fade">
+            {activeTab === 'flow' && <DailyFlow projects={projects} />}
+
             {activeTab === 'projects' && (
               <ProjectDashboard
                 projects={projects}
