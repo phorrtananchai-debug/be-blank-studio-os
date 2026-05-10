@@ -34,56 +34,53 @@ export function DailyFlow({ projects = [] }) {
   const Icon = hour < 18 ? Sun : Moon;
 
   return (
-    <div className="space-y-32 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-      {/* Cinematic Header */}
-      <section className="relative overflow-hidden py-12">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-12 border-b border-black/[0.03] pb-16">
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-studio-orange">
-              <Icon size={14} strokeWidth={2} />
-              {greeting} in the Studio
+    <div className="space-y-16 page-fade">
+      {/* Functional Header */}
+      <section className="border-b border-black/[0.08] pb-8">
+        <div className="flex flex-col md:flex-row md:items-baseline justify-between gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-studio-muted">
+              <Icon size={12} strokeWidth={2.5} />
+              {greeting} / {time.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
             </div>
-            <h2 className="text-6xl md:text-8xl font-bold tracking-tighter leading-none text-studio-ink">
+            <h2 className="text-4xl font-bold tracking-tight text-studio-ink">
               {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
             </h2>
-            <p className="text-xl font-medium text-studio-muted">
-              {time.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
-            </p>
           </div>
 
-          <div className="flex items-center gap-10">
+          <div className="flex items-center gap-8">
             <div className="space-y-1">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-studio-muted">Capacity</p>
-              <p className="text-2xl font-semibold">Refined Focus</p>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-studio-muted">Studio Capacity</p>
+              <p className="text-sm font-bold">Optimal Focus</p>
             </div>
-            <div className="h-10 w-px bg-black/[0.08]" />
+            <div className="h-6 w-px bg-black/[0.08]" />
             <div className="space-y-1">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-studio-muted">Pulse</p>
-              <p className="text-2xl font-semibold">{activePhases.length} Active</p>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-studio-muted">Active Pulse</p>
+              <p className="text-sm font-bold">{activePhases.length} Projects</p>
             </div>
           </div>
         </div>
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-24">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
         {/* Main Column */}
-        <div className="lg:col-span-8 space-y-32">
+        <div className="lg:col-span-8 space-y-16">
 
           {/* Daily Focus */}
-          <section className="space-y-8">
+          <section className="space-y-4">
             <header className="flex items-center justify-between">
-              <h3 className="text-[11px] font-bold uppercase tracking-wider text-studio-muted">Primary Focus</h3>
-              <Target size={14} className="text-studio-orange" />
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">Primary Focus</h3>
+              <Target size={12} className="text-studio-ink" />
             </header>
             <div className="group relative">
               <textarea
                 value={focus}
                 onChange={(e) => setFocus(e.target.value)}
-                placeholder="What is the singular goal for today?"
-                className="w-full bg-transparent text-3xl md:text-5xl font-bold tracking-tight outline-none placeholder:text-black/[0.05] resize-none overflow-hidden h-auto py-2"
-                rows={2}
+                placeholder="Today's core objective..."
+                className="w-full bg-transparent text-xl font-bold tracking-tight outline-none placeholder:text-black/[0.1] resize-none overflow-hidden h-auto py-1"
+                rows={1}
               />
-              <div className="absolute -bottom-2 left-0 h-px w-full bg-black/[0.06] transition-colors group-focus-within:bg-studio-orange/40" />
+              <div className="absolute -bottom-1 left-0 h-px w-full bg-black/[0.08] transition-colors group-focus-within:bg-studio-ink" />
             </div>
           </section>
 
@@ -147,20 +144,20 @@ export function DailyFlow({ projects = [] }) {
         </div>
 
         {/* Sidebar */}
-        <aside className="lg:col-span-4 space-y-20">
+        <aside className="lg:col-span-4 space-y-12">
           {/* Quick Notes */}
-          <section className="rounded-[32px] border border-black/[0.05] bg-white p-8 shadow-studio transition-all hover:shadow-md">
-            <div className="mb-6 flex items-center justify-between">
+          <section className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-studio">
+            <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <StickyNote size={14} className="text-studio-orange" />
-                <h3 className="text-[11px] font-bold uppercase tracking-wider text-studio-muted">Scratchpad</h3>
+                <StickyNote size={12} className="text-studio-ink" />
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">Scratchpad</h3>
               </div>
             </div>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Transient thoughts and studio notes..."
-              className="min-h-[300px] w-full bg-transparent text-sm leading-relaxed text-studio-ink outline-none placeholder:text-studio-muted/30"
+              placeholder="Transient thoughts..."
+              className="min-h-[240px] w-full bg-transparent text-xs font-medium leading-relaxed text-studio-ink outline-none placeholder:text-studio-muted/40"
             />
           </section>
 

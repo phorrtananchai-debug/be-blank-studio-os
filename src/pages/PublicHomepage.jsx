@@ -12,7 +12,6 @@ import { initialPortfolioItems } from '../data/seed.js';
 import { createPortfolioItem } from '../utils/dashboard.js';
 import {
   clampNumber,
-  easeOutCubic,
   getPortfolioLayout,
   getNextInteractionLayout,
   getPortfolioImageObjectPosition,
@@ -159,13 +158,10 @@ export function PublicHomepage({ portfolioItems, navigate }) {
     };
   }, [layoutInteraction]);
 
-  const easedScrollProgress = easeOutCubic(scrollProgress);
   const titleStyle = {
-    top: `clamp(86px, ${38 - easedScrollProgress * 28}vh, 38vh)`,
-    opacity: clampNumber(1 - easedScrollProgress * 0.1, 0, 1),
-    transform: `translateX(-50%) scale(${clampNumber(1 - easedScrollProgress * 0.38, 0.62, 1)})`,
-    filter: `blur(${scrollProgress * 20}px)`,
-    transition: 'top 1.2s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 1s linear, filter 1s linear',
+    top: '120px',
+    transform: 'translateX(-50%)',
+    opacity: clampNumber(1 - scrollProgress * 2, 0, 1),
   };
   const canSaveToFirebase = Boolean(publicUser && isFirebaseConfigured());
   const heroItems = layoutItems.slice(0, 4);
@@ -277,10 +273,9 @@ export function PublicHomepage({ portfolioItems, navigate }) {
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#e9e8e4] text-[#111111]" style={{ backgroundColor: DEFAULT_HOMEPAGE_BACKGROUND }}>
       <header
-        className="fixed left-0 right-0 top-0 z-[100] border-b border-black/[0.05] bg-[#e9e8e4] px-5 py-4 backdrop-blur md:px-8"
-        style={{ backgroundColor: DEFAULT_HOMEPAGE_BACKGROUND }}
+        className="fixed left-0 right-0 top-0 z-[100] border-b border-black/[0.05] bg-white/80 px-5 py-4 backdrop-blur-md md:px-8"
       >
-        <nav className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 text-[10px] font-bold uppercase  text-[#111111]">
+        <nav className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 text-[11px] font-bold uppercase tracking-widest text-[#111111]">
           <button className="justify-self-start text-left transition hover:text-[#777777]" type="button" onClick={() => navigate('/')}>
             BE BLANK
           </button>
@@ -319,20 +314,14 @@ export function PublicHomepage({ portfolioItems, navigate }) {
         style={titleStyle}
       >
         <h1
-          className="reveal-mask mx-auto max-w-[96vw] whitespace-nowrap text-center text-[clamp(18px,5vw,72px)] font-medium uppercase text-[#111111] md:text-[clamp(32px,5vw,72px)]"
-          style={{
-            letterSpacing: '0.03em',
-            lineHeight: 1.05,
-            textRendering: 'optimizeLegibility',
-            WebkitFontSmoothing: 'antialiased',
-          }}
+          className="mx-auto max-w-[96vw] whitespace-nowrap text-center text-[clamp(14px,3vw,32px)] font-bold uppercase tracking-tight text-[#111111]"
         >
           BE BLANK TO BEHIND STUDIO
         </h1>
       </div>
 
-      <main className="bg-[#e9e8e4]" style={{ backgroundColor: DEFAULT_HOMEPAGE_BACKGROUND }}>
-        <section className="relative min-h-[138vh] bg-[#e9e8e4] px-5 pb-16 pt-24 md:px-8" style={{ backgroundColor: DEFAULT_HOMEPAGE_BACKGROUND }}>
+      <main className="bg-[#f8f9fa]">
+        <section className="relative min-h-[100vh] bg-[#f8f9fa] px-5 pb-16 pt-32 md:px-8">
           <div
             ref={canvasRef}
             className={`absolute left-5 right-5 top-24 mx-auto h-[calc(100vh-6rem)] min-h-[600px] max-w-[1500px] overflow-visible md:left-8 md:right-8 ${
@@ -543,29 +532,20 @@ function HomepageEditPanel({
 
 function PortfolioCardMeta({ item }) {
   return (
-    <span className="grid gap-2.5 font-sans">
-      <span className="flex items-start justify-between gap-4">
-        <span
-          className="block"
-          style={{
-            color: '#111111',
-            fontSize: 'clamp(24px, 2.5vw, 40px)',
-            fontWeight: 500,
-            letterSpacing: '0',
-            lineHeight: 1,
-          }}
-        >
+    <span className="grid gap-2 font-sans">
+      <span className="flex items-baseline justify-between gap-4">
+        <span className="text-xl font-bold tracking-tight text-[#111111]">
           {item.title}
         </span>
-        <span className="shrink-0 pt-1 text-right text-[12px] font-normal tracking-tight text-[#777777]">
+        <span className="shrink-0 text-right text-[10px] font-bold uppercase tracking-widest text-[#777777]">
           {[item.year, item.areaSqm ? `${item.areaSqm} sqm` : ''].filter(Boolean).join(' / ')}
         </span>
       </span>
-      <span className="text-[14px] font-light leading-[1.45] tracking-tight text-[#777777]">
+      <p className="text-sm font-medium text-[#777777]">
         {item.subtitle || item.description || item.location}
-      </span>
-      <span className="text-[11px] font-medium uppercase tracking-tight text-[#777777]">
-        {[item.category, item.location].filter(Boolean).join(' / ')}
+      </p>
+      <span className="text-[9px] font-bold uppercase tracking-widest text-[#adb5bd]">
+        {[item.category, item.location].filter(Boolean).join(' • ')}
       </span>
     </span>
   );

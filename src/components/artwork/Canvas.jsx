@@ -21,6 +21,7 @@ export const Canvas = forwardRef(({
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
+  const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [tool, setTool] = useState('select'); // 'select' or 'pan'
 
   const containerRef = useRef(null);
@@ -47,7 +48,7 @@ export const Canvas = forwardRef(({
   };
 
   const handleMouseDown = (e) => {
-    if (tool === 'pan' || e.button === 1 || (e.button === 0 && e.spaceKey)) {
+    if (tool === 'pan' || e.button === 1 || (e.button === 0 && isSpacePressed)) {
       setIsPanning(true);
       lastMousePos.current = { x: e.clientX, y: e.clientY };
     }
@@ -111,10 +112,25 @@ export const Canvas = forwardRef(({
     onDrop?.(e, coords.x, coords.y);
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.code === 'Space') setIsSpacePressed(true);
+    };
+    const handleKeyUp = (e) => {
+      if (e.code === 'Space') setIsSpacePressed(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
   return (
     <div
       ref={containerRef}
-      className={`relative h-full w-full overflow-hidden bg-studio-bone touch-none ${isPanning ? 'cursor-grabbing' : tool === 'pan' ? 'cursor-grab' : 'cursor-auto'}`}
+      className={`relative h-full w-full overflow-hidden bg-studio-bone touch-none ${isPanning ? 'cursor-grabbing' : tool === 'pan' || isSpacePressed ? 'cursor-grab' : 'cursor-auto'}`}
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}

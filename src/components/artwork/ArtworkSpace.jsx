@@ -94,7 +94,6 @@ export function ArtworkSpace({ projectId, user }) {
       setDraggingElement(null);
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
   };
 

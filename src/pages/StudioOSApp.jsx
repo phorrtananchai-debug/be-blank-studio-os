@@ -198,9 +198,9 @@ export function StudioOSApp({ navigate }) {
   const firebaseDebugInfo = getFirebaseDebugInfo();
 
   return (
-    <div className="os-dashboard-enter min-h-screen bg-studio-bone text-studio-ink selection:bg-studio-orange/10 selection:text-studio-ink">
-      <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-24 px-8 py-12 lg:px-12 lg:py-20">
-        <header className="grid gap-12 xl:grid-cols-[1fr_auto] xl:items-end border-b border-black/[0.03] pb-16">
+    <div className="min-h-screen bg-studio-bone text-studio-ink selection:bg-studio-ink/10 selection:text-studio-ink">
+      <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-16 px-8 py-12 lg:px-12">
+        <header className="grid gap-12 xl:grid-cols-[1fr_auto] xl:items-end border-b border-black/[0.08] pb-12">
           <div className="space-y-10">
             <button
               className="text-[9px] font-bold uppercase  text-studio-muted transition hover:text-studio-ink"
@@ -281,8 +281,8 @@ export function StudioOSApp({ navigate }) {
           </section>
         )}
 
-        <div className="sticky top-12 z-[100] flex justify-center">
-          <nav className="flex gap-1 rounded-full border border-black/5 bg-white/80 p-1.5 shadow-studio backdrop-blur-md">
+        <div className="sticky top-0 z-[100] -mx-8 bg-studio-bone/80 px-8 py-4 backdrop-blur-md border-b border-black/[0.05]">
+          <nav className="flex items-center gap-1">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -290,15 +290,15 @@ export function StudioOSApp({ navigate }) {
               return (
                 <button
                   key={tab.id}
-                  className={`flex h-10 min-w-[120px] items-center justify-center gap-2 rounded-full text-[12px] font-semibold transition-all duration-300 ${
+                  className={`flex h-9 items-center gap-2 rounded-lg px-4 text-[12px] font-bold transition-all ${
                     isActive
-                      ? 'bg-studio-ink text-white shadow-md'
-                      : 'text-studio-muted hover:bg-black/[0.04] hover:text-studio-ink'
+                      ? 'bg-black text-white'
+                      : 'text-studio-muted hover:bg-black/[0.05] hover:text-studio-ink'
                   }`}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
                 >
-                  <Icon size={14} strokeWidth={2} />
+                  <Icon size={14} strokeWidth={2.5} />
                   {tab.label}
                 </button>
               );

@@ -5,43 +5,37 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        urbanist: ['Urbanist', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Menlo', 'monospace'],
         system: ['system-ui', 'sans-serif'],
       },
       colors: {
         studio: {
-          canvas: '#e9e8e4',
-          bone: '#f5f5f2',
-          stone: '#e5e5e0',
-          panel: '#f3f2ee',
-          panelSoft: '#efeee9',
-          line: 'rgba(0,0,0,0.04)',
-          orange: '#9b6f32',
-          gold: '#8f7a55',
-          ink: '#121212',
-          inkLight: '#1a1a1a',
-          muted: '#8c8c88',
+          canvas: '#f8f9fa',
+          bone: '#ffffff',
+          stone: '#f1f3f5',
+          panel: '#ffffff',
+          panelSoft: '#f8f9fa',
+          line: 'rgba(0,0,0,0.06)',
+          orange: '#212529', // Neutralized
+          gold: '#495057',   // Neutralized
+          ink: '#212529',
+          inkLight: '#343a40',
+          muted: '#868e96',
         },
       },
       boxShadow: {
-        glow: '0 20px 50px rgba(0, 0, 0, 0.04)',
-        studio: '0 12px 30px rgba(0, 0, 0, 0.04)',
-        studioSoft: '0 8px 24px rgba(0, 0, 0, 0.02)',
-        premium: '0 30px 60px -12px rgba(0, 0, 0, 0.08)',
-        deep: '0 50px 100px -20px rgba(0, 0, 0, 0.12)',
+        glow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+        studio: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        studioSoft: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        premium: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        deep: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
       },
       transitionTimingFunction: {
         'studio-out': 'cubic-bezier(0.16, 1, 0.3, 1)',
         'studio-in-out': 'cubic-bezier(0.65, 0, 0.35, 1)',
       },
-      transitionDuration: {
-        '700': '700ms',
-        '1000': '1000ms',
-        '1500': '1500ms',
-        '2000': '2000ms',
-      },
       letterSpacing: {
-        tightest: '-.02em',
+        tightest: '-.01em',
       },
       spacing: {
         '18': '4.5rem',
