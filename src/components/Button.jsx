@@ -1,12 +1,12 @@
 export function Button({ children, variant = 'primary', ...props }) {
   const variants = {
-    primary: 'border-[#111111] bg-[#111111] text-[#f3f2ee] shadow-[0_12px_30px_rgba(0,0,0,0.06)] hover:bg-[#2a2a28]',
-    secondary: 'border-black/[0.08] bg-[#f3f2ee] text-[#111111] hover:border-black/20 hover:bg-[#e5e2da]',
+    primary: 'border-studio-ink bg-studio-ink text-white shadow-premium hover:bg-studio-inkLight hover:shadow-deep active:scale-[0.98] active:shadow-studio',
+    secondary: 'border-black/[0.03] bg-white/50 backdrop-blur text-studio-ink hover:bg-white hover:border-black/[0.1] hover:shadow-studio active:scale-[0.98]',
   };
 
   return (
     <button
-      className={`inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full border px-4 text-sm font-semibold transition ${variants[variant]}`}
+      className={`inline-flex h-11 shrink-0 items-center justify-center gap-3 whitespace-nowrap rounded-full border px-7 text-[10px] font-bold uppercase tracking-architectural transition-all duration-500 ease-out ${variants[variant]}`}
       type="button"
       {...props}
     >

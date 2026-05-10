@@ -1,0 +1,107 @@
+export function clampNumber(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+export function easeOutCubic(value) {
+  const clampedValue = clampNumber(value, 0, 1);
+  return 1 - Math.pow(1 - clampedValue, 3);
+}
+
+export function normalizeLayoutPercent(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 && number <= 100 ? number : fallback;
+}
+
+export function toLayoutNumber(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+export function getPortfolioLayout(item, index) {
+  const defaultLayouts = [
+    { x: 7, y: 16, width: 24, height: 34, zIndex: 3 },
+    { x: 70, y: 23, width: 18, height: 26, zIndex: 3 },
+    { x: 18, y: 63, width: 15, height: 19, zIndex: 2 },
+    { x: 57, y: 66, width: 22, height: 20, zIndex: 2 },
+  ];
+  const scatteredLayout = defaultLayouts[index % defaultLayouts.length];
+  const defaultLayout = {
+    ...scatteredLayout,
+    y: scatteredLayout.y + Math.floor(index / defaultLayouts.length) * 6,
+  };
+  const hasLegacyPixelLayout = Number(item.y) > 100 || Number(item.height) > 100;
+  const rawX = hasLegacyPixelLayout ? defaultLayout.x : normalizeLayoutPercent(item.x, defaultLayout.x);
+  const rawY = hasLegacyPixelLayout ? defaultLayout.y : normalizeLayoutPercent(item.y, defaultLayout.y);
+  const rawWidth = hasLegacyPixelLayout ? defaultLayout.width : normalizeLayoutPercent(item.width, defaultLayout.width);
+  const rawHeight = hasLegacyPixelLayout ? defaultLayout.height : normalizeLayoutPercent(item.height, defaultLayout.height);
+  const rawZIndex = hasLegacyPixelLayout ? defaultLayout.zIndex : toLayoutNumber(item.zIndex, defaultLayout.zIndex);
+
+  return {
+    x: clampNumber(rawX, 2, 84),
+    y: clampNumber(rawY, 5, 78),
+    width: clampNumber(rawWidth, 14, 42),
+    height: clampNumber(rawHeight, 14, 48),
+    zIndex: clampNumber(Math.round(rawZIndex), 1, 20),
+  };
+}
+
+export function getNextInteractionLayout(mode, initial, dxPercent, dyPercent) {
+  if (mode === 'resize-se') {
+    return {
+      width: clampNumber(initial.width + dxPercent, 14, 42),
+      height: clampNumber(initial.height + dyPercent, 14, 48),
+    };
+  }
+
+  if (mode === 'resize-sw') {
+    const width = clampNumber(initial.width - dxPercent, 14, 42);
+    return {
+      x: clampNumber(initial.x + (initial.width - width), 2, 84),
+      width,
+      height: clampNumber(initial.height + dyPercent, 14, 48),
+    };
+  }
+
+  if (mode === 'resize-ne') {
+    const height = clampNumber(initial.height - dyPercent, 14, 48);
+    return {
+      y: clampNumber(initial.y + (initial.height - height), 5, 78),
+      width: clampNumber(initial.width + dxPercent, 14, 42),
+      height,
+    };
+  }
+
+  if (mode === 'resize-nw') {
+    const width = clampNumber(initial.width - dxPercent, 14, 42);
+    const height = clampNumber(initial.height - dyPercent, 14, 48);
+    return {
+      x: clampNumber(initial.x + (initial.width - width), 2, 84),
+      y: clampNumber(initial.y + (initial.height - height), 5, 78),
+      width,
+      height,
+    };
+  }
+
+  return {
+    x: clampNumber(initial.x + dxPercent, 2, 84),
+    y: clampNumber(initial.y + dyPercent, 5, 78),
+  };
+}
+
+export function getPortfolioImageObjectPosition(index) {
+  return ['50% 44%', '58% 50%', '44% 60%', '52% 42%'][index % 4];
+}
+
+export function stringifyLayout(layout) {
+  return {
+    x: String(Math.round(layout.x * 10) / 10),
+    y: String(Math.round(layout.y * 10) / 10),
+    width: String(Math.round(layout.width * 10) / 10),
+    height: String(Math.round(layout.height * 10) / 10),
+    zIndex: String(Math.round(layout.zIndex)),
+  };
+}
+
+export function getMaxLayer(items) {
+  return Math.max(1, ...items.map((item, index) => getPortfolioLayout(item, index).zIndex));
+}

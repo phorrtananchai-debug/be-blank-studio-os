@@ -204,7 +204,7 @@ export function TaskRow({
   return (
     <div className="relative">
       <div
-        className={`grid min-h-[72px] w-full cursor-pointer grid-cols-[24px_1fr_52px] items-center gap-3 rounded-[22px] border border-[rgba(0,0,0,0.05)] px-4 py-3 shadow-sm transition duration-[120ms] ease-out active:scale-95 active:bg-[#DBDFE9] ${toneClass || (done ? 'bg-[#CFDECA]/20' : 'bg-white')}`}
+        className={`grid min-h-[88px] w-full cursor-pointer grid-cols-[24px_1fr_52px] items-center gap-4 rounded-[28px] border border-black/5 px-5 py-4 shadow-sm transition duration-[120ms] ease-out active:scale-95 active:bg-[#DBDFE9] ${toneClass || (done ? 'bg-[#CFDECA]/20' : 'bg-white')}`}
         role="button"
         tabIndex={0}
         onKeyDown={(event) => {
@@ -239,12 +239,12 @@ export function TaskRow({
         </button>
         <div className="min-w-0 pr-1">
           <span className="flex min-w-0 items-center gap-2">
-            <span className={`block truncate text-[11px] font-medium tracking-[0.04em] text-[#777777] ${done ? 'line-through decoration-[#777777]/60' : ''}`}>
+            <span className={`block truncate text-[10px] font-bold uppercase tracking-architectural text-studio-muted/70 ${done ? 'line-through decoration-studio-muted/60' : ''}`}>
               {meta}
             </span>
-            {range && <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] ${phase.chipClass}`}>{getStateLabel(task, contextDate)}</span>}
+            {range && <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-architectural ${phase.chipClass}`}>{getStateLabel(task, contextDate)}</span>}
           </span>
-          <span className={`mt-1 line-clamp-2 block text-[17px] font-medium leading-snug text-[#212121] ${done ? 'line-through decoration-[#212121]/60' : ''}`}>
+          <span className={`mt-1.5 line-clamp-2 block text-[18px] font-medium leading-snug text-[#111111] ${done ? 'line-through decoration-[#111111]/40' : ''}`}>
             {task.title || 'Untitled task'}
           </span>
           <span className={`mt-1 line-clamp-1 block text-sm leading-5 text-[#777777] ${done ? 'line-through decoration-[#777777]/60' : ''}`}>

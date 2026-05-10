@@ -1,24 +1,30 @@
 export function SectionCard({ action, children, compact = false, eyebrow, title }) {
-  if (compact) {
-    return (
-      <section className="rounded-lg border border-black/[0.08] bg-[#f3f2ee] p-5 shadow-studioSoft">
-        {children}
-      </section>
-    );
-  }
-
   return (
-    <section className="rounded-lg border border-black/[0.08] bg-[#efeee9] p-5 shadow-studio sm:p-6">
+    <section
+      className={`os-dashboard-enter rounded-[32px] border border-black/[0.02] bg-white/40 backdrop-blur-xl shadow-studioSoft transition-all duration-1000 ease-studio-out hover:bg-white/60 hover:shadow-premium hover:scale-[1.002] ${
+        compact ? 'p-6' : 'p-8 sm:p-12 lg:p-22'
+      }`}
+    >
       {(title || eyebrow || action) && (
-        <div className="mb-6 flex flex-col gap-4 border-b border-black/[0.08] pb-5 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            {eyebrow && <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-studio-orange">{eyebrow}</p>}
-            {title && <h2 className="mt-2 text-2xl font-semibold text-[#111111]">{title}</h2>}
+        <div className="mb-12 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-4">
+            {eyebrow && (
+              <p className="text-[9px] font-bold uppercase tracking-cinema text-studio-orange/80">
+                {eyebrow}
+              </p>
+            )}
+            {title && (
+              <h2 className="font-serif text-4xl sm:text-5xl font-light tracking-tightest text-studio-ink leading-[0.9]">
+                {title}
+              </h2>
+            )}
           </div>
-          {action}
+          {action && <div className="shrink-0 flex items-center">{action}</div>}
         </div>
       )}
-      {children}
+      <div className="relative">
+        {children}
+      </div>
     </section>
   );
 }

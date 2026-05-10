@@ -8,14 +8,14 @@ export function Field({
   ...props
 }) {
   const className =
-    'min-h-11 w-full rounded-lg border border-black/[0.08] bg-[#f3f2ee] px-3.5 py-2.5 text-sm text-[#111111] outline-none transition placeholder:text-[#777777]/60 focus:border-black/25 focus:bg-[#f7f6f2] focus:ring-2 focus:ring-black/[0.04]';
+    'min-h-11 w-full rounded-lg border border-black/[0.05] bg-white px-4 py-3 text-[15px] text-[#111111] outline-none transition-all duration-700 ease-studio-out placeholder:text-[#777777]/30 focus:border-studio-orange/30 focus:bg-[#f9f9f7] focus:shadow-studioSoft';
   const Input = multiline ? 'textarea' : 'input';
 
   return (
     <label className={`block ${wrapperClassName}`}>
-      <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-studio-muted">{label}</span>
+      <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-studio-muted/60">{label}</span>
       <Input
-        className={`${className} ${multiline ? 'min-h-28 resize-y leading-6' : ''}`}
+        className={`${className} ${multiline ? 'min-h-28 resize-y leading-relaxed' : ''}`}
         type={multiline ? undefined : type}
         value={value}
         onChange={(event) => onChange(event.target.value)}

@@ -1,8 +1,8 @@
 export function MetricCard({ label, value }) {
   return (
-    <div className="flex min-h-28 flex-col justify-between rounded-lg border border-black/[0.08] bg-[#f3f2ee] p-5 shadow-studioSoft">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-studio-muted">{label}</p>
-      <p className="mt-4 text-2xl font-semibold leading-tight text-[#111111]">{value}</p>
+    <div className="flex min-h-[140px] flex-col justify-between rounded-xl border border-black/[0.03] bg-white/50 backdrop-blur-md p-6 transition-all duration-500 hover:bg-white hover:shadow-premium hover:-translate-y-1">
+      <p className="text-[9px] font-bold uppercase tracking-cinema text-studio-muted/60">{label}</p>
+      <p className="font-serif text-4xl font-light leading-none text-studio-ink">{value}</p>
     </div>
   );
 }

@@ -1210,15 +1210,15 @@ function HomeView({ initialDate, onDeleteTask, onDoneTask, onDuplicateTask, onEd
 
   return (
     <div className="page-fade pb-32">
-      <section>
-        <div className="flex items-start justify-between gap-4">
-          <h2 className="text-5xl font-bold lowercase leading-none tracking-[-0.02em] text-[#212121]">today</h2>
-          <div className="flex gap-2">
-            <button className="rounded-full bg-[#CFDECA] px-3 py-2 text-xs font-semibold text-[#212121] transition-all duration-150 active:scale-[0.98]" type="button" onClick={() => scrollTo(doneRef)}>{doneTasks.length} done</button>
-            <button className="rounded-full bg-[#DBDFE9] px-3 py-2 text-xs font-semibold text-[#212121] transition-all duration-150 active:scale-[0.98]" type="button" onClick={() => scrollTo(todayRef)}>{activeTodayTasks.length} tasks</button>
+      <section className="pt-4">
+        <div className="flex items-end justify-between gap-4">
+          <h2 className="font-serif text-6xl lowercase leading-none tracking-tightest text-[#111111]">today</h2>
+          <div className="flex gap-2 pb-1">
+            <button className="rounded-full bg-[#CFDECA] px-4 py-2 text-[10px] font-bold uppercase tracking-architectural text-[#212121] transition-all duration-150 active:scale-[0.98]" type="button" onClick={() => scrollTo(doneRef)}>{doneTasks.length} done</button>
+            <button className="rounded-full bg-[#DBDFE9] px-4 py-2 text-[10px] font-bold uppercase tracking-architectural text-[#212121] transition-all duration-150 active:scale-[0.98]" type="button" onClick={() => scrollTo(todayRef)}>{activeTodayTasks.length} tasks</button>
           </div>
         </div>
-        <div className="mt-5 flex gap-2 overflow-x-auto snap-x no-scrollbar">
+        <div className="mt-8 flex gap-3 overflow-x-auto snap-x no-scrollbar px-1">
           {weekDays.map((day) => {
             const selected = isSameDay(day.date, selectedDate);
             return (
@@ -1239,23 +1239,23 @@ function HomeView({ initialDate, onDeleteTask, onDoneTask, onDuplicateTask, onEd
         </div>
       </section>
 
-      <button className="mt-6 w-full rounded-[22px] border border-[rgba(33,33,33,0.08)] bg-[#FFF0A3] p-4 text-left transition-all duration-150 active:scale-[0.98]" type="button" onClick={insightAction.onClick}>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#212121]/70">Insight</p>
-        <p className="mt-2 text-2xl font-bold text-[#212121]">{insightMessage}</p>
-        <span className="mt-3 flex items-center justify-between gap-3">
-          <span className="text-sm font-medium text-[#212121]/70">{insightAction.subtext}</span>
-          <span className="shrink-0 rounded-full bg-white/70 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#212121]">{insightAction.label}</span>
+      <button className="mt-10 w-full rounded-[28px] border border-black/5 bg-[#FFF0A3] p-6 text-left shadow-sm transition-all duration-300 active:scale-[0.98]" type="button" onClick={insightAction.onClick}>
+        <p className="text-[10px] font-bold uppercase tracking-cinema text-[#212121]/60">Insight</p>
+        <p className="font-serif mt-3 text-3xl font-medium leading-tight text-[#111111]">{insightMessage}</p>
+        <span className="mt-6 flex items-center justify-between gap-4">
+          <span className="text-[13px] font-medium text-[#212121]/60 italic">{insightAction.subtext}</span>
+          <span className="shrink-0 rounded-full bg-white/50 px-4 py-2 text-[10px] font-bold uppercase tracking-architectural text-[#212121]">{insightAction.label}</span>
         </span>
       </button>
 
-      <section className="mt-6">
+      <section className="mt-16">
         {!!inProgressTasks.length && (
-          <section ref={inProgressRef} className="mb-6 scroll-mt-4">
-            <div className="mb-1 flex items-center justify-between px-1 text-xs text-[#999]">
-              <h2 className="text-[11px] font-medium uppercase tracking-[0.18em]">IN PROGRESS</h2>
-              <p className="rounded-full bg-[#DBDFE9] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#212121]">{inProgressTasks.length}</p>
+          <section ref={inProgressRef} className="mb-12 scroll-mt-4">
+            <div className="mb-4 flex items-center justify-between px-1">
+              <h2 className="text-[10px] font-bold uppercase tracking-cinema text-studio-muted">IN PROGRESS</h2>
+              <p className="rounded-full bg-[#DBDFE9] px-2 py-0.5 text-[10px] font-bold text-[#212121]">{inProgressTasks.length}</p>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {inProgressTasks.map((task) => (
                 <InProgressRow key={task.id} projects={projects} selectedDate={selectedDate} task={task} />
               ))}
@@ -1263,11 +1263,11 @@ function HomeView({ initialDate, onDeleteTask, onDoneTask, onDuplicateTask, onEd
           </section>
         )}
 
-        <div ref={todayRef} className="mb-1 flex justify-between items-center px-1 text-xs text-[#999] scroll-mt-4">
-          <h2 className="text-[11px] font-medium uppercase tracking-[0.18em]">Today</h2>
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em]">{activeTodayTasks.length} {formatTaskCount(activeTodayTasks.length)}</p>
+        <div ref={todayRef} className="mb-4 flex justify-between items-center px-1 scroll-mt-4">
+          <h2 className="text-[10px] font-bold uppercase tracking-cinema text-studio-muted">Tasks Today</h2>
+          <p className="text-[10px] font-bold uppercase tracking-architectural text-studio-muted/60">{activeTodayTasks.length} {formatTaskCount(activeTodayTasks.length)}</p>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-4">
           {activeTodayTasks.map((task) => (
             <SharedTaskRow key={task.id} projects={projects} task={task} toneClass={getTaskTone(task)} onDelete={onDeleteTask} onDone={onDoneTask} onDuplicate={onDuplicateTask} onEdit={onEditTask} onMove={onMoveTask} onOpen={onOpenTask} />
           ))}
@@ -1275,12 +1275,12 @@ function HomeView({ initialDate, onDeleteTask, onDoneTask, onDuplicateTask, onEd
         </div>
       </section>
 
-      <section className="mt-6">
-        <div className="mb-1 flex justify-between items-center px-1 text-xs text-[#999]">
-          <h2 className="text-[11px] font-medium uppercase tracking-[0.18em]">Later</h2>
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em]">{laterTasks.length} queued</p>
+      <section className="mt-12">
+        <div className="mb-4 flex justify-between items-center px-1">
+          <h2 className="text-[10px] font-bold uppercase tracking-cinema text-studio-muted">Later</h2>
+          <p className="text-[10px] font-bold uppercase tracking-architectural text-studio-muted/60">{laterTasks.length} queued</p>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-4">
           {laterTasks.map((task) => (
             <SharedTaskRow key={task.id} projects={projects} task={task} toneClass={getTaskTone(task)} onDelete={onDeleteTask} onDone={onDoneTask} onDuplicate={onDuplicateTask} onEdit={onEditTask} onMove={onMoveTask} onOpen={onOpenTask} />
           ))}
