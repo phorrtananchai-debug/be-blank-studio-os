@@ -3,6 +3,7 @@ import {
   Plus,
   Search,
   Trash2,
+  Layers,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Badge } from '../Badge.jsx';
@@ -21,10 +22,11 @@ import { projectStatuses } from '../../data/seed.js';
 import { KeyDate, FinanceStat, ProfitStatusBadge } from './ProjectFinancials.jsx';
 import { getProfitBarClass } from '../../utils/financials.js';
 import { NarrativePanel } from './NarrativePanel.jsx';
+import { ProjectWorkspace } from './ProjectWorkspace.jsx';
 
 const drawingStatuses = ['draft', 'review', 'approved', 'issued'];
 
-export function ProjectDashboard({ projects, statusCounts, onAdd, onDelete, onUpdate }) {
+export function ProjectDashboard({ projects, statusCounts, onAdd, onDelete, onUpdate, onOpenSpace, user }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedProjectId, setSelectedProjectId] = useState('');
@@ -53,11 +55,13 @@ export function ProjectDashboard({ projects, statusCounts, onAdd, onDelete, onUp
 
   if (selectedProject) {
     return (
-      <ProjectDetailView
+      <ProjectWorkspace
         project={selectedProject}
         onBack={() => setSelectedProjectId('')}
         onDelete={() => deleteProject(selectedProject.id)}
         onUpdate={(updates) => onUpdate(selectedProject.id, updates)}
+        onOpenSpace={() => onOpenSpace?.(selectedProject.id)}
+        user={user}
       />
     );
   }
@@ -222,7 +226,7 @@ export function ProjectDashboard({ projects, statusCounts, onAdd, onDelete, onUp
   );
 }
 
-export function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
+export function ProjectDetailView({ project, onBack, onDelete, onUpdate, onOpenSpace }) {
   const timeline = calculateTimeline(project);
   const financials = calculateProjectFinancials(project);
   const siteLogs = Array.isArray(project.siteLogs) ? project.siteLogs : [];
@@ -270,6 +274,10 @@ export function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
             <Button variant="secondary" onClick={onBack}>
               <ArrowLeft size={16} />
               Back
+            </Button>
+            <Button onClick={onOpenSpace}>
+              <Layers size={16} />
+              Artwork Space
             </Button>
             <button
               className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-red-100 bg-red-50 px-5 text-[13px] font-semibold text-red-600 transition-all hover:bg-red-100 hover:text-red-700 hover:-translate-y-0.5"

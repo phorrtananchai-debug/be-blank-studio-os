@@ -12,7 +12,6 @@ import { initialPortfolioItems } from '../data/seed.js';
 import { createPortfolioItem } from '../utils/dashboard.js';
 import {
   clampNumber,
-  easeOutCubic,
   getPortfolioLayout,
   getNextInteractionLayout,
   getPortfolioImageObjectPosition,
@@ -22,7 +21,7 @@ import {
 
 const HOMEPAGE_LAYOUT_STORAGE_KEY = 'beBlank.homepageLayout.v1';
 const HOMEPAGE_BACKGROUND_STORAGE_KEY = 'beBlank.homepageBackground.v1';
-const DEFAULT_HOMEPAGE_BACKGROUND = '#e9e8e4';
+const DEFAULT_HOMEPAGE_BACKGROUND = '#f8f9fa';
 
 function getHomepageLayoutStore() {
   if (typeof window === 'undefined') return {};
@@ -59,8 +58,6 @@ function mergeHomepageLayout(items) {
 
 export function PublicHomepage({ portfolioItems, navigate }) {
   const featuredItems = portfolioItems.length ? portfolioItems : initialPortfolioItems;
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const [activeTab, setActiveTab] = useState('WORK');
   const [layoutItems, setLayoutItems] = useState(() => mergeHomepageLayout(featuredItems));
   const [publicUser, setPublicUser] = useState(null);
   const [publicAuthMessage, setPublicAuthMessage] = useState('');
@@ -96,16 +93,6 @@ export function PublicHomepage({ portfolioItems, navigate }) {
         signOutOfStudio();
       }
     });
-  }, []);
-
-  useEffect(() => {
-    const updateScrollProgress = () => {
-      setScrollProgress(clampNumber(window.scrollY / 760, 0, 1));
-    };
-
-    updateScrollProgress();
-    window.addEventListener('scroll', updateScrollProgress, { passive: true });
-    return () => window.removeEventListener('scroll', updateScrollProgress);
   }, []);
 
   useEffect(() => {
@@ -159,16 +146,7 @@ export function PublicHomepage({ portfolioItems, navigate }) {
     };
   }, [layoutInteraction]);
 
-  const easedScrollProgress = easeOutCubic(scrollProgress);
-  const titleStyle = {
-    top: `clamp(86px, ${38 - easedScrollProgress * 28}vh, 38vh)`,
-    opacity: clampNumber(1 - easedScrollProgress * 0.1, 0, 1),
-    transform: `translateX(-50%) scale(${clampNumber(1 - easedScrollProgress * 0.38, 0.62, 1)})`,
-    filter: `blur(${scrollProgress * 20}px)`,
-    transition: 'top 1.2s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 1s linear, filter 1s linear',
-  };
   const canSaveToFirebase = Boolean(publicUser && isFirebaseConfigured());
-  const heroItems = layoutItems.slice(0, 4);
   const selectedItem = layoutItems.find((item) => item.id === selectedItemId);
 
   const handlePublicSignIn = async () => {
@@ -275,26 +253,16 @@ export function PublicHomepage({ portfolioItems, navigate }) {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#e9e8e4] text-[#111111]" style={{ backgroundColor: DEFAULT_HOMEPAGE_BACKGROUND }}>
-      <header
-        className="fixed left-0 right-0 top-0 z-[100] border-b border-black/[0.05] bg-[#e9e8e4] px-5 py-4 backdrop-blur md:px-8"
-        style={{ backgroundColor: DEFAULT_HOMEPAGE_BACKGROUND }}
-      >
-        <nav className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 text-[10px] font-bold uppercase  text-[#111111]">
+    <div className="min-h-screen bg-[#f8f9fa] text-studio-ink selection:bg-studio-ink/10">
+      <header className="fixed left-0 right-0 top-0 z-[100] border-b border-black/[0.05] bg-white/80 px-5 py-4 backdrop-blur-md md:px-8">
+        <nav className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 text-[11px] font-bold uppercase tracking-widest text-[#111111]">
           <button className="justify-self-start text-left transition hover:text-[#777777]" type="button" onClick={() => navigate('/')}>
             BE BLANK
           </button>
           <div className="flex flex-wrap justify-center gap-x-12 gap-y-2">
-            {['WORK', 'ABOUT', 'JOURNAL'].map(item => (
-              <a
-                key={item}
-                className={`transition-all duration-500 hover:text-[#777777] ${activeTab === item ? 'opacity-100' : 'opacity-40'}`}
-                href={`#${item.toLowerCase()}`}
-                onClick={() => setActiveTab(item)}
-              >
-                {item}
-              </a>
-            ))}
+            <button className="opacity-40 hover:opacity-100" type="button" onClick={() => navigate('/work')}>WORK</button>
+            <button className="opacity-100" type="button" onClick={() => navigate('/')}>ABOUT</button>
+            <button className="opacity-40 hover:opacity-100" type="button" onClick={() => navigate('/')}>JOURNAL</button>
           </div>
           <div className="flex flex-wrap justify-end gap-3 text-[10px] tracking-tight">
             {!publicUser ? (
@@ -314,111 +282,168 @@ export function PublicHomepage({ portfolioItems, navigate }) {
           </div>
         </nav>
       </header>
-      <div
-        className="pointer-events-none fixed left-1/2 z-[80] w-[96vw] text-center"
-        style={titleStyle}
-      >
-        <h1
-          className="reveal-mask mx-auto max-w-[96vw] whitespace-nowrap text-center text-[clamp(18px,5vw,72px)] font-medium uppercase text-[#111111] md:text-[clamp(32px,5vw,72px)]"
-          style={{
-            letterSpacing: '0.03em',
-            lineHeight: 1.05,
-            textRendering: 'optimizeLegibility',
-            WebkitFontSmoothing: 'antialiased',
-          }}
-        >
-          BE BLANK TO BEHIND STUDIO
-        </h1>
-      </div>
 
-      <main className="bg-[#e9e8e4]" style={{ backgroundColor: DEFAULT_HOMEPAGE_BACKGROUND }}>
-        <section className="relative min-h-[138vh] bg-[#e9e8e4] px-5 pb-16 pt-24 md:px-8" style={{ backgroundColor: DEFAULT_HOMEPAGE_BACKGROUND }}>
-          <div
-            ref={canvasRef}
-            className={`absolute left-5 right-5 top-24 mx-auto h-[calc(100vh-6rem)] min-h-[600px] max-w-[1500px] overflow-visible md:left-8 md:right-8 ${
-              isEditingLayout ? 'cursor-crosshair' : ''
-            }`}
-          >
-            {heroItems.map((item, index) => (
-              <PortfolioCanvasCard
-                key={item.id}
-                index={index}
-                isEditing={isEditingLayout}
-                item={item}
-                navigate={navigate}
-                onLayerChange={updateItemLayer}
-                onPointerDown={beginLayoutInteraction}
-                onRemove={removeHomepageWork}
-                selected={selectedItemId === item.id}
-                setSelectedItemId={setSelectedItemId}
-              />
-            ))}
-          </div>
-          <div className="h-[calc(100vh-64px)] min-h-[600px]" aria-hidden="true" />
-          <div className="mx-auto mt-12 grid max-w-7xl gap-7 border-t border-black/[0.06] pt-6 text-left text-sm leading-6 text-[#777777] md:grid-cols-[1fr_1.5fr_1fr]">
-            <p className="font-medium uppercase tracking-tight text-[#111111]">Architecture / Interior / Objects</p>
-            <p className="max-w-2xl">
-              A Bangkok-based architecture and interior studio shaping spatial identities for hospitality, residential,
-              and cultural work.
+      <main className="page-fade">
+        <section className="flex min-h-screen flex-col items-center justify-center px-5 pt-16 text-center md:px-8">
+          <div className="max-w-4xl space-y-12">
+            <h1 className="text-4xl font-bold uppercase tracking-tight text-[#111111] md:text-6xl lg:text-7xl">
+              Be Blank to Behind Studio
+            </h1>
+            <p className="mx-auto max-w-2xl text-lg font-medium leading-relaxed text-studio-muted md:text-xl">
+              A Bangkok-based architecture and interior studio shaping spatial identities for hospitality, residential, and cultural work.
             </p>
-            <p className="md:text-right">Selected works, project notes, and studio operations.</p>
-          </div>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-[11px] font-semibold uppercase tracking-tight text-[#777777]">
-            {publicAuthMessage && <span className="text-red-700">{publicAuthMessage}</span>}
-            {saveMessage && <span>{saveMessage}</span>}
-          </div>
-          {isEditingLayout && (
-            <HomepageEditPanel
-              backgroundColor={backgroundColor}
-              hasSelection={Boolean(selectedItem)}
-              onAdd={addHomepageWork}
-              onLayerChange={(action) => selectedItem && updateItemLayer(selectedItem.id, action)}
-              onRemove={() => selectedItem && removeHomepageWork(selectedItem.id)}
-              onSave={saveLayout}
-            />
-          )}
-        </section>
-
-        <section id="work" className="bg-[#e9e8e4] px-5 pb-24 md:px-8" style={{ backgroundColor: DEFAULT_HOMEPAGE_BACKGROUND }}>
-          <div className="mb-10 flex items-end justify-between border-t border-black/[0.06] pt-6">
-            <h2 className="text-[10px] font-bold uppercase  text-studio-muted">Work</h2>
-            <span className="text-[10px] font-bold uppercase tracking-tight text-studio-muted/60">Selected portfolio</span>
-          </div>
-          <div className="stagger-in grid gap-x-10 gap-y-22 md:grid-cols-2 xl:grid-cols-3">
-            {layoutItems.map((item) => (
-              <PortfolioGridCard key={item.id} item={item} navigate={navigate} />
-            ))}
+            <div className="flex justify-center">
+              <div className="h-20 w-px bg-black/[0.08]" />
+            </div>
           </div>
         </section>
 
-        <section id="journal" className="grid gap-8 border-y border-black/12 px-5 py-14 md:grid-cols-[1fr_2fr] md:px-8">
-          <p className="text-xs font-semibold uppercase tracking-tight text-[#777777]">Journal</p>
-          <div className="grid gap-4 text-[clamp(2rem,5vw,5.6rem)] font-semibold uppercase leading-none text-[#111111]">
-            <span>Hospitality</span>
-            <span>Residence</span>
-            <span>Retail</span>
+        <section className="px-5 py-24 md:px-8">
+          <div className="mx-auto max-w-screen-2xl grid gap-8 md:grid-cols-2">
+            <div className="aspect-[4/5] overflow-hidden rounded-sm bg-studio-stone/20 shadow-studioSoft">
+              <img
+                src="https://images.unsplash.com/photo-1600585154340-be6161a20a61?auto=format&fit=crop&q=80&w=1200"
+                alt="Atmosphere 1"
+                className="h-full w-full object-cover transition-transform duration-[2000ms] hover:scale-105"
+              />
+            </div>
+            <div className="mt-24 aspect-[4/5] overflow-hidden rounded-sm bg-studio-stone/20 shadow-studioSoft">
+              <img
+                src="https://images.unsplash.com/photo-1600607687940-4e524cb35a36?auto=format&fit=crop&q=80&w=1200"
+                alt="Atmosphere 2"
+                className="h-full w-full object-cover transition-transform duration-[2000ms] hover:scale-105"
+              />
+            </div>
           </div>
         </section>
 
-        <section id="about" className="grid gap-8 px-5 py-16 md:grid-cols-[1fr_2fr] md:px-8">
-          <p className="text-xs font-semibold uppercase tracking-tight text-[#777777]">About</p>
-          <p className="max-w-4xl text-[clamp(1.8rem,4vw,4.4rem)] font-semibold leading-[0.98] text-[#111111]">
-            We design quiet spatial systems: clear plans, tactile material stories, and details built for real use.
-          </p>
+        <section id="about" className="mx-auto max-w-7xl px-5 py-32 md:px-8">
+          <div className="grid gap-16 md:grid-cols-[1fr_2fr]">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">Philosophy</span>
+            <div className="space-y-12">
+              <h2 className="text-3xl font-bold leading-tight text-studio-ink md:text-5xl">
+                We design quiet spatial systems: clear plans, tactile material stories, and details built for real use.
+              </h2>
+              <p className="max-w-2xl text-lg font-medium leading-relaxed text-studio-muted">
+                Our approach is rooted in the belief that space should be a blank canvas for human experience—refined, intentional, and enduring.
+              </p>
+            </div>
+          </div>
         </section>
 
-        <footer id="contact" className="flex flex-col gap-5 border-t border-black/12 px-5 py-8 text-xs font-semibold uppercase tracking-tight text-[#777777] md:flex-row md:items-center md:justify-between md:px-8">
-          <span>Bangkok / Phuket / Chiang Mai</span>
-          <a className="transition hover:text-[#111111]" href="mailto:studio@beblanktobehindstudio.com">
-            studio@beblanktobehindstudio.com
-          </a>
+        <section className="border-y border-black/[0.05] bg-studio-stone/10 px-5 py-32 md:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="grid gap-16 md:grid-cols-3">
+              {[
+                { title: 'Inquiry', detail: 'We begin with silence, listening to the site, the client, and the constraints.' },
+                { title: 'Precision', detail: 'Technical delivery is as critical as the conceptual spark. Every line matters.' },
+                { title: 'Atmosphere', detail: 'We curate light and texture to evoke emotion without noise.' },
+              ].map((step, i) => (
+                <div key={step.title} className="space-y-6">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">0{i + 1}</span>
+                  <h3 className="text-xl font-bold tracking-tight text-studio-ink">{step.title}</h3>
+                  <p className="text-sm font-medium leading-relaxed text-studio-muted">{step.detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="work" className="px-5 py-32 md:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-16 flex items-end justify-between border-b border-black/[0.05] pb-8">
+              <h2 className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">Highlights</h2>
+              <button
+                onClick={() => navigate('/work')}
+                className="text-[10px] font-bold uppercase tracking-widest text-studio-ink transition hover:text-studio-muted"
+              >
+                View Archive &rarr;
+              </button>
+            </div>
+            <div className="grid gap-24 md:grid-cols-2">
+              {featuredItems.slice(0, 2).map((item) => (
+                <button
+                  key={item.id}
+                  className="group text-left"
+                  type="button"
+                  onClick={() => navigate(`/portfolio/${encodeURIComponent(item.id)}`)}
+                >
+                  <div className="aspect-[16/10] overflow-hidden rounded-sm bg-studio-stone/20 shadow-studioSoft">
+                    <img
+                      alt={item.title}
+                      className="h-full w-full object-cover transition-all duration-[1500ms] ease-studio-out group-hover:scale-[1.05]"
+                      src={item.imageUrl}
+                    />
+                  </div>
+                  <div className="mt-8">
+                    <PortfolioCardMeta item={item} />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <footer className="border-t border-black/[0.08] bg-white px-5 py-24 text-center md:px-8">
+          <div className="mx-auto max-w-4xl space-y-10">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-studio-ink">Architecture / Interior / Objects</p>
+            <p className="text-xl font-medium leading-relaxed text-studio-muted">
+              A Bangkok-based architecture and interior studio shaping spatial identities for hospitality, residential, and cultural work.
+            </p>
+            <p className="text-sm font-medium italic text-studio-muted/60">Selected works, project notes, and studio operations.</p>
+            <div className="pt-12">
+              <button
+                onClick={() => navigate('/work')}
+                className="rounded-full border border-black/10 px-8 py-3 text-[11px] font-bold uppercase tracking-widest transition hover:bg-black hover:text-white"
+              >
+                Enter Archive
+              </button>
+            </div>
+          </div>
+          <div className="mt-32 flex flex-col gap-6 text-[10px] font-bold uppercase tracking-widest text-studio-muted/40 md:flex-row md:items-center md:justify-between">
+            <span>Bangkok / Phuket / Chiang Mai</span>
+            <a className="transition hover:text-studio-ink" href="mailto:studio@beblanktobehindstudio.com">
+              studio@beblanktobehindstudio.com
+            </a>
+            <span>© 2024</span>
+          </div>
         </footer>
       </main>
+
+      {isEditingLayout && (
+        <div className="fixed inset-0 z-[200] pointer-events-none opacity-0">
+          <div ref={canvasRef} />
+          {layoutItems.map((item, index) => (
+             <PortfolioCanvasCard
+               key={item.id}
+               item={item}
+               index={index}
+               isEditing={isEditingLayout}
+               navigate={navigate}
+               onLayerChange={updateItemLayer}
+               onPointerDown={beginLayoutInteraction}
+               onRemove={removeHomepageWork}
+               selected={selectedItemId === item.id}
+               setSelectedItemId={setSelectedItemId}
+             />
+          ))}
+          <HomepageEditPanel
+            backgroundColor={backgroundColor}
+            hasSelection={Boolean(selectedItem)}
+            onAdd={addHomepageWork}
+            onLayerChange={(action) => selectedItem && updateItemLayer(selectedItem.id, action)}
+            onRemove={() => selectedItem && removeHomepageWork(selectedItem.id)}
+            onSave={saveLayout}
+          />
+        </div>
+      )}
+      {publicAuthMessage && <div className="fixed bottom-4 left-4 z-[300] bg-red-50 text-red-600 px-4 py-2 rounded-lg text-xs font-bold">{publicAuthMessage}</div>}
+      {saveMessage && <div className="fixed bottom-4 left-4 z-[300] bg-studio-ink text-white px-4 py-2 rounded-lg text-xs font-bold">{saveMessage}</div>}
     </div>
   );
 }
 
-function PortfolioCanvasCard({ isEditing, item, index, navigate, onPointerDown, selected, setSelectedItemId }) {
+export function PortfolioCanvasCard({ isEditing, item, index, navigate, onPointerDown, selected, setSelectedItemId }) {
   const layout = getPortfolioLayout(item, index);
   const style = {
     left: `${layout.x}%`,
@@ -484,7 +509,7 @@ function PortfolioCanvasCard({ isEditing, item, index, navigate, onPointerDown, 
   );
 }
 
-function PortfolioGridCard({ item, navigate }) {
+export function PortfolioGridCard({ item, navigate }) {
   return (
     <button className="group text-left" type="button" onClick={() => navigate(`/portfolio/${encodeURIComponent(item.id)}`)}>
       <div className="aspect-[4/5] overflow-hidden bg-[#e5e5e1] rounded-sm">
@@ -541,31 +566,22 @@ function HomepageEditPanel({
   );
 }
 
-function PortfolioCardMeta({ item }) {
+export function PortfolioCardMeta({ item }) {
   return (
-    <span className="grid gap-2.5 font-sans">
-      <span className="flex items-start justify-between gap-4">
-        <span
-          className="block"
-          style={{
-            color: '#111111',
-            fontSize: 'clamp(24px, 2.5vw, 40px)',
-            fontWeight: 500,
-            letterSpacing: '0',
-            lineHeight: 1,
-          }}
-        >
+    <span className="grid gap-2 font-sans">
+      <span className="flex items-baseline justify-between gap-4">
+        <span className="text-xl font-bold tracking-tight text-[#111111]">
           {item.title}
         </span>
-        <span className="shrink-0 pt-1 text-right text-[12px] font-normal tracking-tight text-[#777777]">
+        <span className="shrink-0 text-right text-[10px] font-bold uppercase tracking-widest text-[#777777]">
           {[item.year, item.areaSqm ? `${item.areaSqm} sqm` : ''].filter(Boolean).join(' / ')}
         </span>
       </span>
-      <span className="text-[14px] font-light leading-[1.45] tracking-tight text-[#777777]">
+      <p className="text-sm font-medium text-[#777777]">
         {item.subtitle || item.description || item.location}
-      </span>
-      <span className="text-[11px] font-medium uppercase tracking-tight text-[#777777]">
-        {[item.category, item.location].filter(Boolean).join(' / ')}
+      </p>
+      <span className="text-[9px] font-bold uppercase tracking-widest text-[#adb5bd]">
+        {[item.category, item.location].filter(Boolean).join(' • ')}
       </span>
     </span>
   );

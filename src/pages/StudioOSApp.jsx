@@ -50,11 +50,12 @@ import { PortfolioManager } from '../components/dashboard/PortfolioManager.jsx';
 import { DailyFlow } from '../components/dashboard/DailyFlow.jsx';
 import { QuickCapture } from '../components/dashboard/QuickCapture.jsx';
 import { ArtworkSpace } from '../components/artwork/ArtworkSpace.jsx';
+import { BoardGallery } from '../components/artwork/BoardGallery.jsx';
 
 const tabs = [
   { id: 'flow', label: 'Daily Flow', icon: Wind },
   { id: 'projects', label: 'Overview', icon: LayoutDashboard },
-  { id: 'artwork', label: 'Space', icon: Layers },
+  { id: 'artwork', label: 'Artwork Space', icon: Layers },
   { id: 'timeline', label: 'Schedule', icon: CalendarClock },
   { id: 'content', label: 'Journal', icon: ClipboardCopy },
   { id: 'portfolio', label: 'Gallery', icon: ImageIcon },
@@ -198,9 +199,9 @@ export function StudioOSApp({ navigate }) {
   const firebaseDebugInfo = getFirebaseDebugInfo();
 
   return (
-    <div className="os-dashboard-enter min-h-screen bg-studio-bone text-studio-ink selection:bg-studio-orange/10 selection:text-studio-ink">
-      <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-24 px-8 py-12 lg:px-12 lg:py-20">
-        <header className="grid gap-12 xl:grid-cols-[1fr_auto] xl:items-end border-b border-black/[0.03] pb-16">
+    <div className="min-h-screen bg-studio-bone text-studio-ink selection:bg-studio-ink/10 selection:text-studio-ink">
+      <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-16 px-8 py-12 lg:px-12">
+        <header className="grid gap-12 xl:grid-cols-[1fr_auto] xl:items-end border-b border-black/[0.08] pb-12">
           <div className="space-y-10">
             <button
               className="text-[9px] font-bold uppercase  text-studio-muted transition hover:text-studio-ink"
@@ -281,8 +282,8 @@ export function StudioOSApp({ navigate }) {
           </section>
         )}
 
-        <div className="sticky top-12 z-[100] flex justify-center">
-          <nav className="flex gap-1 rounded-full border border-black/5 bg-white/80 p-1.5 shadow-studio backdrop-blur-md">
+        <div className="sticky top-0 z-[100] -mx-8 bg-studio-bone/80 px-8 py-4 backdrop-blur-md border-b border-black/[0.05]">
+          <nav className="flex items-center gap-1">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -290,15 +291,17 @@ export function StudioOSApp({ navigate }) {
               return (
                 <button
                   key={tab.id}
-                  className={`flex h-10 min-w-[120px] items-center justify-center gap-2 rounded-full text-[12px] font-semibold transition-all duration-300 ${
+                  className={`flex h-9 items-center gap-2 rounded-lg px-4 text-[12px] font-bold transition-all ${
                     isActive
-                      ? 'bg-studio-ink text-white shadow-md'
-                      : 'text-studio-muted hover:bg-black/[0.04] hover:text-studio-ink'
+                      ? 'bg-black text-white'
+                      : tab.id === 'artwork'
+                        ? 'bg-studio-orange/5 text-studio-ink hover:bg-studio-orange/10'
+                        : 'text-studio-muted hover:bg-black/[0.05] hover:text-studio-ink'
                   }`}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
                 >
-                  <Icon size={14} strokeWidth={2} />
+                  <Icon size={14} strokeWidth={2.5} />
                   {tab.label}
                 </button>
               );
@@ -317,35 +320,57 @@ export function StudioOSApp({ navigate }) {
                 onAdd={addProject}
                 onDelete={deleteProject}
                 onUpdate={updateProject}
+                onOpenSpace={(id) => {
+                  setSelectedArtworkProjectId(id);
+                  setActiveTab('artwork');
+                }}
+                user={studioUser}
               />
             )}
 
             {activeTab === 'artwork' && (
               <div className="space-y-12">
-                <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                  <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-studio-ink">Spatial Thinking</h2>
-                    <p className="mt-2 text-studio-muted">An infinite canvas for architectural composition and reference.</p>
+                {!selectedArtworkProjectId ? (
+                  <BoardGallery
+                    projects={projects}
+                    onSelect={(id) => setSelectedArtworkProjectId(id)}
+                  />
+                ) : (
+                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <header className="flex items-center justify-between border-b border-black/[0.05] pb-6">
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={() => setSelectedArtworkProjectId('')}
+                          className="grid h-10 w-10 place-items-center rounded-full border border-black/[0.05] bg-white text-studio-muted hover:text-studio-ink transition-all"
+                        >
+                          <ArrowLeft size={18} />
+                        </button>
+                        <div>
+                          <h2 className="text-2xl font-bold tracking-tight text-studio-ink">
+                            {projects.find(p => p.id === selectedArtworkProjectId)?.name}
+                          </h2>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">Studio Space</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-studio-muted mr-2">Switch board</span>
+                        <select
+                          value={selectedArtworkProjectId}
+                          onChange={(e) => setSelectedArtworkProjectId(e.target.value)}
+                          className="bg-white border border-black/5 rounded-full px-4 py-2 text-xs font-bold outline-none focus:ring-1 focus:ring-studio-ink/10"
+                        >
+                          {projects.map(p => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </header>
+                    <ArtworkSpace
+                      projectId={selectedArtworkProjectId}
+                      user={studioUser}
+                    />
                   </div>
-                  {projects.length > 0 && (
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-studio-muted">Active Board</span>
-                      <select
-                        value={selectedArtworkProjectId || projects[0]?.id}
-                        onChange={(e) => setSelectedArtworkProjectId(e.target.value)}
-                        className="bg-white border border-black/5 rounded-full px-4 py-2 text-xs font-bold outline-none focus:ring-1 focus:ring-studio-orange/20"
-                      >
-                        {projects.map(p => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </header>
-                <ArtworkSpace
-                  projectId={selectedArtworkProjectId || projects[0]?.id || 'default-space'}
-                  user={studioUser}
-                />
+                )}
               </div>
             )}
 
@@ -380,7 +405,7 @@ export function StudioOSApp({ navigate }) {
           </p>
         </footer>
       </div>
-      <QuickCapture />
+      <QuickCapture onOpenArtwork={() => setActiveTab('artwork')} />
     </div>
   );
 }

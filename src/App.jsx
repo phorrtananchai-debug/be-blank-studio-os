@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { MobileStudioApp } from './pages/MobileStudioApp.jsx';
 import { StudioOSApp } from './pages/StudioOSApp.jsx';
 import { PublicHomepage } from './pages/PublicHomepage.jsx';
+import { PortfolioPage } from './pages/PortfolioPage.jsx';
 import { PortfolioDetailPage } from './pages/PortfolioDetailPage.jsx';
 import { isFirebaseConfigured, subscribeToCollection } from './services/firebase.js';
 import { initialPortfolioItems } from './data/seed.js';
@@ -62,6 +63,10 @@ function App() {
 
   if (routePath === '/os' || routePath === '/dashboard') {
     return <StudioOSApp navigate={navigate} />;
+  }
+
+  if (routePath === '/work' || routePath === '/portfolio') {
+    return <PortfolioPage portfolioItems={publicPortfolioItems} navigate={navigate} />;
   }
 
   if (routePath.startsWith('/portfolio/')) {
