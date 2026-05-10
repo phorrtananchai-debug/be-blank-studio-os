@@ -13,7 +13,7 @@ export function Field({
 
   return (
     <label className={`block ${wrapperClassName}`}>
-      <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-studio-muted/60">{label}</span>
+      <span className="mb-2 block text-[10px] font-bold uppercase tracking-tight text-studio-muted/60">{label}</span>
       <Input
         className={`${className} ${multiline ? 'min-h-28 resize-y leading-relaxed' : ''}`}
         type={multiline ? undefined : type}

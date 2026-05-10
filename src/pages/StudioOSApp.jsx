@@ -7,6 +7,7 @@ import {
   Sparkles,
   Upload,
   Wind,
+  Layers,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '../components/Badge.jsx';
@@ -48,10 +49,12 @@ import { ContentPlanner } from '../components/dashboard/ContentPlanner.jsx';
 import { PortfolioManager } from '../components/dashboard/PortfolioManager.jsx';
 import { DailyFlow } from '../components/dashboard/DailyFlow.jsx';
 import { QuickCapture } from '../components/dashboard/QuickCapture.jsx';
+import { ArtworkSpace } from '../components/artwork/ArtworkSpace.jsx';
 
 const tabs = [
   { id: 'flow', label: 'Daily Flow', icon: Wind },
   { id: 'projects', label: 'Overview', icon: LayoutDashboard },
+  { id: 'artwork', label: 'Space', icon: Layers },
   { id: 'timeline', label: 'Schedule', icon: CalendarClock },
   { id: 'content', label: 'Journal', icon: ClipboardCopy },
   { id: 'portfolio', label: 'Gallery', icon: ImageIcon },
@@ -69,6 +72,7 @@ export function StudioOSApp({ navigate }) {
   const { projects, error: projectsError } = useStudioProjects(studioUser);
 
   const [activeTab, setActiveTab] = useState('flow');
+  const [selectedArtworkProjectId, setSelectedArtworkProjectId] = useState('');
   const [contentItems, setContentItems] = useLocalStorage('beBlank.content', initialContentItems);
   const [portfolioItems, setPortfolioItems] = useState(initialPortfolioItems);
   const [copiedId, setCopiedId] = useState('');
@@ -199,21 +203,21 @@ export function StudioOSApp({ navigate }) {
         <header className="grid gap-12 xl:grid-cols-[1fr_auto] xl:items-end border-b border-black/[0.03] pb-16">
           <div className="space-y-10">
             <button
-              className="text-[9px] font-bold uppercase tracking-cinema text-studio-muted transition hover:text-studio-ink"
+              className="text-[9px] font-bold uppercase  text-studio-muted transition hover:text-studio-ink"
               type="button"
               onClick={() => navigate('/')}
             >
               &larr; Studio Profile
             </button>
-            <div className="space-y-6">
-              <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-cinema text-studio-orange">
-                <Sparkles size={16} strokeWidth={1.5} />
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-wider text-studio-orange">
+                <Sparkles size={14} strokeWidth={2} />
                 Operating System
               </div>
-              <h1 className="font-serif text-6xl sm:text-7xl lg:text-8xl font-light tracking-tightest leading-[0.85] max-w-4xl">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none text-studio-ink">
                 Be Blank Studio OS
               </h1>
-              <p className="max-w-2xl text-lg font-medium tracking-tight text-studio-muted leading-relaxed">
+              <p className="max-w-2xl text-base font-medium text-studio-muted leading-relaxed">
                 A calm workspace for architectural delivery, content strategy, and portfolio management.
               </p>
             </div>
@@ -228,7 +232,7 @@ export function StudioOSApp({ navigate }) {
 
         <section className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between border-y border-black/[0.02] py-12">
           <div className="space-y-1">
-            <p className="text-[9px] font-bold uppercase tracking-cinema text-studio-orange">Realtime Workspace</p>
+            <p className="text-[9px] font-bold uppercase  text-studio-orange">Realtime Workspace</p>
             <p className="text-sm font-medium text-studio-muted">
               Projects and assets are synced via Firestore &bull; Local backups remain active.
             </p>
@@ -242,8 +246,8 @@ export function StudioOSApp({ navigate }) {
                 Disconnect
               </Button>
             )}
-            {(authMessage || projectsError) && <span className="text-[11px] font-bold uppercase tracking-editorial text-red-500">{authMessage || projectsError}</span>}
-            {backupMessage && <span className="text-[11px] font-bold uppercase tracking-editorial text-studio-orange">{backupMessage}</span>}
+            {(authMessage || projectsError) && <span className="text-[11px] font-bold uppercase  text-red-500">{authMessage || projectsError}</span>}
+            {backupMessage && <span className="text-[11px] font-bold uppercase  text-studio-orange">{backupMessage}</span>}
             <input ref={importInputRef} accept="application/json" className="hidden" type="file" onChange={importBackup} />
             <Button variant="secondary" onClick={() => importInputRef.current?.click()}>
               <Upload size={14} strokeWidth={2.5} />
@@ -263,7 +267,7 @@ export function StudioOSApp({ navigate }) {
         </section>
 
         {showDebug && (
-          <section className="rounded-2xl border border-black/[0.02] bg-[#f9f9f7] p-8 text-[10px] font-bold uppercase tracking-cinema text-studio-muted/50">
+          <section className="rounded-2xl border border-black/[0.02] bg-[#f9f9f7] p-8 text-[10px] font-bold uppercase  text-studio-muted/50">
             <p className="mb-6 text-studio-orange">System Debug Trace</p>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               <span>apiKeyExists: {String(firebaseDebugInfo.apiKeyExists)}</span>
@@ -278,7 +282,7 @@ export function StudioOSApp({ navigate }) {
         )}
 
         <div className="sticky top-12 z-[100] flex justify-center">
-          <nav className="flex gap-1 rounded-full border border-white/20 bg-white/40 p-1.5 shadow-premium backdrop-blur-2xl paper-layer">
+          <nav className="flex gap-1 rounded-full border border-black/5 bg-white/80 p-1.5 shadow-studio backdrop-blur-md">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -286,15 +290,15 @@ export function StudioOSApp({ navigate }) {
               return (
                 <button
                   key={tab.id}
-                  className={`flex h-11 min-w-[140px] items-center justify-center gap-3 rounded-full text-[11px] font-bold uppercase tracking-editorial transition-all duration-500 ${
+                  className={`flex h-10 min-w-[120px] items-center justify-center gap-2 rounded-full text-[12px] font-semibold transition-all duration-300 ${
                     isActive
-                      ? 'bg-studio-ink text-white shadow-premium'
-                      : 'text-studio-muted hover:bg-black/[0.03] hover:text-studio-ink'
+                      ? 'bg-studio-ink text-white shadow-md'
+                      : 'text-studio-muted hover:bg-black/[0.04] hover:text-studio-ink'
                   }`}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
                 >
-                  <Icon size={14} strokeWidth={isActive ? 2.5 : 1.5} />
+                  <Icon size={14} strokeWidth={2} />
                   {tab.label}
                 </button>
               );
@@ -314,6 +318,35 @@ export function StudioOSApp({ navigate }) {
                 onDelete={deleteProject}
                 onUpdate={updateProject}
               />
+            )}
+
+            {activeTab === 'artwork' && (
+              <div className="space-y-12">
+                <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                  <div>
+                    <h2 className="text-3xl font-bold tracking-tight text-studio-ink">Spatial Thinking</h2>
+                    <p className="mt-2 text-studio-muted">An infinite canvas for architectural composition and reference.</p>
+                  </div>
+                  {projects.length > 0 && (
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-studio-muted">Active Board</span>
+                      <select
+                        value={selectedArtworkProjectId || projects[0]?.id}
+                        onChange={(e) => setSelectedArtworkProjectId(e.target.value)}
+                        className="bg-white border border-black/5 rounded-full px-4 py-2 text-xs font-bold outline-none focus:ring-1 focus:ring-studio-orange/20"
+                      >
+                        {projects.map(p => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </header>
+                <ArtworkSpace
+                  projectId={selectedArtworkProjectId || projects[0]?.id || 'default-space'}
+                  user={studioUser}
+                />
+              </div>
             )}
 
             {activeTab === 'timeline' && <TimelineCalculator projects={projects} onUpdate={updateProject} />}
@@ -342,7 +375,7 @@ export function StudioOSApp({ navigate }) {
         </div>
 
         <footer className="border-t border-black/[0.03] pt-16 pb-24 text-center">
-          <p className="text-[9px] font-bold uppercase tracking-cinema text-studio-muted/40">
+          <p className="text-[9px] font-bold uppercase  text-studio-muted/40">
             Be Blank to Behind Studio &bull; Private Environment &bull; v1.0.0
           </p>
         </footer>

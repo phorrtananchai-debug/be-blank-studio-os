@@ -6,8 +6,9 @@ import { useState } from 'react';
 import { Badge } from '../Badge.jsx';
 import { Field } from '../Field.jsx';
 import { SectionCard } from '../SectionCard.jsx';
-import { calculateTimeline, formatDate } from '../../utils/dashboard.js';
-import { CalendarActions } from './ProjectFinancials.jsx';
+import { calculateTimeline } from '../../utils/dashboard.js';
+import { getTimelinePhases } from '../../utils/timeline.js';
+import { TimelineDate } from './TimelineDate.jsx';
 
 export function TimelineCalculator({ projects, onUpdate }) {
   const [viewMode, setViewMode] = useState('overview');
@@ -74,7 +75,7 @@ export function TimelineOverview({ projects }) {
           <article key={project.id} className="rounded-xl border border-black/[0.05] bg-white p-6 shadow-sm transition-all duration-300 hover:shadow-glow lg:p-8">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
-                <h3 className="font-serif truncate text-2xl font-medium text-[#111111]">{project.name}</h3>
+                <h3 className="font-sans font-bold truncate text-2xl font-medium text-[#111111]">{project.name}</h3>
                 <p className="mt-2 text-sm font-medium tracking-wide text-studio-muted/70 italic">
                   {project.client || 'Client TBD'} / {project.location || 'Location TBD'}
                 </p>
@@ -93,19 +94,19 @@ export function TimelineOverview({ projects }) {
 
             <div className="mt-8 grid gap-8 sm:grid-cols-2">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-studio-muted/60">Total Project Span</p>
-                <p className="font-serif mt-2 text-3xl font-medium text-[#111111]">{timeline.totalProjectDays} <span className="text-sm font-sans font-bold text-studio-muted/40 uppercase tracking-widest ml-1">days</span></p>
+                <p className="text-[10px] font-bold uppercase tracking-tight text-studio-muted/60">Total Project Span</p>
+                <p className="font-sans font-bold mt-2 text-3xl font-medium text-[#111111]">{timeline.totalProjectDays} <span className="text-sm font-sans font-bold text-studio-muted/40 uppercase tracking-widest ml-1">days</span></p>
               </div>
               <div className="sm:text-right">
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-studio-muted/60">Opening Countdown</p>
-                <p className={`font-serif mt-2 text-3xl font-medium ${timeline.riskTextClass}`}>{timeline.daysRemainingToOpening} <span className="text-sm font-sans font-bold opacity-40 uppercase tracking-widest ml-1">days</span></p>
+                <p className="text-[10px] font-bold uppercase tracking-tight text-studio-muted/60">Opening Countdown</p>
+                <p className={`font-sans font-bold mt-2 text-3xl font-medium ${timeline.riskTextClass}`}>{timeline.daysRemainingToOpening} <span className="text-sm font-sans font-bold opacity-40 uppercase tracking-widest ml-1">days</span></p>
               </div>
             </div>
 
             <div className="mt-8">
               <div className="mb-3 flex items-center justify-between gap-4">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-studio-muted/50">Completion</span>
-                <span className="font-serif text-lg font-medium text-[#111111]">{timeline.progressPercent}%</span>
+                <span className="font-sans font-bold text-lg font-medium text-[#111111]">{timeline.progressPercent}%</span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-black/[0.03]">
                 <div className={`h-full rounded-full transition-all duration-1000 ${timeline.riskBarClass}`} style={{ width: `${timeline.progressPercent}%` }} />
@@ -138,7 +139,7 @@ export function TimelineDetail({ expandedProjectIds, projects, onToggleExpanded,
                   {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                 </span>
                 <div className="min-w-0">
-                  <h3 className="font-serif truncate text-2xl font-medium text-[#111111]">{project.name}</h3>
+                  <h3 className="font-sans font-bold truncate text-2xl font-medium text-[#111111]">{project.name}</h3>
                   <p className="mt-1 text-sm font-medium tracking-wide text-studio-muted/70">
                     {project.client || 'Client TBD'} / {project.location || 'Location TBD'}
                   </p>
@@ -159,8 +160,8 @@ export function TimelineDetail({ expandedProjectIds, projects, onToggleExpanded,
                       key={phase.name}
                       className="grid gap-3 rounded-xl border border-black/[0.05] bg-white p-5 shadow-sm"
                     >
-                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-studio-muted/70">{phase.name}</p>
-                      <p className="font-serif text-2xl font-medium text-studio-orange">{phase.duration}<span className="text-xs font-sans font-bold opacity-30 ml-1">d</span></p>
+                      <p className="text-[10px] font-bold uppercase tracking-tight text-studio-muted/70">{phase.name}</p>
+                      <p className="font-sans font-bold text-2xl font-medium text-studio-orange">{phase.duration}<span className="text-xs font-sans font-bold opacity-30 ml-1">d</span></p>
                       <p className="text-[11px] font-medium text-studio-muted/50 italic">{phase.range}</p>
                     </div>
                   ))}
@@ -193,54 +194,4 @@ export function TimelineDetail({ expandedProjectIds, projects, onToggleExpanded,
       })}
     </div>
   );
-}
-
-export function TimelineDate({ calendarLabel, label, project, value }) {
-  return (
-    <div className="rounded-xl border border-black/5 bg-[#f9f9f7]/50 p-5 transition-all duration-300 hover:bg-white hover:shadow-studioSoft">
-      <p className="text-[10px] font-bold uppercase tracking-cinema text-studio-muted/50">{label}</p>
-      <div className="mt-4 flex items-center justify-between gap-4">
-        <p className="text-[15px] font-bold text-[#111111]">{value ? formatDate(value) : 'TBD'}</p>
-        {project && calendarLabel && value && <CalendarActions date={value} label={calendarLabel} project={project} />}
-      </div>
-    </div>
-  );
-}
-
-export function getTimelinePhases(project, timeline) {
-  return [
-    {
-      name: 'Design',
-      duration: timeline.designDays,
-      range: formatPhaseRange(project.startDate, project.designCompleteDate),
-    },
-    {
-      name: 'Construction',
-      duration: timeline.constructionDays,
-      range: formatPhaseRange(project.designCompleteDate, project.handoverDate),
-    },
-    {
-      name: 'Handover',
-      duration: project.handoverDate ? 1 : 0,
-      range: project.handoverDate ? formatDate(project.handoverDate) : 'TBD',
-    },
-    {
-      name: 'Training / Setup',
-      duration: timeline.handoverToOpeningDays,
-      range: formatPhaseRange(project.handoverDate, project.openingDate),
-    },
-    {
-      name: 'Opening',
-      duration: project.openingDate ? 1 : 0,
-      range: project.openingDate ? formatDate(project.openingDate) : 'TBD',
-    },
-  ];
-}
-
-export function formatPhaseRange(startDate, endDate) {
-  if (!startDate && !endDate) {
-    return 'TBD';
-  }
-
-  return `${startDate ? formatDate(startDate) : 'TBD'} — ${endDate ? formatDate(endDate) : 'TBD'}`;
 }

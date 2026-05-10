@@ -996,11 +996,11 @@ function TaskDetail({ onClose, onDone, projects = [], task }) {
 
   return (
     <div className="absolute inset-0 z-40 bg-[#F5F5FA] px-5 py-6">
-      <button className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#777777] transition duration-[120ms] ease-out active:scale-95" type="button" onClick={onClose}>
+      <button className="text-[11px] font-medium uppercase tracking-tight text-[#777777] transition duration-[120ms] ease-out active:scale-95" type="button" onClick={onClose}>
         Close
       </button>
       <div className="mt-16">
-        <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#777777]">{getProjectLabel(task, projects)} - {getPhaseLabel(task, projects)}</p>
+        <p className="text-[11px] font-medium uppercase tracking-tight text-[#777777]">{getProjectLabel(task, projects)} - {getPhaseLabel(task, projects)}</p>
         <h2 className="mt-4 text-3xl font-medium leading-tight">{task.title}</h2>
         <p className="mt-5 text-base leading-7 text-[#777777]">{task.notes || task.detail || 'No detail added.'}</p>
         {dueDate && <p className="mt-8 text-sm text-[#212121]">{describeTaskDate(task)}</p>}
@@ -1035,7 +1035,7 @@ function QuickAdd({ onClose, onCreate, projects }) {
       <div className="w-full rounded-t-[32px] bg-white p-5">
         <div className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-[rgba(33,33,33,0.08)]" />
         <label className="block">
-          <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#777777]">Quick add</span>
+          <span className="text-[11px] font-medium uppercase tracking-tight text-[#777777]">Quick add</span>
           <textarea
             autoFocus
             className="mt-3 min-h-36 w-full resize-none rounded-[24px] bg-[#F5F5FA] px-4 py-4 text-xl font-medium leading-8 text-[#212121] outline-none ring-0 transition duration-[120ms] ease-out placeholder:text-[#777777] focus:bg-white focus:ring-1 focus:ring-[#212121]"
@@ -1047,7 +1047,7 @@ function QuickAdd({ onClose, onCreate, projects }) {
         </label>
         {parsedTask && (
           <div className="mt-4 rounded-[22px] bg-[#DBDFE9]/60 p-4 text-sm leading-6 text-[#777777]">
-            <p className="mb-1 text-[11px] font-medium uppercase tracking-[0.12em] text-[#212121]">Detected</p>
+            <p className="mb-1 text-[11px] font-medium uppercase tracking-tight text-[#212121]">Detected</p>
             <p>Project: <span className="text-[#212121]">{parsedTask.projectName}</span></p>
             <p>Date: <span className="text-[#212121]">{formatPreviewDate(parsedTask.startDate || parsedTask.dueDate)}</span></p>
             <p>Range: <span className="text-[#212121]">{describeTaskDate(parsedTask)}</span></p>
@@ -1133,7 +1133,7 @@ function InProgressRow({ projects, selectedDate, task }) {
             <Briefcase className="size-4 shrink-0 text-[#777777]" aria-hidden="true" />
             <p className="line-clamp-1 text-sm font-semibold leading-snug text-[#212121]">{projectLabel}</p>
           </div>
-          <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] ${state.chipClass}`}>
+          <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-tight ${state.chipClass}`}>
             <StateIcon className="size-3" aria-hidden="true" />
             {state.label}
           </span>
@@ -1212,10 +1212,10 @@ function HomeView({ initialDate, onDeleteTask, onDoneTask, onDuplicateTask, onEd
     <div className="page-fade pb-32">
       <section className="pt-4">
         <div className="flex items-end justify-between gap-4">
-          <h2 className="font-serif text-6xl lowercase leading-none tracking-tightest text-[#111111]">today</h2>
+          <h2 className="font-sans font-bold text-6xl lowercase leading-none tracking-tight text-[#111111]">today</h2>
           <div className="flex gap-2 pb-1">
-            <button className="rounded-full bg-[#CFDECA] px-4 py-2 text-[10px] font-bold uppercase tracking-architectural text-[#212121] transition-all duration-150 active:scale-[0.98]" type="button" onClick={() => scrollTo(doneRef)}>{doneTasks.length} done</button>
-            <button className="rounded-full bg-[#DBDFE9] px-4 py-2 text-[10px] font-bold uppercase tracking-architectural text-[#212121] transition-all duration-150 active:scale-[0.98]" type="button" onClick={() => scrollTo(todayRef)}>{activeTodayTasks.length} tasks</button>
+            <button className="rounded-full bg-[#CFDECA] px-4 py-2 text-[10px] font-bold uppercase tracking-tight text-[#212121] transition-all duration-150 active:scale-[0.98]" type="button" onClick={() => scrollTo(doneRef)}>{doneTasks.length} done</button>
+            <button className="rounded-full bg-[#DBDFE9] px-4 py-2 text-[10px] font-bold uppercase tracking-tight text-[#212121] transition-all duration-150 active:scale-[0.98]" type="button" onClick={() => scrollTo(todayRef)}>{activeTodayTasks.length} tasks</button>
           </div>
         </div>
         <div className="mt-8 flex gap-3 overflow-x-auto snap-x no-scrollbar px-1">
@@ -1228,7 +1228,7 @@ function HomeView({ initialDate, onDeleteTask, onDoneTask, onDuplicateTask, onEd
                 type="button"
                 onClick={() => setSelectedDate(day.date)}
               >
-                <span className={`block text-[10px] font-semibold uppercase tracking-[0.12em] ${selected ? 'text-white/60' : 'text-[#777777]'}`}>
+                <span className={`block text-[10px] font-semibold uppercase tracking-tight ${selected ? 'text-white/60' : 'text-[#777777]'}`}>
                   {day.date.toLocaleDateString([], { weekday: 'short' })}
                 </span>
                 <span className="mt-1 block text-sm font-bold">{day.date.getDate()}</span>
@@ -1240,11 +1240,11 @@ function HomeView({ initialDate, onDeleteTask, onDoneTask, onDuplicateTask, onEd
       </section>
 
       <button className="mt-10 w-full rounded-[28px] border border-black/5 bg-[#FFF0A3] p-6 text-left shadow-sm transition-all duration-300 active:scale-[0.98]" type="button" onClick={insightAction.onClick}>
-        <p className="text-[10px] font-bold uppercase tracking-cinema text-[#212121]/60">Insight</p>
-        <p className="font-serif mt-3 text-3xl font-medium leading-tight text-[#111111]">{insightMessage}</p>
+        <p className="text-[10px] font-bold uppercase  text-[#212121]/60">Insight</p>
+        <p className="font-sans font-bold mt-3 text-3xl font-medium leading-tight text-[#111111]">{insightMessage}</p>
         <span className="mt-6 flex items-center justify-between gap-4">
           <span className="text-[13px] font-medium text-[#212121]/60 italic">{insightAction.subtext}</span>
-          <span className="shrink-0 rounded-full bg-white/50 px-4 py-2 text-[10px] font-bold uppercase tracking-architectural text-[#212121]">{insightAction.label}</span>
+          <span className="shrink-0 rounded-full bg-white/50 px-4 py-2 text-[10px] font-bold uppercase tracking-tight text-[#212121]">{insightAction.label}</span>
         </span>
       </button>
 
@@ -1252,7 +1252,7 @@ function HomeView({ initialDate, onDeleteTask, onDoneTask, onDuplicateTask, onEd
         {!!inProgressTasks.length && (
           <section ref={inProgressRef} className="mb-12 scroll-mt-4">
             <div className="mb-4 flex items-center justify-between px-1">
-              <h2 className="text-[10px] font-bold uppercase tracking-cinema text-studio-muted">IN PROGRESS</h2>
+              <h2 className="text-[10px] font-bold uppercase  text-studio-muted">IN PROGRESS</h2>
               <p className="rounded-full bg-[#DBDFE9] px-2 py-0.5 text-[10px] font-bold text-[#212121]">{inProgressTasks.length}</p>
             </div>
             <div className="space-y-4">
@@ -1264,8 +1264,8 @@ function HomeView({ initialDate, onDeleteTask, onDoneTask, onDuplicateTask, onEd
         )}
 
         <div ref={todayRef} className="mb-4 flex justify-between items-center px-1 scroll-mt-4">
-          <h2 className="text-[10px] font-bold uppercase tracking-cinema text-studio-muted">Tasks Today</h2>
-          <p className="text-[10px] font-bold uppercase tracking-architectural text-studio-muted/60">{activeTodayTasks.length} {formatTaskCount(activeTodayTasks.length)}</p>
+          <h2 className="text-[10px] font-bold uppercase  text-studio-muted">Tasks Today</h2>
+          <p className="text-[10px] font-bold uppercase tracking-tight text-studio-muted/60">{activeTodayTasks.length} {formatTaskCount(activeTodayTasks.length)}</p>
         </div>
         <div className="space-y-4">
           {activeTodayTasks.map((task) => (
@@ -1277,8 +1277,8 @@ function HomeView({ initialDate, onDeleteTask, onDoneTask, onDuplicateTask, onEd
 
       <section className="mt-12">
         <div className="mb-4 flex justify-between items-center px-1">
-          <h2 className="text-[10px] font-bold uppercase tracking-cinema text-studio-muted">Later</h2>
-          <p className="text-[10px] font-bold uppercase tracking-architectural text-studio-muted/60">{laterTasks.length} queued</p>
+          <h2 className="text-[10px] font-bold uppercase  text-studio-muted">Later</h2>
+          <p className="text-[10px] font-bold uppercase tracking-tight text-studio-muted/60">{laterTasks.length} queued</p>
         </div>
         <div className="space-y-4">
           {laterTasks.map((task) => (
@@ -1291,8 +1291,8 @@ function HomeView({ initialDate, onDeleteTask, onDoneTask, onDuplicateTask, onEd
       {!!doneTasks.length && (
         <section ref={doneRef} className="mt-6 scroll-mt-4">
           <div className="mb-1 flex justify-between items-center px-1 text-xs text-[#999]">
-            <h2 className="text-[11px] font-medium uppercase tracking-[0.18em]">Done</h2>
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em]">{doneTasks.length} complete</p>
+            <h2 className="text-[11px] font-medium uppercase tracking-tight">Done</h2>
+            <p className="text-[11px] font-medium uppercase tracking-tight">{doneTasks.length} complete</p>
           </div>
           <div className="space-y-3">
             {doneTasks.map((task) => (
@@ -1305,8 +1305,8 @@ function HomeView({ initialDate, onDeleteTask, onDoneTask, onDuplicateTask, onEd
       {!!overdueTasks.length && (
         <section ref={overdueRef} className="mt-6 scroll-mt-4">
           <div className="mb-1 flex justify-between items-center px-1 text-xs text-[#999]">
-            <h2 className="text-[11px] font-medium uppercase tracking-[0.18em]">Needs attention</h2>
-            <p className="rounded-full bg-[#FFF0A3] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#212121]">{overdueTasks.length} overdue</p>
+            <h2 className="text-[11px] font-medium uppercase tracking-tight">Needs attention</h2>
+            <p className="rounded-full bg-[#FFF0A3] px-2 py-1 text-[11px] font-semibold uppercase tracking-tight text-[#212121]">{overdueTasks.length} overdue</p>
           </div>
           <div className="space-y-3">
             {overdueTasks.map((task) => (
@@ -1318,8 +1318,8 @@ function HomeView({ initialDate, onDeleteTask, onDoneTask, onDuplicateTask, onEd
 
       <section className="mt-6">
         <div className="mb-1 flex justify-between items-center px-1 text-xs text-[#999]">
-          <h2 className="text-[11px] font-medium uppercase tracking-[0.18em]">PROJECTS</h2>
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em]">{activeProjects.length} ACTIVE</p>
+          <h2 className="text-[11px] font-medium uppercase tracking-tight">PROJECTS</h2>
+          <p className="text-[11px] font-medium uppercase tracking-tight">{activeProjects.length} ACTIVE</p>
         </div>
         <div className="space-y-3">
           {activeProjects.slice(0, 5).map((project) => (
@@ -1402,7 +1402,7 @@ function ProfileCard({ onOpenProfile, profileImage, user }) {
         <div className="min-w-0 flex-1">
           <p className="truncate text-xl font-semibold text-white">{displayName}</p>
           <p className="mt-1 truncate text-sm text-white/60">{user?.email || 'Private workspace'}</p>
-          <button className="mt-3 min-h-11 rounded-full bg-white/10 px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-white transition-all duration-150 active:scale-[0.98]" type="button" onClick={onOpenProfile}>
+          <button className="mt-3 min-h-11 rounded-full bg-white/10 px-4 text-[11px] font-semibold uppercase tracking-tight text-white transition-all duration-150 active:scale-[0.98]" type="button" onClick={onOpenProfile}>
             Change picture
           </button>
         </div>
@@ -1414,7 +1414,7 @@ function ProfileCard({ onOpenProfile, profileImage, user }) {
 function MoreSection({ children, title }) {
   return (
     <section>
-      <h2 className="mb-2 px-1 text-[11px] font-medium uppercase tracking-[0.18em] text-[#777777]">{title}</h2>
+      <h2 className="mb-2 px-1 text-[11px] font-medium uppercase tracking-tight text-[#777777]">{title}</h2>
       <div className="grid gap-3">{children}</div>
     </section>
   );
@@ -1692,7 +1692,7 @@ export function MobileDashboard({ onSignOut, user }) {
   }[activeTab];
 
   return (
-    <main className="relative mx-auto flex h-[100dvh] min-h-screen w-full max-w-[430px] flex-col overflow-hidden bg-[#F5F5FA] text-[#212121] [font-family:Urbanist,system-ui,sans-serif]">
+    <main className="relative mx-auto flex h-[100dvh] min-h-screen w-full max-w-[430px] flex-col overflow-hidden bg-[#F5F5FA] text-[#212121]">
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <header className="flex h-16 w-full shrink-0 items-center justify-between bg-transparent px-4">
           <button className="grid size-10 place-items-center rounded-full bg-white transition duration-[120ms] ease-out active:scale-95" type="button">
@@ -1702,7 +1702,7 @@ export function MobileDashboard({ onSignOut, user }) {
               className="h-auto w-7 object-contain"
             />
           </button>
-          <h1 className="text-sm font-medium tracking-[0.08em] text-[#212121]">Studio OS</h1>
+          <h1 className="text-sm font-medium tracking-tight text-[#212121]">Studio OS</h1>
           <ProfileAvatar profileImage={profileImage} user={user} onClick={() => setIsProfileOpen(true)} />
         </header>
 

@@ -45,7 +45,7 @@ export function LoginPage({ errorMessage, onBack, onSignIn }) {
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
         <div className="flex justify-start pt-6">
           <button
-            className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#777777] transition hover:text-[#111111]"
+            className="text-[11px] font-medium uppercase tracking-tight text-[#777777] transition hover:text-[#111111]"
             type="button"
             onClick={onBack}
           >
@@ -55,13 +55,13 @@ export function LoginPage({ errorMessage, onBack, onSignIn }) {
 
         <section className="flex flex-1 flex-col items-center justify-center pb-24 text-center transition duration-300 ease-out">
           <div className="mb-8 flex size-16 items-center justify-center rounded-full border border-black/[0.08] bg-[#f5f5f5]">
-            <span className="text-lg font-medium tracking-[0.08em]">BB</span>
+            <span className="text-lg font-medium tracking-tight">BB</span>
           </div>
-          <p className="whitespace-nowrap text-[15px] font-medium tracking-[0.03em] text-[#111111]">
+          <p className="whitespace-nowrap text-[15px] font-medium tracking-tight text-[#111111]">
             Be blank to behind studio
           </p>
           <div className="my-4 h-px w-10 bg-black/[0.18]" />
-          <h1 className="text-sm font-normal tracking-[0.08em] text-[#777777]">Studio OS</h1>
+          <h1 className="text-sm font-normal tracking-tight text-[#777777]">Studio OS</h1>
           {displayError && <p className="mt-8 max-w-xs text-sm leading-6 text-red-700">{displayError}</p>}
         </section>
 
@@ -77,7 +77,7 @@ export function LoginPage({ errorMessage, onBack, onSignIn }) {
             {isSigningIn ? <LoadingDot /> : <GoogleIcon />}
             {isSigningIn ? 'Signing in...' : 'Continue with Google'}
           </button>
-          <p className="mt-5 text-center text-xs font-normal tracking-[0.04em] text-[#9a9a9a]">Private workspace</p>
+          <p className="mt-5 text-center text-xs font-normal tracking-tight text-[#9a9a9a]">Private workspace</p>
         </div>
       </div>
     </main>

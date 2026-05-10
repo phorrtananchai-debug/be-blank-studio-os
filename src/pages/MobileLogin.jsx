@@ -56,11 +56,11 @@ export function MobileLogin({ errorMessage, onPreviewDashboard, onSignIn }) {
             alt="Be blank to behind studio"
             className="mx-auto h-auto w-[92px] object-contain"
           />
-          <p className="mt-8 whitespace-nowrap text-[15px] font-medium tracking-[0.03em]">
+          <p className="mt-8 whitespace-nowrap text-[15px] font-medium tracking-tight">
             Be blank to behind studio
           </p>
           <div className="my-4 h-px w-10 bg-black/[0.18]" />
-          <p className="text-sm font-normal tracking-[0.08em] text-[#777777]">Studio OS</p>
+          <p className="text-sm font-normal tracking-tight text-[#777777]">Studio OS</p>
           {displayError && <p className="mt-8 max-w-xs text-sm leading-6 text-red-700">{displayError}</p>}
         </section>
 
@@ -78,14 +78,14 @@ export function MobileLogin({ errorMessage, onPreviewDashboard, onSignIn }) {
           </button>
           {import.meta.env.DEV && (
             <button
-              className="mt-4 w-full text-center text-xs font-medium tracking-[0.04em] text-[#777777] transition hover:text-[#111111]"
+              className="mt-4 w-full text-center text-xs font-medium tracking-tight text-[#777777] transition hover:text-[#111111]"
               type="button"
               onClick={onPreviewDashboard}
             >
               Preview Dashboard
             </button>
           )}
-          <p className="mt-5 text-center text-xs font-normal tracking-[0.04em] text-[#9a9a9a]">Private workspace</p>
+          <p className="mt-5 text-center text-xs font-normal tracking-tight text-[#9a9a9a]">Private workspace</p>
         </div>
       </div>
     </main>

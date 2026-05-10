@@ -18,7 +18,8 @@ import {
   formatTHB,
 } from '../../utils/dashboard.js';
 import { projectStatuses } from '../../data/seed.js';
-import { KeyDate, FinanceStat, ProfitStatusBadge, getProfitBarClass } from './ProjectFinancials.jsx';
+import { KeyDate, FinanceStat, ProfitStatusBadge } from './ProjectFinancials.jsx';
+import { getProfitBarClass } from '../../utils/financials.js';
 import { NarrativePanel } from './NarrativePanel.jsx';
 
 const drawingStatuses = ['draft', 'review', 'approved', 'issued'];
@@ -67,10 +68,10 @@ export function ProjectDashboard({ projects, statusCounts, onAdd, onDelete, onUp
         {projectStatuses.map((status) => (
           <SectionCard key={status} compact>
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-studio-muted">{status}</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-studio-muted">{status}</p>
               <Badge tone={status}>{status}</Badge>
             </div>
-            <p className="font-serif mt-5 text-4xl font-medium text-[#111111]">{statusCounts[status] || 0}</p>
+            <p className="mt-4 text-3xl font-bold text-[#111111]">{statusCounts[status] || 0}</p>
           </SectionCard>
         ))}
       </div>
@@ -87,7 +88,7 @@ export function ProjectDashboard({ projects, statusCounts, onAdd, onDelete, onUp
       >
         <div className="mb-8 grid gap-4 rounded-xl border border-black/[0.05] bg-[#f9f9f7] p-6 lg:grid-cols-[1fr_240px]">
           <label className="block">
-            <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-studio-muted">
+            <span className="mb-2 block text-[10px] font-bold uppercase tracking-tight text-studio-muted">
               Search projects
             </span>
             <div className="flex min-h-12 items-center gap-3 rounded-lg border border-black/[0.05] bg-white px-4 transition-all focus-within:border-studio-orange/30 focus-within:ring-4 focus-within:ring-studio-orange/5">
@@ -102,7 +103,7 @@ export function ProjectDashboard({ projects, statusCounts, onAdd, onDelete, onUp
             </div>
           </label>
           <label className="block">
-            <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-studio-muted">
+            <span className="mb-2 block text-[10px] font-bold uppercase tracking-tight text-studio-muted">
               Filter status
             </span>
             <select
@@ -143,12 +144,12 @@ export function ProjectDashboard({ projects, statusCounts, onAdd, onDelete, onUp
                   <div>
                     <input
                       aria-label="Project name"
-                      className="font-serif w-full bg-transparent text-3xl font-medium text-[#111111] outline-none transition-colors focus:text-studio-orange"
+                      className="w-full bg-transparent text-2xl font-bold text-[#111111] outline-none transition-colors focus:text-studio-orange"
                       value={project.name}
                       onClick={(event) => event.stopPropagation()}
                       onChange={(event) => onUpdate(project.id, { name: event.target.value })}
                     />
-                    <p className="mt-2 text-sm font-medium tracking-wide text-studio-muted/70">
+                    <p className="mt-1 text-sm font-medium text-studio-muted/70">
                       {project.client || 'Client TBD'} &bull; {project.location || 'Location TBD'}
                     </p>
                   </div>
@@ -351,15 +352,15 @@ export function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
 
           <div className="grid gap-8">
             <div className="rounded-xl border border-black/[0.05] bg-[#f9f9f7] p-8 shadow-sm">
-              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-studio-orange">Timeline & Progress</p>
+              <p className="text-[10px] font-bold uppercase tracking-tight text-studio-orange">Timeline & Progress</p>
               <div className="mt-8 flex items-end justify-between gap-6">
                 <div>
-                  <p className="font-serif text-5xl font-medium text-[#111111]">{timeline.progressPercent}%</p>
-                  <p className="mt-2 text-[13px] font-medium tracking-wide text-studio-muted/70 uppercase">delivery progress</p>
+                <p className="text-4xl font-bold text-[#111111]">{timeline.progressPercent}%</p>
+                <p className="mt-1 text-[12px] font-bold tracking-wide text-studio-muted/70 uppercase">delivery progress</p>
                 </div>
                 <div className="text-right">
-                  <p className={`font-serif text-3xl font-medium ${timeline.riskTextClass}`}>{timeline.daysLeftToHandover}</p>
-                  <p className="mt-1 text-[11px] font-bold tracking-widest text-studio-muted/50 uppercase">days left</p>
+                <p className={`text-3xl font-bold ${timeline.riskTextClass}`}>{timeline.daysLeftToHandover}</p>
+                <p className="mt-1 text-[10px] font-bold tracking-wider text-studio-muted/50 uppercase">days left</p>
                 </div>
               </div>
               <div className="mt-8 h-2 overflow-hidden rounded-full bg-black/[0.03]">
@@ -372,14 +373,14 @@ export function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
                 <MetricCard label="Design" value={`${timeline.designDays}d`} />
                 <MetricCard label="Construction" value={`${timeline.constructionDays}d`} />
                 <div className={`flex min-h-28 flex-col justify-between rounded-lg border border-black/[0.05] p-5 shadow-studioSoft transition-all hover:shadow-glow bg-white`}>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-studio-muted">Risk Level</p>
-                  <p className={`font-serif mt-4 text-2xl font-medium leading-tight ${timeline.riskTextClass}`}>{timeline.riskLevel}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-tight text-studio-muted">Risk Level</p>
+                  <p className={`font-sans font-bold mt-4 text-2xl font-medium leading-tight ${timeline.riskTextClass}`}>{timeline.riskLevel}</p>
                 </div>
               </div>
             </div>
 
             <div className="grid gap-4 rounded-xl border border-black/[0.05] bg-[#f9f9f7] p-8 shadow-sm">
-              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-studio-orange mb-4">Milestones</p>
+              <p className="text-[10px] font-bold uppercase tracking-tight text-studio-orange mb-4">Milestones</p>
               <KeyDate calendarLabel="Start date" label="Project Kickoff" project={project} value={project.startDate} />
               <KeyDate label="Design Finalized" value={project.designCompleteDate} />
               <KeyDate calendarLabel="Handover date" label="Handover to Client" project={project} value={project.handoverDate} />
@@ -392,7 +393,7 @@ export function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
           <div className="rounded-xl border border-black/[0.05] bg-[#f9f9f7] p-8 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-studio-orange">Financial Intelligence</p>
+                <p className="text-[10px] font-bold uppercase tracking-tight text-studio-orange">Financial Intelligence</p>
                 <p className="mt-2 text-sm font-medium text-studio-muted/60">Comprehensive profit and cost analysis in THB.</p>
               </div>
               <ProfitStatusBadge status={financials.profitStatus} />
@@ -497,7 +498,7 @@ export function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
             <div className="mt-10">
               <div className="mb-4 flex items-center justify-between gap-4">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-studio-muted/50">Utilization of project value</span>
-                <span className="font-serif text-xl font-medium text-[#111111]">
+                <span className="font-sans font-bold text-xl font-medium text-[#111111]">
                   {financials.projectValue ? Math.round((financials.totalCost / financials.projectValue) * 100) : 0}%
                 </span>
               </div>
@@ -514,7 +515,7 @@ export function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
 
           <div className="flex flex-col gap-8">
             <div className="rounded-xl border border-black/[0.05] bg-[#f9f9f7] p-8 shadow-sm">
-              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-studio-orange mb-8">Documentation & Control</p>
+              <p className="text-[10px] font-bold uppercase tracking-tight text-studio-orange mb-8">Documentation & Control</p>
               <div className="grid gap-6 sm:grid-cols-2">
                 <Field
                   label="Drawing link"
@@ -541,7 +542,7 @@ export function ProjectDetailView({ project, onBack, onDelete, onUpdate }) {
             <div className="rounded-xl border border-black/[0.05] bg-[#f9f9f7] p-8 shadow-sm flex-1">
               <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-studio-orange">Field Reports</p>
+                  <p className="text-[10px] font-bold uppercase tracking-tight text-studio-orange">Field Reports</p>
                   <p className="mt-2 text-sm font-medium text-studio-muted/60 italic">Captured site data and construction logs.</p>
                 </div>
                 <Button variant="secondary" onClick={addSiteLog}>

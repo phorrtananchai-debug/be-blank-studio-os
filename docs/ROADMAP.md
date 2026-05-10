@@ -6,7 +6,7 @@ The codebase has been refactored from a monolithic React application into a modu
 *   **Current State:**
     *   **Frontend:** React + Vite + TailwindCSS.
     *   **Backend:** Firebase (Firestore, Auth, Functions) + Local Express API fallback.
-    *   **Identity:** "Editorial Luxury" aesthetic using Cormorant Garamond (serif), architectural spacing, and neutral tones (canvas, bone, stone).
+    *   **Identity:** "System OS" aesthetic using Inter (sans-serif), high-density functional spacing, and neutral tones (canvas, bone, stone).
     *   **Structure:** Logic is separated into custom hooks (`src/hooks/`) and utility functions (`src/utils/`). Components are organized by feature area (e.g., `src/components/dashboard/`).
 
 ## 2. Scalability & Performance
@@ -22,8 +22,8 @@ The codebase has been refactored from a monolithic React application into a modu
 
 ### Phase 1: Immediate Improvements (Completed/In Progress)
 *   **Architectural Refactor:** Move away from `App.jsx` monolith. (DONE)
-*   **Design Overhaul:** Establish the "Luxury OS" visual language. (DONE)
-*   **Mobile Polish:** Enhance spacing and typography for high-end feel. (DONE)
+*   **Design Pivot:** Established the "System OS" visual language, transitioning from luxury-serif to functional-sans. (DONE)
+*   **Mobile Polish:** Unified mobile and desktop design languages under the new system. (DONE)
 
 ### Phase 2: Medium-Term Upgrades
 *   **Type Safety:** Migrate to TypeScript to prevent runtime errors in complex data structures (Financials, Timelines).

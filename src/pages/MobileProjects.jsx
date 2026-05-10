@@ -183,7 +183,7 @@ function ProjectCard({ onSelect, project, tasks }) {
           </span>
           <span className="min-w-0">
             <span className="block truncate text-[17px] font-semibold leading-snug text-[#212121]">{projectLabel}</span>
-            <span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] ${phaseInfo.chipClass}`}>
+            <span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-tight ${phaseInfo.chipClass}`}>
               {phase}
             </span>
           </span>
@@ -192,7 +192,7 @@ function ProjectCard({ onSelect, project, tasks }) {
       </span>
 
       <span className="mt-4 flex flex-wrap items-center gap-2 text-xs font-medium text-[#777777]">
-        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] ${getStatusClass(status)}`}>
+        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-tight ${getStatusClass(status)}`}>
           <StatusIcon className="size-3" aria-hidden="true" />
           {status}
         </span>
@@ -236,7 +236,7 @@ function ProjectDetail({ notes, onBack, project, tasks }) {
 
   return (
     <div className="page-fade pb-28">
-      <button className="rounded-full border border-black/5 bg-white px-4 py-2 text-[11px] font-medium uppercase tracking-[0.12em] text-[#777777] transition duration-[120ms] ease-out active:scale-95" type="button" onClick={onBack}>
+      <button className="rounded-full border border-black/5 bg-white px-4 py-2 text-[11px] font-medium uppercase tracking-tight text-[#777777] transition duration-[120ms] ease-out active:scale-95" type="button" onClick={onBack}>
         Projects
       </button>
 
@@ -245,8 +245,8 @@ function ProjectDetail({ notes, onBack, project, tasks }) {
           <div className="min-w-0">
             <h2 className="truncate text-3xl font-bold leading-tight text-[#212121]">{projectLabel}</h2>
             <div className="mt-3 flex flex-wrap gap-2">
-              <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${phaseInfo.chipClass}`}>Phase: {phase}</span>
-              <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${getStatusClass(status)}`}>
+              <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-tight ${phaseInfo.chipClass}`}>Phase: {phase}</span>
+              <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-tight ${getStatusClass(status)}`}>
                 <StatusIcon className="size-3" aria-hidden="true" />
                 {status}
               </span>
@@ -265,7 +265,7 @@ function ProjectDetail({ notes, onBack, project, tasks }) {
       </div>
 
       <section className="mt-6">
-        <h3 className="mb-2 px-1 text-[11px] font-medium uppercase tracking-[0.14em] text-[#777777]">Tasks</h3>
+        <h3 className="mb-2 px-1 text-[11px] font-medium uppercase tracking-tight text-[#777777]">Tasks</h3>
         {projectTasks.map((task) => {
           const date = getTaskDate(task);
           return (
@@ -280,7 +280,7 @@ function ProjectDetail({ notes, onBack, project, tasks }) {
       </section>
 
       <section className="mt-6">
-        <h3 className="mb-2 px-1 text-[11px] font-medium uppercase tracking-[0.14em] text-[#777777]">Notes</h3>
+        <h3 className="mb-2 px-1 text-[11px] font-medium uppercase tracking-tight text-[#777777]">Notes</h3>
         {projectNotes.map((note) => (
           <p key={note.id} className="mb-3 rounded-[24px] border border-black/5 bg-white px-4 py-4 text-sm leading-6 text-[#777777] shadow-sm">
             {note.body || note.text || note.title}
@@ -290,7 +290,7 @@ function ProjectDetail({ notes, onBack, project, tasks }) {
       </section>
 
       <section className="mt-6">
-        <h3 className="mb-2 px-1 text-[11px] font-medium uppercase tracking-[0.14em] text-[#777777]">Timeline</h3>
+        <h3 className="mb-2 px-1 text-[11px] font-medium uppercase tracking-tight text-[#777777]">Timeline</h3>
         {timeline.map(([label, value]) => (
           <div key={label} className="mb-3 flex justify-between rounded-[24px] border border-black/5 bg-white px-4 py-3 shadow-sm">
             <p className="text-sm text-[#777777]">{label}</p>
@@ -343,7 +343,7 @@ export function MobileProjects({ notes, onSelectProject, projects, selectedProje
     <div className="page-fade pb-28">
       <div className="flex items-end justify-between gap-4">
         <h2 className="text-5xl font-bold lowercase leading-none tracking-[-0.02em] text-[#212121]">projects</h2>
-        <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#777777]">
+        <p className="text-[11px] font-medium uppercase tracking-tight text-[#777777]">
           {projects.length} total
         </p>
       </div>
@@ -352,7 +352,7 @@ export function MobileProjects({ notes, onSelectProject, projects, selectedProje
         {Object.entries(visibleGroupedProjects).map(([label, groupProjects]) => (
           groupProjects.length ? (
             <section key={label}>
-              <div className="mb-2 flex items-center justify-between px-1 text-[11px] font-medium uppercase tracking-[0.14em] text-[#777777]">
+              <div className="mb-2 flex items-center justify-between px-1 text-[11px] font-medium uppercase tracking-tight text-[#777777]">
                 <h3>{label}</h3>
                 <p>{groupProjects.length}</p>
               </div>

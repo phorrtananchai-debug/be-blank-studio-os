@@ -9,12 +9,12 @@ export function SectionCard({ action, children, compact = false, eyebrow, title 
         <div className="mb-12 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-4">
             {eyebrow && (
-              <p className="text-[9px] font-bold uppercase tracking-cinema text-studio-orange/80">
+              <p className="text-[9px] font-bold uppercase tracking-tight text-studio-orange/80">
                 {eyebrow}
               </p>
             )}
             {title && (
-              <h2 className="font-serif text-4xl sm:text-5xl font-light tracking-tightest text-studio-ink leading-[0.9]">
+              <h2 className="font-sans font-bold text-4xl sm:text-5xl font-light tracking-tight text-studio-ink leading-[0.9]">
                 {title}
               </h2>
             )}
