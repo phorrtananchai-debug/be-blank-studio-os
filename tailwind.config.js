@@ -4,9 +4,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Montserrat', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        serif: ['Cormorant Garamond', 'serif'],
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         urbanist: ['Urbanist', 'sans-serif'],
+        system: ['system-ui', 'sans-serif'],
       },
       colors: {
         studio: {
@@ -33,7 +33,6 @@ export default {
       transitionTimingFunction: {
         'studio-out': 'cubic-bezier(0.16, 1, 0.3, 1)',
         'studio-in-out': 'cubic-bezier(0.65, 0, 0.35, 1)',
-        'cinema': 'cubic-bezier(0.22, 1, 0.36, 1)',
       },
       transitionDuration: {
         '700': '700ms',
@@ -42,10 +41,7 @@ export default {
         '2000': '2000ms',
       },
       letterSpacing: {
-        tightest: '-.03em',
-        editorial: '0.12em',
-        cinema: '0.25em',
-        architectural: '0.08em',
+        tightest: '-.02em',
       },
       spacing: {
         '18': '4.5rem',

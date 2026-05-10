@@ -513,7 +513,7 @@ export function MobileCalendar({ initialDate, onDeleteTask, onDoneTask, onDuplic
       {mode === 'Week' && (
         <section className="mt-6">
           <div className="mb-5 rounded-[28px] border border-[rgba(33,33,33,0.08)] bg-white p-5">
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#777777]">This week</p>
+            <p className="text-[11px] font-medium uppercase tracking-tight text-[#777777]">This week</p>
             <div className="mt-3 flex items-end justify-between gap-4">
               <h2 className="text-2xl font-semibold leading-tight text-[#212121]">{formatDateRange(weekStart, weekEnd)}</h2>
               <p className="shrink-0 text-right text-sm text-[#777777]">{weekTaskCount} {weekTaskCount === 1 ? 'task' : 'tasks'} this week</p>
@@ -623,7 +623,7 @@ export function MobileCalendar({ initialDate, onDeleteTask, onDoneTask, onDuplic
 function WeekStrip({ selectedDate, selectedLabel, setSelectedDate, tasks, today, weekDays }) {
   return (
     <div className="sticky top-0 z-20 -mx-4 bg-[#F5F5FA]/85 px-4 py-3 backdrop-blur-xl">
-      <p className="mb-2 px-1 text-[11px] font-medium uppercase tracking-[0.14em] text-[#777777]">
+      <p className="mb-2 px-1 text-[11px] font-medium uppercase tracking-tight text-[#777777]">
         Selected: <span className="text-[#212121]">{selectedLabel}</span>
       </p>
       <div className="flex gap-2 overflow-x-auto snap-x no-scrollbar">
@@ -643,7 +643,7 @@ function WeekStrip({ selectedDate, selectedLabel, setSelectedDate, tasks, today,
               type="button"
               onClick={() => setSelectedDate(date)}
             >
-              <span className={`text-[10px] uppercase tracking-[0.2em] ${isSelected ? 'text-white/60' : 'text-[#777777]'}`}>
+              <span className={`text-[10px] uppercase tracking-tight ${isSelected ? 'text-white/60' : 'text-[#777777]'}`}>
                 {dayLabels[date.getDay()]}
               </span>
               <span className={`${isSelected ? 'text-xl font-semibold' : 'text-sm font-medium'}`}>{date.getDate()}</span>
@@ -664,7 +664,7 @@ function MonthGrid({ monthDays, onOpenTask, onShowMore, projects, selectedDate, 
     <div className="rounded-[28px] border border-[rgba(33,33,33,0.08)] bg-white px-3 py-4 shadow-[0_10px_30px_rgba(0,0,0,0.05)]">
       <div className="grid grid-cols-7">
         {dayLabels.map((label) => (
-          <span key={label} className="grid min-h-8 place-items-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[#777777]">
+          <span key={label} className="grid min-h-8 place-items-center text-[10px] font-semibold uppercase tracking-tight text-[#777777]">
             {label.slice(0, 2)}
           </span>
         ))}
@@ -859,7 +859,7 @@ function OverflowSheet({ date, onClose, onOpenTask, projects, tasks }) {
         <div className="space-y-5 pb-4">
           {groups.map((group) => (
             <section key={group.label}>
-              <h4 className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#777777]">{group.label}</h4>
+              <h4 className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-tight text-[#777777]">{group.label}</h4>
               <div className="space-y-3">
                 {group.tasks.map((task) => (
                   isRangeTask(task, date) ? (
@@ -895,7 +895,7 @@ function OverflowTaskRow({ date, onOpenTask, projects, task }) {
           <span className="mt-1 block truncate text-xs font-medium text-[#777777]">{projectLabel} · Phase: {phase.label}</span>
           <span className="mt-2 block text-xs font-medium text-[#777777]">{task.startTime || formatSelectedDate(date)}</span>
         </span>
-        <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] ${state.chipClass}`}>
+        <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-tight ${state.chipClass}`}>
           <StateIcon className="size-3" aria-hidden="true" />
           {state.label}
         </span>
@@ -909,14 +909,14 @@ function GroupedTaskList({ onDeleteTask, onDoneTask, onDuplicateTask, onEditTask
 
   return (
     <div className="mt-8 transition-all duration-200">
-      <p className="sticky top-0 z-10 mb-1 bg-[#F5F5FA]/85 px-1 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-[#777777] backdrop-blur-xl">
+      <p className="sticky top-0 z-10 mb-1 bg-[#F5F5FA]/85 px-1 py-2 text-[11px] font-medium uppercase tracking-tight text-[#777777] backdrop-blur-xl">
         Selected: <span className="text-[#212121]">{selectedLabel}</span>
       </p>
       {groups.length ? (
         <div className="space-y-4">
           {groups.map((group) => (
             <section key={group.label}>
-              <h3 className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#777777]">{group.label}</h3>
+              <h3 className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-tight text-[#777777]">{group.label}</h3>
               <div className="space-y-3">
                 {group.tasks.map((task) => (
                   isRangeTask(task, selectedDate) ? (
@@ -941,14 +941,14 @@ function TaskList({ isExpanded = false, onDeleteTask, onDoneTask, onDuplicateTas
 
   return (
     <div className="mt-4 transition-all duration-200">
-      <p className="sticky top-0 z-10 mb-1 bg-[#F5F5FA]/85 px-1 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-[#777777] backdrop-blur-xl">
+      <p className="sticky top-0 z-10 mb-1 bg-[#F5F5FA]/85 px-1 py-2 text-[11px] font-medium uppercase tracking-tight text-[#777777] backdrop-blur-xl">
         {isExpanded ? 'All items on ' : 'Selected: '}<span className="text-[#212121]">{selectedLabel}</span>
       </p>
       {groups.length ? (
         <div className="space-y-4">
           {groups.map((group) => (
             <section key={group.label}>
-              <h3 className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#777777]">{group.label}</h3>
+              <h3 className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-tight text-[#777777]">{group.label}</h3>
               <div className="space-y-3">
                 {group.tasks.map((task) => (
                   group.type === 'range' || (group.type === 'mixed' && isRangeTask(task, selectedDate)) ? (

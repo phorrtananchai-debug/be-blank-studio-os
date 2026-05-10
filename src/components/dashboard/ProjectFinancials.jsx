@@ -46,43 +46,22 @@ export function CalendarActions({ date, label, project }) {
   );
 }
 
+import { financeTones, profitLabels, profitTones } from '../../utils/financials.js';
+
 export function FinanceStat({ label, value, tone = 'neutral' }) {
-  const toneClass = {
-    healthy: 'text-emerald-700',
-    watch: 'text-amber-700',
-    loss: 'text-red-700',
-    neutral: 'text-[#111111]',
-  }[tone];
+  const toneClass = financeTones[tone];
 
   return (
     <div className="rounded-lg border border-black/[0.08] bg-[#f3f2ee] p-4">
-      <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-studio-muted">{label}</p>
+      <p className="text-[11px] font-bold uppercase tracking-tight text-studio-muted">{label}</p>
       <p className={`mt-2 text-xl font-extrabold leading-tight ${toneClass}`}>{value}</p>
     </div>
   );
 }
 
 export function ProfitStatusBadge({ status }) {
-  const label = {
-    healthy: 'Profit',
-    watch: 'Low margin',
-    loss: 'Loss',
-  }[status];
-  const tone = {
-    healthy: 'low',
-    watch: 'medium',
-    loss: 'high',
-  }[status];
+  const label = profitLabels[status];
+  const tone = profitTones[status];
 
   return <Badge tone={tone}>{label}</Badge>;
-}
-
-export function getProfitBarClass(status) {
-  if (status === 'loss') {
-    return 'bg-red-400';
-  }
-  if (status === 'watch') {
-    return 'bg-amber-300';
-  }
-  return 'bg-emerald-400';
 }

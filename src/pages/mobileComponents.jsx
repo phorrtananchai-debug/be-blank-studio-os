@@ -43,7 +43,7 @@ export function StateChip({ state }) {
   const Icon = getStateIcon(state);
 
   return (
-    <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] ${stateInfo.chipClass}`}>
+    <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-tight ${stateInfo.chipClass}`}>
       <Icon className="size-3" aria-hidden="true" />
       {stateInfo.label}
     </span>
@@ -53,7 +53,7 @@ export function StateChip({ state }) {
 export function PhaseChip({ phase }) {
   const phaseInfo = getPhaseInfo(phase);
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] ${phaseInfo.chipClass}`}>
+    <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-tight ${phaseInfo.chipClass}`}>
       {phaseInfo.label}
     </span>
   );
@@ -239,10 +239,10 @@ export function TaskRow({
         </button>
         <div className="min-w-0 pr-1">
           <span className="flex min-w-0 items-center gap-2">
-            <span className={`block truncate text-[10px] font-bold uppercase tracking-architectural text-studio-muted/70 ${done ? 'line-through decoration-studio-muted/60' : ''}`}>
+            <span className={`block truncate text-[10px] font-bold uppercase tracking-tight text-studio-muted/70 ${done ? 'line-through decoration-studio-muted/60' : ''}`}>
               {meta}
             </span>
-            {range && <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-architectural ${phase.chipClass}`}>{getStateLabel(task, contextDate)}</span>}
+            {range && <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-tight ${phase.chipClass}`}>{getStateLabel(task, contextDate)}</span>}
           </span>
           <span className={`mt-1.5 line-clamp-2 block text-[18px] font-medium leading-snug text-[#111111] ${done ? 'line-through decoration-[#111111]/40' : ''}`}>
             {task.title || 'Untitled task'}
@@ -252,7 +252,7 @@ export function TaskRow({
           </span>
           {progress && (
             <span className="mt-3 block">
-              <span className="mb-1 flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.1em] text-[#777777]">
+              <span className="mb-1 flex items-center justify-between text-[10px] font-medium uppercase tracking-tight text-[#777777]">
                 <span>Range</span>
                 <span>{formatDaysLeft(progress.daysLeft)}</span>
               </span>
@@ -261,7 +261,7 @@ export function TaskRow({
           )}
         </div>
         <span className="flex h-[52px] w-[48px] shrink-0 flex-col items-center justify-center justify-self-end rounded-[14px] bg-[#DBDFE9]/70 text-center">
-          <span className="text-[9px] uppercase tracking-[0.12em] text-[#777777]">{datePill.month}</span>
+          <span className="text-[9px] uppercase tracking-tight text-[#777777]">{datePill.month}</span>
           <span className="text-lg font-semibold leading-none text-[#212121]">{datePill.day}</span>
         </span>
       </div>

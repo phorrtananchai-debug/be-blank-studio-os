@@ -91,7 +91,7 @@ export function PortfolioManager({ portfolioItems, onAdd, onDelete, onExport, on
               <Field label="Tags" value={item.tags} onChange={(value) => onUpdate(item.id, { tags: value })} />
 
               <div className="mt-4 border-t border-black/[0.05] pt-8">
-                <p className="mb-6 text-[10px] font-bold uppercase tracking-[0.25em] text-studio-orange">Homepage Canvas Configuration</p>
+                <p className="mb-6 text-[10px] font-bold uppercase tracking-tight text-studio-orange">Homepage Canvas Configuration</p>
                 <div className="grid gap-6 sm:grid-cols-5">
                   <Field label="X %" value={item.x || ''} onChange={(value) => onUpdate(item.id, { x: value })} />
                   <Field label="Y %" value={item.y || ''} onChange={(value) => onUpdate(item.id, { y: value })} />

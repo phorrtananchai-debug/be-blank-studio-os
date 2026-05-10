@@ -1,4 +1,5 @@
 import { initializeApp } from 'firebase/app';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import {
   browserLocalPersistence,
   getAuth,
@@ -87,6 +88,7 @@ const app = isFirebaseConfigured() ? initializeApp(firebaseConfig) : null;
 
 export const auth = app ? getAuth(app) : null;
 export const db = app ? getFirestore(app) : null;
+export const storage = app ? getStorage(app) : null;
 export const googleProvider = new GoogleAuthProvider();
 
 googleProvider.addScope('email');
@@ -247,4 +249,14 @@ export async function deleteCollectionItem(collectionName, id) {
   }
 
   await deleteDoc(doc(db, collectionName, id));
+}
+
+export async function uploadFile(path, file) {
+  if (!storage) {
+    throw new Error('Firebase Storage is not configured');
+  }
+
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, file);
+  return getDownloadURL(storageRef);
 }

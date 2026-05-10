@@ -6,7 +6,7 @@ export function Button({ children, variant = 'primary', ...props }) {
 
   return (
     <button
-      className={`inline-flex h-11 shrink-0 items-center justify-center gap-3 whitespace-nowrap rounded-full border px-7 text-[10px] font-bold uppercase tracking-architectural transition-all duration-500 ease-out ${variants[variant]}`}
+      className={`inline-flex h-11 shrink-0 items-center justify-center gap-3 whitespace-nowrap rounded-full border px-7 text-[10px] font-bold uppercase tracking-tight transition-all duration-500 ease-out ${variants[variant]}`}
       type="button"
       {...props}
     >

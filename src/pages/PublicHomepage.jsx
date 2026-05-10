@@ -280,7 +280,7 @@ export function PublicHomepage({ portfolioItems, navigate }) {
         className="fixed left-0 right-0 top-0 z-[100] border-b border-black/[0.05] bg-[#e9e8e4] px-5 py-4 backdrop-blur md:px-8"
         style={{ backgroundColor: DEFAULT_HOMEPAGE_BACKGROUND }}
       >
-        <nav className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 text-[10px] font-bold uppercase tracking-cinema text-[#111111]">
+        <nav className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 text-[10px] font-bold uppercase  text-[#111111]">
           <button className="justify-self-start text-left transition hover:text-[#777777]" type="button" onClick={() => navigate('/')}>
             BE BLANK
           </button>
@@ -296,7 +296,7 @@ export function PublicHomepage({ portfolioItems, navigate }) {
               </a>
             ))}
           </div>
-          <div className="flex flex-wrap justify-end gap-3 text-[10px] tracking-[0.14em]">
+          <div className="flex flex-wrap justify-end gap-3 text-[10px] tracking-tight">
             {!publicUser ? (
               <button className="transition hover:text-[#777777]" type="button" onClick={handlePublicSignIn}>
                 SIGN IN
@@ -356,14 +356,14 @@ export function PublicHomepage({ portfolioItems, navigate }) {
           </div>
           <div className="h-[calc(100vh-64px)] min-h-[600px]" aria-hidden="true" />
           <div className="mx-auto mt-12 grid max-w-7xl gap-7 border-t border-black/[0.06] pt-6 text-left text-sm leading-6 text-[#777777] md:grid-cols-[1fr_1.5fr_1fr]">
-            <p className="font-medium uppercase tracking-[0.14em] text-[#111111]">Architecture / Interior / Objects</p>
+            <p className="font-medium uppercase tracking-tight text-[#111111]">Architecture / Interior / Objects</p>
             <p className="max-w-2xl">
               A Bangkok-based architecture and interior studio shaping spatial identities for hospitality, residential,
               and cultural work.
             </p>
             <p className="md:text-right">Selected works, project notes, and studio operations.</p>
           </div>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#777777]">
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-[11px] font-semibold uppercase tracking-tight text-[#777777]">
             {publicAuthMessage && <span className="text-red-700">{publicAuthMessage}</span>}
             {saveMessage && <span>{saveMessage}</span>}
           </div>
@@ -381,8 +381,8 @@ export function PublicHomepage({ portfolioItems, navigate }) {
 
         <section id="work" className="bg-[#e9e8e4] px-5 pb-24 md:px-8" style={{ backgroundColor: DEFAULT_HOMEPAGE_BACKGROUND }}>
           <div className="mb-10 flex items-end justify-between border-t border-black/[0.06] pt-6">
-            <h2 className="text-[10px] font-bold uppercase tracking-cinema text-studio-muted">Work</h2>
-            <span className="text-[10px] font-bold uppercase tracking-architectural text-studio-muted/60">Selected portfolio</span>
+            <h2 className="text-[10px] font-bold uppercase  text-studio-muted">Work</h2>
+            <span className="text-[10px] font-bold uppercase tracking-tight text-studio-muted/60">Selected portfolio</span>
           </div>
           <div className="stagger-in grid gap-x-10 gap-y-22 md:grid-cols-2 xl:grid-cols-3">
             {layoutItems.map((item) => (
@@ -392,7 +392,7 @@ export function PublicHomepage({ portfolioItems, navigate }) {
         </section>
 
         <section id="journal" className="grid gap-8 border-y border-black/12 px-5 py-14 md:grid-cols-[1fr_2fr] md:px-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#777777]">Journal</p>
+          <p className="text-xs font-semibold uppercase tracking-tight text-[#777777]">Journal</p>
           <div className="grid gap-4 text-[clamp(2rem,5vw,5.6rem)] font-semibold uppercase leading-none text-[#111111]">
             <span>Hospitality</span>
             <span>Residence</span>
@@ -401,13 +401,13 @@ export function PublicHomepage({ portfolioItems, navigate }) {
         </section>
 
         <section id="about" className="grid gap-8 px-5 py-16 md:grid-cols-[1fr_2fr] md:px-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#777777]">About</p>
+          <p className="text-xs font-semibold uppercase tracking-tight text-[#777777]">About</p>
           <p className="max-w-4xl text-[clamp(1.8rem,4vw,4.4rem)] font-semibold leading-[0.98] text-[#111111]">
             We design quiet spatial systems: clear plans, tactile material stories, and details built for real use.
           </p>
         </section>
 
-        <footer id="contact" className="flex flex-col gap-5 border-t border-black/12 px-5 py-8 text-xs font-semibold uppercase tracking-[0.16em] text-[#777777] md:flex-row md:items-center md:justify-between md:px-8">
+        <footer id="contact" className="flex flex-col gap-5 border-t border-black/12 px-5 py-8 text-xs font-semibold uppercase tracking-tight text-[#777777] md:flex-row md:items-center md:justify-between md:px-8">
           <span>Bangkok / Phuket / Chiang Mai</span>
           <a className="transition hover:text-[#111111]" href="mailto:studio@beblanktobehindstudio.com">
             studio@beblanktobehindstudio.com
@@ -510,7 +510,7 @@ function HomepageEditPanel({
   onSave,
 }) {
   return (
-    <div className="fixed bottom-5 left-1/2 z-[60] w-[min(92vw,680px)] -translate-x-1/2 border border-black/15 bg-[#f3f3f0]/95 p-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#111111] shadow-[0_18px_60px_rgba(0,0,0,0.12)] backdrop-blur">
+    <div className="fixed bottom-5 left-1/2 z-[60] w-[min(92vw,680px)] -translate-x-1/2 border border-black/15 bg-[#f3f3f0]/95 p-3 text-[10px] font-semibold uppercase tracking-tight text-[#111111] shadow-[0_18px_60px_rgba(0,0,0,0.12)] backdrop-blur">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span>Background {backgroundColor}</span>
         <div className="flex flex-wrap items-center gap-2">
@@ -557,14 +557,14 @@ function PortfolioCardMeta({ item }) {
         >
           {item.title}
         </span>
-        <span className="shrink-0 pt-1 text-right text-[12px] font-normal tracking-[0.02em] text-[#777777]">
+        <span className="shrink-0 pt-1 text-right text-[12px] font-normal tracking-tight text-[#777777]">
           {[item.year, item.areaSqm ? `${item.areaSqm} sqm` : ''].filter(Boolean).join(' / ')}
         </span>
       </span>
-      <span className="text-[14px] font-light leading-[1.45] tracking-[0.02em] text-[#777777]">
+      <span className="text-[14px] font-light leading-[1.45] tracking-tight text-[#777777]">
         {item.subtitle || item.description || item.location}
       </span>
-      <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#777777]">
+      <span className="text-[11px] font-medium uppercase tracking-tight text-[#777777]">
         {[item.category, item.location].filter(Boolean).join(' / ')}
       </span>
     </span>
