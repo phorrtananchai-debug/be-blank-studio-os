@@ -1,7 +1,7 @@
-import { Mic, Camera, FileText, Plus, X, Sparkles, Send } from 'lucide-react';
+import { Mic, Camera, FileText, Plus, X, Sparkles, Send, Layers } from 'lucide-react';
 import { useState } from 'react';
 
-export function QuickCapture() {
+export function QuickCapture({ onOpenArtwork }) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeMode, setActiveMode] = useState('note'); // note, inspiration, voice, photo
   const [content, setContent] = useState('');
@@ -44,6 +44,7 @@ export function QuickCapture() {
           {[
             { id: 'note', icon: FileText, label: 'Note' },
             { id: 'inspiration', icon: Sparkles, label: 'Inspiration' },
+            { id: 'artwork', icon: Layers, label: 'Space' },
             { id: 'voice', icon: Mic, label: 'Voice' },
             { id: 'photo', icon: Camera, label: 'Photo' },
           ].map((mode) => {
@@ -76,6 +77,19 @@ export function QuickCapture() {
               className="w-full border-none bg-transparent p-0 text-xl font-medium leading-relaxed text-studio-ink placeholder:text-black/10 focus:ring-0"
               rows={4}
             />
+          ) : activeMode === 'artwork' ? (
+            <div className="space-y-6 py-4 text-center">
+              <p className="text-lg font-medium text-studio-ink">Start a new spatial board?</p>
+              <button
+                onClick={() => {
+                  onOpenArtwork?.();
+                  setIsOpen(false);
+                }}
+                className="rounded-full bg-studio-ink px-6 py-2 text-xs font-bold uppercase tracking-widest text-white transition hover:scale-105"
+              >
+                Create Artwork Space
+              </button>
+            </div>
           ) : (
             <div className="grid h-32 place-items-center rounded-3xl border-2 border-dashed border-black/5 bg-black/[0.01]">
               <p className="text-[10px] font-bold uppercase  text-studio-muted/40 italic">

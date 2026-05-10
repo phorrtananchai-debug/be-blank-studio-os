@@ -6,7 +6,7 @@ import { Canvas } from './Canvas.jsx';
 import { NoteElement } from './NoteElement.jsx';
 import { ImageElement } from './ImageElement.jsx';
 import { AtmosphereCard } from './AtmosphereCard.jsx';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Layers } from 'lucide-react';
 
 export function ArtworkSpace({ projectId, user }) {
   const {
@@ -157,13 +157,35 @@ export function ArtworkSpace({ projectId, user }) {
   if (loading && elements.length === 0) {
     return (
       <div className="h-[70vh] flex items-center justify-center">
-        <Loader2 className="animate-spin text-studio-orange" size={24} />
+        <Loader2 className="animate-spin text-studio-muted/20" size={24} />
       </div>
     );
   }
 
+  const isEmpty = elements.length === 0;
+
   return (
-    <div className="h-[80vh] w-full rounded-[40px] overflow-hidden border border-black/5 shadow-studio" onPaste={handlePaste}>
+    <div className="relative h-[80vh] w-full rounded-[40px] overflow-hidden border border-black/5 shadow-studio" onPaste={handlePaste}>
+      {isEmpty && (
+        <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center p-12 text-center">
+          <div className="max-w-md space-y-6 animate-in fade-in zoom-in duration-1000">
+            <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-studio-bone text-studio-muted">
+              <Layers size={32} strokeWidth={1.5} />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-studio-ink">Empty Design Surface</h3>
+              <p className="text-sm font-medium leading-relaxed text-studio-muted">
+                An infinite canvas for spatial thinking. Double-click to add notes, drag images here, or paste from your clipboard.
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-4 pt-4">
+              <div className="rounded-full bg-black/5 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-studio-muted">Double-click to start</div>
+              <div className="rounded-full bg-black/5 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-studio-muted">Cmd+V to Paste</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Canvas
         ref={canvasRef}
         onDoubleClick={handleDoubleClick}

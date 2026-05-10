@@ -54,7 +54,7 @@ import { ArtworkSpace } from '../components/artwork/ArtworkSpace.jsx';
 const tabs = [
   { id: 'flow', label: 'Daily Flow', icon: Wind },
   { id: 'projects', label: 'Overview', icon: LayoutDashboard },
-  { id: 'artwork', label: 'Space', icon: Layers },
+  { id: 'artwork', label: 'Artwork Space', icon: Layers },
   { id: 'timeline', label: 'Schedule', icon: CalendarClock },
   { id: 'content', label: 'Journal', icon: ClipboardCopy },
   { id: 'portfolio', label: 'Gallery', icon: ImageIcon },
@@ -293,7 +293,9 @@ export function StudioOSApp({ navigate }) {
                   className={`flex h-9 items-center gap-2 rounded-lg px-4 text-[12px] font-bold transition-all ${
                     isActive
                       ? 'bg-black text-white'
-                      : 'text-studio-muted hover:bg-black/[0.05] hover:text-studio-ink'
+                      : tab.id === 'artwork'
+                        ? 'bg-studio-orange/5 text-studio-ink hover:bg-studio-orange/10'
+                        : 'text-studio-muted hover:bg-black/[0.05] hover:text-studio-ink'
                   }`}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
@@ -317,6 +319,10 @@ export function StudioOSApp({ navigate }) {
                 onAdd={addProject}
                 onDelete={deleteProject}
                 onUpdate={updateProject}
+                onOpenSpace={(id) => {
+                  setSelectedArtworkProjectId(id);
+                  setActiveTab('artwork');
+                }}
               />
             )}
 
@@ -380,7 +386,7 @@ export function StudioOSApp({ navigate }) {
           </p>
         </footer>
       </div>
-      <QuickCapture />
+      <QuickCapture onOpenArtwork={() => setActiveTab('artwork')} />
     </div>
   );
 }
