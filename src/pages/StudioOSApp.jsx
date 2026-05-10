@@ -50,6 +50,7 @@ import { PortfolioManager } from '../components/dashboard/PortfolioManager.jsx';
 import { DailyFlow } from '../components/dashboard/DailyFlow.jsx';
 import { QuickCapture } from '../components/dashboard/QuickCapture.jsx';
 import { ArtworkSpace } from '../components/artwork/ArtworkSpace.jsx';
+import { BoardGallery } from '../components/artwork/BoardGallery.jsx';
 
 const tabs = [
   { id: 'flow', label: 'Daily Flow', icon: Wind },
@@ -323,35 +324,53 @@ export function StudioOSApp({ navigate }) {
                   setSelectedArtworkProjectId(id);
                   setActiveTab('artwork');
                 }}
+                user={studioUser}
               />
             )}
 
             {activeTab === 'artwork' && (
               <div className="space-y-12">
-                <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                  <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-studio-ink">Spatial Thinking</h2>
-                    <p className="mt-2 text-studio-muted">An infinite canvas for architectural composition and reference.</p>
+                {!selectedArtworkProjectId ? (
+                  <BoardGallery
+                    projects={projects}
+                    onSelect={(id) => setSelectedArtworkProjectId(id)}
+                  />
+                ) : (
+                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <header className="flex items-center justify-between border-b border-black/[0.05] pb-6">
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={() => setSelectedArtworkProjectId('')}
+                          className="grid h-10 w-10 place-items-center rounded-full border border-black/[0.05] bg-white text-studio-muted hover:text-studio-ink transition-all"
+                        >
+                          <ArrowLeft size={18} />
+                        </button>
+                        <div>
+                          <h2 className="text-2xl font-bold tracking-tight text-studio-ink">
+                            {projects.find(p => p.id === selectedArtworkProjectId)?.name}
+                          </h2>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">Studio Space</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-studio-muted mr-2">Switch board</span>
+                        <select
+                          value={selectedArtworkProjectId}
+                          onChange={(e) => setSelectedArtworkProjectId(e.target.value)}
+                          className="bg-white border border-black/5 rounded-full px-4 py-2 text-xs font-bold outline-none focus:ring-1 focus:ring-studio-ink/10"
+                        >
+                          {projects.map(p => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </header>
+                    <ArtworkSpace
+                      projectId={selectedArtworkProjectId}
+                      user={studioUser}
+                    />
                   </div>
-                  {projects.length > 0 && (
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-studio-muted">Active Board</span>
-                      <select
-                        value={selectedArtworkProjectId || projects[0]?.id}
-                        onChange={(e) => setSelectedArtworkProjectId(e.target.value)}
-                        className="bg-white border border-black/5 rounded-full px-4 py-2 text-xs font-bold outline-none focus:ring-1 focus:ring-studio-orange/20"
-                      >
-                        {projects.map(p => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </header>
-                <ArtworkSpace
-                  projectId={selectedArtworkProjectId || projects[0]?.id || 'default-space'}
-                  user={studioUser}
-                />
+                )}
               </div>
             )}
 

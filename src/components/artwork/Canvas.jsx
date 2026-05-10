@@ -1,4 +1,4 @@
-import { useState, useRef, useImperativeHandle, forwardRef } from 'react';
+import { useState, useRef, useImperativeHandle, forwardRef, useEffect } from 'react';
 import {
   Plus,
   Minus,
@@ -8,7 +8,9 @@ import {
   Type,
   Image as ImageIcon,
   Wind,
-  Download
+  Download,
+  StickyNote,
+  Share2
 } from 'lucide-react';
 
 export const Canvas = forwardRef(({
@@ -16,7 +18,8 @@ export const Canvas = forwardRef(({
   onDoubleClick,
   onDrop,
   onExport,
-  onToolSelect
+  onToolSelect,
+  elements = []
 }, ref) => {
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -27,18 +30,30 @@ export const Canvas = forwardRef(({
   const containerRef = useRef(null);
   const surfaceRef = useRef(null);
   const lastMousePos = useRef({ x: 0, y: 0 });
+  const lastTouchDist = useRef(null);
 
   useImperativeHandle(ref, () => ({
     getSurface: () => surfaceRef.current,
     getPosition: () => position,
-    getScale: () => scale
+    getScale: () => scale,
+    zoomTo: (newScale) => setScale(newScale),
+    panTo: (newPos) => setPosition(newPos)
   }));
 
   const handleWheel = (e) => {
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
-      const delta = e.deltaY > 0 ? 0.9 : 1.1;
-      setScale(s => Math.min(Math.max(s * delta, 0.1), 5));
+      const rect = containerRef.current.getBoundingClientRect();
+      const mouseX = (e.clientX - rect.left - position.x) / scale;
+      const mouseY = (e.clientY - rect.top - position.y) / scale;
+
+      const newScale = Math.min(Math.max(scale * (e.deltaY > 0 ? 0.9 : 1.1), 0.1), 5);
+
+      setPosition({
+        x: e.clientX - rect.left - mouseX * newScale,
+        y: e.clientY - rect.top - mouseY * newScale
+      });
+      setScale(newScale);
     } else {
       setPosition(p => ({
         x: p.x - e.deltaX,
@@ -71,6 +86,12 @@ export const Canvas = forwardRef(({
     if (e.touches.length === 1) {
       setIsPanning(true);
       lastMousePos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    } else if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      lastTouchDist.current = dist;
     }
   };
 
@@ -80,11 +101,20 @@ export const Canvas = forwardRef(({
       const dy = e.touches[0].clientY - lastMousePos.current.y;
       setPosition(p => ({ x: p.x + dx, y: p.y + dy }));
       lastMousePos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    } else if (e.touches.length === 2 && lastTouchDist.current) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const delta = dist / lastTouchDist.current;
+      setScale(s => Math.min(Math.max(s * delta, 0.1), 5));
+      lastTouchDist.current = dist;
     }
   };
 
   const handleTouchEnd = () => {
     setIsPanning(false);
+    lastTouchDist.current = null;
   };
 
   const handleReset = () => {
@@ -188,8 +218,39 @@ export const Canvas = forwardRef(({
         />
         <div className="mx-2 h-4 w-px bg-black/10" />
         <ToolButton icon={Type} onClick={() => onToolSelect?.('note')} label="Text" />
+        <ToolButton icon={StickyNote} onClick={() => onToolSelect?.('sticky')} label="Sticky" />
         <ToolButton icon={ImageIcon} onClick={() => onToolSelect?.('image')} label="Image" />
+        <ToolButton icon={Share2} onClick={() => onToolSelect?.('connector')} label="Connector" />
         <ToolButton icon={Wind} onClick={() => onToolSelect?.('atmosphere')} label="Atmosphere" />
+      </div>
+
+      {/* Minimap */}
+      <div className="absolute top-8 left-8 p-3 rounded-2xl border border-black/5 bg-white/80 shadow-studio backdrop-blur-md pointer-events-none hidden md:block">
+        <div className="text-[9px] font-bold uppercase tracking-widest text-studio-muted mb-2">Navigator</div>
+        <div className="relative w-32 h-20 bg-studio-stone/20 rounded-lg overflow-hidden border border-black/[0.03]">
+          {elements.map(el => (
+            <div
+              key={el.id}
+              className="absolute bg-studio-ink/20 rounded-[1px]"
+              style={{
+                left: `${(el.x / 2000) * 100}%`,
+                top: `${(el.y / 2000) * 100}%`,
+                width: '4px',
+                height: '4px'
+              }}
+            />
+          ))}
+          {/* Viewport Indicator */}
+          <div
+            className="absolute border border-studio-orange/40 bg-studio-orange/5"
+            style={{
+              left: `${(-position.x / scale / 2000) * 100}%`,
+              top: `${(-position.y / scale / 2000) * 100}%`,
+              width: `${(containerRef.current?.offsetWidth / scale / 2000) * 100}%`,
+              height: `${(containerRef.current?.offsetHeight / scale / 2000) * 100}%`
+            }}
+          />
+        </div>
       </div>
 
       {/* Zoom Controls */}

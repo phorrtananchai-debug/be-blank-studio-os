@@ -6,9 +6,11 @@ import { Canvas } from './Canvas.jsx';
 import { NoteElement } from './NoteElement.jsx';
 import { ImageElement } from './ImageElement.jsx';
 import { AtmosphereCard } from './AtmosphereCard.jsx';
+import { StickyNoteElement } from './StickyNoteElement.jsx';
+import { ConnectorElement } from './ConnectorElement.jsx';
 import { Loader2, Layers } from 'lucide-react';
 
-export function ArtworkSpace({ projectId, user }) {
+export function ArtworkSpace({ projectId, user, isPresentation = false }) {
   const {
     elements,
     loading,
@@ -127,30 +129,48 @@ export function ArtworkSpace({ projectId, user }) {
     if (!files || files.length === 0) return;
 
     for (const file of files) {
-      if (file.type.startsWith('image/')) {
-        try {
-          const url = await uploadImage(file);
-          await addElement({
-            type: 'image',
-            url,
-            x,
-            y,
-            width: 300
-          });
-        } catch (err) {
-          console.error('Drop upload failed:', err);
-        }
+      try {
+        const url = await uploadImage(file);
+        const isImage = file.type.startsWith('image/');
+        await addElement({
+          type: isImage ? 'image' : 'note',
+          url: isImage ? url : undefined,
+          content: !isImage ? `File: ${file.name}\n${url}` : undefined,
+          x,
+          y,
+          width: 300
+        });
+      } catch (err) {
+        console.error('Drop upload failed:', err);
       }
     }
   }, [uploadImage, addElement]);
 
+  const [filterQuery, setFilterQuery] = useState('');
+
+  const filteredElements = elements.filter(el => {
+    if (!filterQuery) return true;
+    const searchBase = (el.content || el.title || el.url || '').toLowerCase();
+    return searchBase.includes(filterQuery.toLowerCase());
+  });
+
   const handleToolSelect = useCallback(async (type) => {
+    if (type === 'connector') {
+      await addElement({
+        type,
+        start: { x: 100, y: 100 },
+        end: { x: 300, y: 300 }
+      });
+      return;
+    }
+
     await addElement({
       type,
       x: 150,
       y: 150,
-      content: type === 'note' ? '' : undefined,
-      title: type === 'atmosphere' ? 'New Atmosphere' : undefined
+      content: type === 'note' || type === 'sticky' ? '' : undefined,
+      title: type === 'atmosphere' ? 'New Atmosphere' : undefined,
+      color: type === 'sticky' ? 'yellow' : undefined
     });
   }, [addElement]);
 
@@ -165,7 +185,28 @@ export function ArtworkSpace({ projectId, user }) {
   const isEmpty = elements.length === 0;
 
   return (
-    <div className="relative h-[80vh] w-full rounded-[40px] overflow-hidden border border-black/5 shadow-studio" onPaste={handlePaste}>
+    <div className={`relative ${isPresentation ? 'h-full' : 'h-[80vh]'} w-full rounded-[40px] overflow-hidden border border-black/5 shadow-studio`} onPaste={handlePaste}>
+      {!isPresentation && (
+        <>
+          <div className="absolute top-8 right-32 z-[60] pointer-events-none">
+            <div className="flex items-center gap-2 bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-black/5 shadow-sm">
+               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+               <span className="text-[9px] font-bold uppercase tracking-widest text-studio-muted">Live Sync Active</span>
+            </div>
+          </div>
+
+          <div className="absolute top-8 left-1/2 -translate-x-1/2 z-[60] w-64">
+             <input
+               type="text"
+               value={filterQuery}
+               onChange={(e) => setFilterQuery(e.target.value)}
+               placeholder="Search board..."
+               className="w-full bg-white/80 backdrop-blur-md border border-black/5 rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest outline-none focus:ring-1 focus:ring-studio-ink/10"
+             />
+          </div>
+        </>
+      )}
+
       {isEmpty && (
         <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center p-12 text-center">
           <div className="max-w-md space-y-6 animate-in fade-in zoom-in duration-1000">
@@ -192,11 +233,23 @@ export function ArtworkSpace({ projectId, user }) {
         onDrop={handleDrop}
         onExport={handleExport}
         onToolSelect={handleToolSelect}
+        elements={filteredElements}
       >
-        {elements.map((el) => {
+        {filteredElements.map((el) => {
           if (el.type === 'note') {
             return (
               <NoteElement
+                key={el.id}
+                element={el}
+                onUpdate={updateElement}
+                onDelete={deleteElement}
+                onDragStart={handleDragStart}
+              />
+            );
+          }
+          if (el.type === 'sticky') {
+            return (
+              <StickyNoteElement
                 key={el.id}
                 element={el}
                 onUpdate={updateElement}
@@ -224,6 +277,15 @@ export function ArtworkSpace({ projectId, user }) {
                 onUpdate={updateElement}
                 onDelete={deleteElement}
                 onDragStart={handleDragStart}
+              />
+            );
+          }
+          if (el.type === 'connector') {
+            return (
+              <ConnectorElement
+                key={el.id}
+                start={el.start}
+                end={el.end}
               />
             );
           }

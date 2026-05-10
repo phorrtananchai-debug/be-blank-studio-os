@@ -22,10 +22,11 @@ import { projectStatuses } from '../../data/seed.js';
 import { KeyDate, FinanceStat, ProfitStatusBadge } from './ProjectFinancials.jsx';
 import { getProfitBarClass } from '../../utils/financials.js';
 import { NarrativePanel } from './NarrativePanel.jsx';
+import { ProjectWorkspace } from './ProjectWorkspace.jsx';
 
 const drawingStatuses = ['draft', 'review', 'approved', 'issued'];
 
-export function ProjectDashboard({ projects, statusCounts, onAdd, onDelete, onUpdate, onOpenSpace }) {
+export function ProjectDashboard({ projects, statusCounts, onAdd, onDelete, onUpdate, onOpenSpace, user }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedProjectId, setSelectedProjectId] = useState('');
@@ -54,12 +55,13 @@ export function ProjectDashboard({ projects, statusCounts, onAdd, onDelete, onUp
 
   if (selectedProject) {
     return (
-      <ProjectDetailView
+      <ProjectWorkspace
         project={selectedProject}
         onBack={() => setSelectedProjectId('')}
         onDelete={() => deleteProject(selectedProject.id)}
         onUpdate={(updates) => onUpdate(selectedProject.id, updates)}
         onOpenSpace={() => onOpenSpace?.(selectedProject.id)}
+        user={user}
       />
     );
   }

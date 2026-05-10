@@ -21,7 +21,7 @@ import {
 
 const HOMEPAGE_LAYOUT_STORAGE_KEY = 'beBlank.homepageLayout.v1';
 const HOMEPAGE_BACKGROUND_STORAGE_KEY = 'beBlank.homepageBackground.v1';
-const DEFAULT_HOMEPAGE_BACKGROUND = '#e9e8e4';
+const DEFAULT_HOMEPAGE_BACKGROUND = '#f8f9fa';
 
 function getHomepageLayoutStore() {
   if (typeof window === 'undefined') return {};
@@ -58,8 +58,6 @@ function mergeHomepageLayout(items) {
 
 export function PublicHomepage({ portfolioItems, navigate }) {
   const featuredItems = portfolioItems.length ? portfolioItems : initialPortfolioItems;
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const [activeTab, setActiveTab] = useState('ABOUT');
   const [layoutItems, setLayoutItems] = useState(() => mergeHomepageLayout(featuredItems));
   const [publicUser, setPublicUser] = useState(null);
   const [publicAuthMessage, setPublicAuthMessage] = useState('');
@@ -95,16 +93,6 @@ export function PublicHomepage({ portfolioItems, navigate }) {
         signOutOfStudio();
       }
     });
-  }, []);
-
-  useEffect(() => {
-    const updateScrollProgress = () => {
-      setScrollProgress(clampNumber(window.scrollY / 760, 0, 1));
-    };
-
-    updateScrollProgress();
-    window.addEventListener('scroll', updateScrollProgress, { passive: true });
-    return () => window.removeEventListener('scroll', updateScrollProgress);
   }, []);
 
   useEffect(() => {
@@ -158,13 +146,7 @@ export function PublicHomepage({ portfolioItems, navigate }) {
     };
   }, [layoutInteraction]);
 
-  const titleStyle = {
-    top: '120px',
-    transform: 'translateX(-50%)',
-    opacity: 1,
-  };
   const canSaveToFirebase = Boolean(publicUser && isFirebaseConfigured());
-  const heroItems = layoutItems.slice(0, 4);
   const selectedItem = layoutItems.find((item) => item.id === selectedItemId);
 
   const handlePublicSignIn = async () => {
@@ -302,7 +284,6 @@ export function PublicHomepage({ portfolioItems, navigate }) {
       </header>
 
       <main className="page-fade">
-        {/* Quiet Hero / Studio Statement */}
         <section className="flex min-h-screen flex-col items-center justify-center px-5 pt-16 text-center md:px-8">
           <div className="max-w-4xl space-y-12">
             <h1 className="text-4xl font-bold uppercase tracking-tight text-[#111111] md:text-6xl lg:text-7xl">
@@ -317,7 +298,6 @@ export function PublicHomepage({ portfolioItems, navigate }) {
           </div>
         </section>
 
-        {/* Selected Atmosphere Image Sequence */}
         <section className="px-5 py-24 md:px-8">
           <div className="mx-auto max-w-screen-2xl grid gap-8 md:grid-cols-2">
             <div className="aspect-[4/5] overflow-hidden rounded-sm bg-studio-stone/20 shadow-studioSoft">
@@ -337,7 +317,6 @@ export function PublicHomepage({ portfolioItems, navigate }) {
           </div>
         </section>
 
-        {/* Design Philosophy Section */}
         <section id="about" className="mx-auto max-w-7xl px-5 py-32 md:px-8">
           <div className="grid gap-16 md:grid-cols-[1fr_2fr]">
             <span className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">Philosophy</span>
@@ -352,7 +331,6 @@ export function PublicHomepage({ portfolioItems, navigate }) {
           </div>
         </section>
 
-        {/* Process / How we think */}
         <section className="border-y border-black/[0.05] bg-studio-stone/10 px-5 py-32 md:px-8">
           <div className="mx-auto max-w-7xl">
             <div className="grid gap-16 md:grid-cols-3">
@@ -371,7 +349,6 @@ export function PublicHomepage({ portfolioItems, navigate }) {
           </div>
         </section>
 
-        {/* Selected Project Highlights */}
         <section id="work" className="px-5 py-32 md:px-8">
           <div className="mx-auto max-w-7xl">
             <div className="mb-16 flex items-end justify-between border-b border-black/[0.05] pb-8">
@@ -407,7 +384,6 @@ export function PublicHomepage({ portfolioItems, navigate }) {
           </div>
         </section>
 
-        {/* Final Footer Band */}
         <footer className="border-t border-black/[0.08] bg-white px-5 py-24 text-center md:px-8">
           <div className="mx-auto max-w-4xl space-y-10">
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-studio-ink">Architecture / Interior / Objects</p>
@@ -434,11 +410,23 @@ export function PublicHomepage({ portfolioItems, navigate }) {
         </footer>
       </main>
 
-      {/* Hidden Editor Components - only show when authenticated and editing */}
       {isEditingLayout && (
         <div className="fixed inset-0 z-[200] pointer-events-none opacity-0">
-          {/* We keep the refs and state for editor logic, but hide visual grid which is no longer main flow */}
           <div ref={canvasRef} />
+          {layoutItems.map((item, index) => (
+             <PortfolioCanvasCard
+               key={item.id}
+               item={item}
+               index={index}
+               isEditing={isEditingLayout}
+               navigate={navigate}
+               onLayerChange={updateItemLayer}
+               onPointerDown={beginLayoutInteraction}
+               onRemove={removeHomepageWork}
+               selected={selectedItemId === item.id}
+               setSelectedItemId={setSelectedItemId}
+             />
+          ))}
           <HomepageEditPanel
             backgroundColor={backgroundColor}
             hasSelection={Boolean(selectedItem)}
@@ -449,11 +437,13 @@ export function PublicHomepage({ portfolioItems, navigate }) {
           />
         </div>
       )}
+      {publicAuthMessage && <div className="fixed bottom-4 left-4 z-[300] bg-red-50 text-red-600 px-4 py-2 rounded-lg text-xs font-bold">{publicAuthMessage}</div>}
+      {saveMessage && <div className="fixed bottom-4 left-4 z-[300] bg-studio-ink text-white px-4 py-2 rounded-lg text-xs font-bold">{saveMessage}</div>}
     </div>
   );
 }
 
-function PortfolioCanvasCard({ isEditing, item, index, navigate, onPointerDown, selected, setSelectedItemId }) {
+export function PortfolioCanvasCard({ isEditing, item, index, navigate, onPointerDown, selected, setSelectedItemId }) {
   const layout = getPortfolioLayout(item, index);
   const style = {
     left: `${layout.x}%`,
@@ -519,7 +509,7 @@ function PortfolioCanvasCard({ isEditing, item, index, navigate, onPointerDown, 
   );
 }
 
-function PortfolioGridCard({ item, navigate }) {
+export function PortfolioGridCard({ item, navigate }) {
   return (
     <button className="group text-left" type="button" onClick={() => navigate(`/portfolio/${encodeURIComponent(item.id)}`)}>
       <div className="aspect-[4/5] overflow-hidden bg-[#e5e5e1] rounded-sm">
