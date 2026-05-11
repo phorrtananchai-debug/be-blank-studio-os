@@ -10,3 +10,16 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# Environments
+venv/
+venv2/
+venv_verify/
+bin/
+
+# Artifacts
+build/
+verification/
+test-results/
+playwright-report/
+dev_server.log
