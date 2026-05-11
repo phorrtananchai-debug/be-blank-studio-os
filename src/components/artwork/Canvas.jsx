@@ -36,18 +36,37 @@ export const Canvas = forwardRef(({
     getSurface: () => surfaceRef.current,
     getPosition: () => position,
     getScale: () => scale,
-    zoomTo: (newScale) => setScale(newScale),
+    zoomTo: (newScale) => {
+      // Zoom to center of container
+      const rect = containerRef.current.getBoundingClientRect();
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+
+      const mouseX = (centerX - position.x) / scale;
+      const mouseY = (centerY - position.y) / scale;
+
+      const clampedScale = Math.min(Math.max(newScale, 0.1), 5);
+
+      setPosition({
+        x: centerX - mouseX * clampedScale,
+        y: centerY - mouseY * clampedScale
+      });
+      setScale(clampedScale);
+    },
     panTo: (newPos) => setPosition(newPos)
   }));
 
   const handleWheel = (e) => {
+    e.preventDefault();
+
     if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
+      // Zoom logic
       const rect = containerRef.current.getBoundingClientRect();
       const mouseX = (e.clientX - rect.left - position.x) / scale;
       const mouseY = (e.clientY - rect.top - position.y) / scale;
 
-      const newScale = Math.min(Math.max(scale * (e.deltaY > 0 ? 0.9 : 1.1), 0.1), 5);
+      const zoomFactor = 1 - e.deltaY * 0.001;
+      const newScale = Math.min(Math.max(scale * zoomFactor, 0.1), 5);
 
       setPosition({
         x: e.clientX - rect.left - mouseX * newScale,
@@ -55,6 +74,7 @@ export const Canvas = forwardRef(({
       });
       setScale(newScale);
     } else {
+      // Pan logic - support both mouse wheel and touchpad
       setPosition(p => ({
         x: p.x - e.deltaX,
         y: p.y - e.deltaY
@@ -63,9 +83,11 @@ export const Canvas = forwardRef(({
   };
 
   const handleMouseDown = (e) => {
+    // Middle mouse button or Space+LeftClick or Pan tool
     if (tool === 'pan' || e.button === 1 || (e.button === 0 && isSpacePressed)) {
       setIsPanning(true);
       lastMousePos.current = { x: e.clientX, y: e.clientY };
+      containerRef.current.style.cursor = 'grabbing';
     }
   };
 
@@ -80,6 +102,9 @@ export const Canvas = forwardRef(({
 
   const handleMouseUp = () => {
     setIsPanning(false);
+    if (containerRef.current) {
+      containerRef.current.style.cursor = '';
+    }
   };
 
   const handleTouchStart = (e) => {
@@ -107,7 +132,21 @@ export const Canvas = forwardRef(({
         e.touches[0].clientY - e.touches[1].clientY
       );
       const delta = dist / lastTouchDist.current;
-      setScale(s => Math.min(Math.max(s * delta, 0.1), 5));
+
+      const rect = containerRef.current.getBoundingClientRect();
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+
+      const mouseX = (midX - position.x) / scale;
+      const mouseY = (midY - position.y) / scale;
+
+      const newScale = Math.min(Math.max(scale * delta, 0.1), 5);
+
+      setPosition({
+        x: midX - mouseX * newScale,
+        y: midY - mouseY * newScale
+      });
+      setScale(newScale);
       lastTouchDist.current = dist;
     }
   };
@@ -184,26 +223,26 @@ export const Canvas = forwardRef(({
         style={{
           backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)',
           backgroundSize: `${24 * scale}px ${24 * scale}px`,
-          backgroundPosition: `${position.x}px ${position.y}px`
+          backgroundPosition: `${position.x % (24 * scale)}px ${position.y % (24 * scale)}px`
         }}
       />
 
       {/* Infinite Surface */}
       <div
         ref={surfaceRef}
-        className="absolute transition-transform duration-75 ease-out bg-studio-bone"
+        className="absolute transition-transform duration-75 ease-out"
         style={{
           transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
           transformOrigin: '0 0',
-          minWidth: '2000px',
-          minHeight: '2000px'
+          width: '0',
+          height: '0'
         }}
       >
         {children}
       </div>
 
       {/* Minimal Chrome - Toolbar */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full border border-black/5 bg-white/80 p-1.5 shadow-studio backdrop-blur-md">
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full border border-black/5 bg-white/90 p-1.5 shadow-premium backdrop-blur-xl">
         <ToolButton
           active={tool === 'select'}
           icon={MousePointer2}
@@ -216,7 +255,7 @@ export const Canvas = forwardRef(({
           onClick={() => setTool('pan')}
           label="Pan"
         />
-        <div className="mx-2 h-4 w-px bg-black/10" />
+        <div className="mx-2 h-4 w-px bg-black/[0.08]" />
         <ToolButton icon={Type} onClick={() => onToolSelect?.('note')} label="Text" />
         <ToolButton icon={StickyNote} onClick={() => onToolSelect?.('sticky')} label="Sticky" />
         <ToolButton icon={ImageIcon} onClick={() => onToolSelect?.('image')} label="Image" />
@@ -224,57 +263,75 @@ export const Canvas = forwardRef(({
         <ToolButton icon={Wind} onClick={() => onToolSelect?.('atmosphere')} label="Atmosphere" />
       </div>
 
-      {/* Minimap */}
-      <div className="absolute top-8 left-8 p-3 rounded-2xl border border-black/5 bg-white/80 shadow-studio backdrop-blur-md pointer-events-none hidden md:block">
-        <div className="text-[9px] font-bold uppercase tracking-widest text-studio-muted mb-2">Navigator</div>
-        <div className="relative w-32 h-20 bg-studio-stone/20 rounded-lg overflow-hidden border border-black/[0.03]">
+      {/* Minimap - High Precision */}
+      <div className="absolute top-8 left-8 p-4 rounded-3xl border border-black/5 bg-white/90 shadow-premium backdrop-blur-xl pointer-events-none hidden md:block">
+        <div className="text-[8px] font-bold uppercase tracking-[0.2em] text-studio-muted mb-3 opacity-60">Navigator</div>
+        <div className="relative w-40 h-24 bg-studio-stone/10 rounded-xl overflow-hidden border border-black/[0.02]">
           {elements.map(el => (
             <div
               key={el.id}
-              className="absolute bg-studio-ink/20 rounded-[1px]"
+              className="absolute bg-studio-ink/10 rounded-[1px]"
               style={{
-                left: `${(el.x / 2000) * 100}%`,
-                top: `${(el.y / 2000) * 100}%`,
-                width: '4px',
-                height: '4px'
+                left: `${((el.x + 5000) / 10000) * 100}%`,
+                top: `${((el.y + 5000) / 10000) * 100}%`,
+                width: '3px',
+                height: '3px'
               }}
             />
           ))}
           {/* Viewport Indicator */}
           <div
-            className="absolute border border-studio-orange/40 bg-studio-orange/5"
+            className="absolute border-2 border-studio-ink/20 bg-studio-ink/5 rounded-sm"
             style={{
-              left: `${(-position.x / scale / 2000) * 100}%`,
-              top: `${(-position.y / scale / 2000) * 100}%`,
-              width: `${(containerRef.current?.offsetWidth / scale / 2000) * 100}%`,
-              height: `${(containerRef.current?.offsetHeight / scale / 2000) * 100}%`
+              left: `${((-position.x / scale + 5000) / 10000) * 100}%`,
+              top: `${((-position.y / scale + 5000) / 10000) * 100}%`,
+              width: `${(containerRef.current?.offsetWidth / scale / 10000) * 100}%`,
+              height: `${(containerRef.current?.offsetHeight / scale / 10000) * 100}%`
             }}
           />
         </div>
       </div>
 
       {/* Zoom Controls */}
-      <div className="absolute bottom-8 right-8 flex flex-col gap-2">
-        <div className="flex items-center gap-1 rounded-full border border-black/5 bg-white/80 p-1 shadow-studio backdrop-blur-md">
+      <div className="absolute bottom-8 right-8 flex flex-col gap-3">
+        <div className="flex items-center gap-1 rounded-full border border-black/5 bg-white/90 p-1.5 shadow-premium backdrop-blur-xl">
           <button
-            onClick={() => setScale(s => Math.max(s - 0.1, 0.1))}
-            className="p-2 hover:bg-black/5 rounded-full transition-colors"
+            onClick={() => {
+              const rect = containerRef.current.getBoundingClientRect();
+              const centerX = rect.width / 2;
+              const centerY = rect.height / 2;
+              const mouseX = (centerX - position.x) / scale;
+              const mouseY = (centerY - position.y) / scale;
+              const newScale = Math.max(scale * 0.8, 0.1);
+              setPosition({ x: centerX - mouseX * newScale, y: centerY - mouseY * newScale });
+              setScale(newScale);
+            }}
+            className="p-2.5 hover:bg-black/5 rounded-full transition-colors"
           >
             <Minus size={14} />
           </button>
-          <span className="min-w-[40px] text-center text-[10px] font-bold font-mono">
+          <span className="min-w-[44px] text-center text-[9px] font-bold font-mono tracking-tighter">
             {Math.round(scale * 100)}%
           </span>
           <button
-            onClick={() => setScale(s => Math.min(s + 0.1, 5))}
-            className="p-2 hover:bg-black/5 rounded-full transition-colors"
+            onClick={() => {
+              const rect = containerRef.current.getBoundingClientRect();
+              const centerX = rect.width / 2;
+              const centerY = rect.height / 2;
+              const mouseX = (centerX - position.x) / scale;
+              const mouseY = (centerY - position.y) / scale;
+              const newScale = Math.min(scale * 1.2, 5);
+              setPosition({ x: centerX - mouseX * newScale, y: centerY - mouseY * newScale });
+              setScale(newScale);
+            }}
+            className="p-2.5 hover:bg-black/5 rounded-full transition-colors"
           >
             <Plus size={14} />
           </button>
         </div>
         <button
           onClick={handleReset}
-          className="p-3 bg-white/80 border border-black/5 rounded-full shadow-studio backdrop-blur-md hover:bg-white transition-colors self-end"
+          className="p-3.5 bg-white/90 border border-black/5 rounded-full shadow-premium backdrop-blur-xl hover:bg-white transition-colors self-end"
         >
           <Maximize size={14} />
         </button>
@@ -284,10 +341,10 @@ export const Canvas = forwardRef(({
       <div className="absolute top-8 right-8">
         <button
           onClick={onExport}
-          className="flex items-center gap-2 px-4 py-2 bg-studio-ink text-white rounded-full shadow-studio hover:bg-black transition-all text-xs font-bold uppercase tracking-wider"
+          className="flex items-center gap-2.5 px-6 py-3 bg-studio-ink text-white rounded-full shadow-premium hover:bg-black transition-all text-[10px] font-bold uppercase tracking-[0.2em]"
         >
           <Download size={14} />
-          Export Space
+          Export
         </button>
       </div>
     </div>
@@ -301,7 +358,7 @@ function ToolButton({ icon: Icon, active, onClick, label }) {
     <button
       onClick={onClick}
       title={label}
-      className={`p-2.5 rounded-full transition-all ${active ? 'bg-studio-ink text-white shadow-md' : 'text-studio-muted hover:bg-black/5 hover:text-studio-ink'}`}
+      className={`p-3 rounded-full transition-all ${active ? 'bg-studio-ink text-white shadow-md' : 'text-studio-muted hover:bg-black/5 hover:text-studio-ink'}`}
     >
       <Icon size={16} strokeWidth={active ? 2.5 : 2} />
     </button>

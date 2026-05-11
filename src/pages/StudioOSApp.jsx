@@ -73,29 +73,38 @@ export function StudioOSApp({ navigate, routePath }) {
 
   const { projects, error: projectsError } = useStudioProjects(studioUser);
 
-  const [activeTab, setActiveTab] = useState('flow');
-  const [selectedArtworkProjectId, setSelectedArtworkProjectId] = useState('');
-
-  // Sync state with deep routes
-  useEffect(() => {
-    if (routePath?.startsWith('/os/artwork/')) {
-      const id = routePath.replace('/os/artwork/', '');
-      setSelectedArtworkProjectId(id);
-      setActiveTab('artwork');
-    } else if (routePath === '/os' || routePath === '/dashboard') {
-       // Reset if at root but only if coming from a deep route
-    }
+  // Derive active tab and project ID from routePath
+  const activeTab = useMemo(() => {
+    if (routePath.startsWith('/os/artwork/')) return 'artwork';
+    if (routePath.startsWith('/os/projects')) return 'projects';
+    if (routePath.startsWith('/os/timeline')) return 'timeline';
+    if (routePath.startsWith('/os/content')) return 'content';
+    if (routePath.startsWith('/os/portfolio')) return 'portfolio';
+    return 'flow';
   }, [routePath]);
 
+  const selectedArtworkProjectId = useMemo(() => {
+    if (routePath.startsWith('/os/artwork/')) {
+      return routePath.replace('/os/artwork/', '');
+    }
+    return '';
+  }, [routePath]);
+
+  const handleTabChange = (tabId) => {
+    if (tabId === 'flow') navigate('/os');
+    else if (tabId === 'artwork') {
+      if (selectedArtworkProjectId) navigate(`/os/artwork/${selectedArtworkProjectId}`);
+      else navigate('/os/artwork');
+    }
+    else navigate(`/os/${tabId}`);
+  };
+
   const handleSelectArtwork = (id) => {
-    setSelectedArtworkProjectId(id);
-    setActiveTab('artwork');
     navigate(`/os/artwork/${id}`);
   };
 
   const handleBackToGallery = () => {
-    setSelectedArtworkProjectId('');
-    navigate('/os');
+    navigate('/os/artwork');
   };
   const [contentItems, setContentItems] = useLocalStorage('beBlank.content', initialContentItems);
   const [portfolioItems, setPortfolioItems] = useState(initialPortfolioItems);
@@ -322,7 +331,7 @@ export function StudioOSApp({ navigate, routePath }) {
                         : 'text-studio-muted hover:bg-black/[0.05] hover:text-studio-ink'
                   }`}
                   type="button"
-                  onClick={() => setActiveTab(tab.id)}
+                      onClick={() => handleTabChange(tab.id)}
                 >
                   <Icon size={14} strokeWidth={2.5} />
                   {tab.label}
@@ -425,7 +434,7 @@ export function StudioOSApp({ navigate, routePath }) {
           </p>
         </footer>
       </div>
-      <QuickCapture onOpenArtwork={() => setActiveTab('artwork')} />
+      <QuickCapture onOpenArtwork={() => handleTabChange('artwork')} />
     </div>
   );
 }
