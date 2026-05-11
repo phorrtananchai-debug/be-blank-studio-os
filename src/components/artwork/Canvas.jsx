@@ -36,11 +36,10 @@ export const Canvas = forwardRef(({
     getSurface: () => surfaceRef.current,
     getPosition: () => position,
     getScale: () => scale,
-    zoomTo: (newScale) => {
-      // Zoom to center of container
+    zoomTo: (newScale, center) => {
       const rect = containerRef.current.getBoundingClientRect();
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
+      const centerX = center ? center.x : rect.width / 2;
+      const centerY = center ? center.y : rect.height / 2;
 
       const mouseX = (centerX - position.x) / scale;
       const mouseY = (centerY - position.y) / scale;
@@ -65,7 +64,7 @@ export const Canvas = forwardRef(({
       const mouseX = (e.clientX - rect.left - position.x) / scale;
       const mouseY = (e.clientY - rect.top - position.y) / scale;
 
-      const zoomFactor = 1 - e.deltaY * 0.001;
+      const zoomFactor = Math.pow(1.0015, -e.deltaY);
       const newScale = Math.min(Math.max(scale * zoomFactor, 0.1), 5);
 
       setPosition({
@@ -264,9 +263,25 @@ export const Canvas = forwardRef(({
       </div>
 
       {/* Minimap - High Precision */}
-      <div className="absolute top-8 left-8 p-4 rounded-3xl border border-black/5 bg-white/90 shadow-premium backdrop-blur-xl pointer-events-none hidden md:block">
+      <div className="absolute top-8 left-8 p-4 rounded-3xl border border-black/5 bg-white/90 shadow-premium backdrop-blur-xl pointer-events-auto hidden md:block">
         <div className="text-[8px] font-bold uppercase tracking-[0.2em] text-studio-muted mb-3 opacity-60">Navigator</div>
-        <div className="relative w-40 h-24 bg-studio-stone/10 rounded-xl overflow-hidden border border-black/[0.02]">
+        <div
+          className="relative w-40 h-24 bg-studio-stone/10 rounded-xl overflow-hidden border border-black/[0.02] cursor-crosshair"
+          onClick={(e) => {
+             const rect = e.currentTarget.getBoundingClientRect();
+             const px = (e.clientX - rect.left) / rect.width;
+             const py = (e.clientY - rect.top) / rect.height;
+
+             const targetX = px * 10000 - 5000;
+             const targetY = py * 10000 - 5000;
+
+             const containerRect = containerRef.current.getBoundingClientRect();
+             setPosition({
+               x: containerRect.width / 2 - targetX * scale,
+               y: containerRect.height / 2 - targetY * scale
+             });
+          }}
+        >
           {elements.map(el => (
             <div
               key={el.id}
@@ -281,7 +296,7 @@ export const Canvas = forwardRef(({
           ))}
           {/* Viewport Indicator */}
           <div
-            className="absolute border-2 border-studio-ink/20 bg-studio-ink/5 rounded-sm"
+            className="absolute border-2 border-studio-ink/40 bg-studio-ink/5 rounded-sm pointer-events-none"
             style={{
               left: `${((-position.x / scale + 5000) / 10000) * 100}%`,
               top: `${((-position.y / scale + 5000) / 10000) * 100}%`,
@@ -302,7 +317,7 @@ export const Canvas = forwardRef(({
               const centerY = rect.height / 2;
               const mouseX = (centerX - position.x) / scale;
               const mouseY = (centerY - position.y) / scale;
-              const newScale = Math.max(scale * 0.8, 0.1);
+              const newScale = Math.max(scale / 1.25, 0.1);
               setPosition({ x: centerX - mouseX * newScale, y: centerY - mouseY * newScale });
               setScale(newScale);
             }}
@@ -320,7 +335,7 @@ export const Canvas = forwardRef(({
               const centerY = rect.height / 2;
               const mouseX = (centerX - position.x) / scale;
               const mouseY = (centerY - position.y) / scale;
-              const newScale = Math.min(scale * 1.2, 5);
+              const newScale = Math.min(scale * 1.25, 5);
               setPosition({ x: centerX - mouseX * newScale, y: centerY - mouseY * newScale });
               setScale(newScale);
             }}
