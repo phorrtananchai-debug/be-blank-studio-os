@@ -254,8 +254,8 @@ export function PublicHomepage({ portfolioItems, navigate }) {
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] text-studio-ink selection:bg-studio-ink/10">
-      <header className="fixed left-0 right-0 top-0 z-[100] border-b border-black/[0.05] bg-white/80 px-5 py-4 backdrop-blur-md md:px-8">
-        <nav className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 text-[11px] font-bold uppercase tracking-widest text-[#111111]">
+      <header className="fixed left-0 right-0 top-0 z-[100] bg-white/80 px-5 py-6 backdrop-blur-md md:px-8 border-b border-black/[0.03]">
+        <nav className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-[#111111]">
           <button className="justify-self-start text-left transition hover:text-[#777777]" type="button" onClick={() => navigate('/')}>
             BE BLANK
           </button>
@@ -264,7 +264,7 @@ export function PublicHomepage({ portfolioItems, navigate }) {
             <button className="opacity-100" type="button" onClick={() => navigate('/')}>ABOUT</button>
             <button className="opacity-40 hover:opacity-100" type="button" onClick={() => navigate('/')}>JOURNAL</button>
           </div>
-          <div className="flex flex-wrap justify-end gap-3 text-[10px] tracking-tight">
+          <div className="flex flex-wrap justify-end gap-6 tracking-tight">
             {!publicUser ? (
               <button className="transition hover:text-[#777777]" type="button" onClick={handlePublicSignIn}>
                 SIGN IN
@@ -284,152 +284,183 @@ export function PublicHomepage({ portfolioItems, navigate }) {
       </header>
 
       <main className="page-fade">
-        <section className="flex min-h-screen flex-col items-center justify-center px-5 pt-16 text-center md:px-8">
-          <div className="max-w-4xl space-y-12">
-            <h1 className="text-4xl font-bold uppercase tracking-tight text-[#111111] md:text-6xl lg:text-7xl">
-              Be Blank to Behind Studio
-            </h1>
-            <p className="mx-auto max-w-2xl text-lg font-medium leading-relaxed text-studio-muted md:text-xl">
-              A Bangkok-based architecture and interior studio shaping spatial identities for hospitality, residential, and cultural work.
-            </p>
-            <div className="flex justify-center">
-              <div className="h-20 w-px bg-black/[0.08]" />
+        {/* Asymmetrical Hero Section */}
+        <section className="relative flex min-h-screen items-center px-5 pt-32 pb-24 md:px-8">
+          <div className="mx-auto grid w-full max-w-screen-2xl items-center gap-16 md:grid-cols-12">
+            <div className="md:col-span-7 lg:col-span-6 space-y-10">
+              <div className="space-y-4">
+                <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-studio-muted">Bangkok / Architecture Studio</span>
+                <h1 className="text-5xl font-bold leading-[1.1] tracking-tight text-[#111111] md:text-7xl lg:text-8xl">
+                  Be Blank to <br /> Behind Studio
+                </h1>
+              </div>
+              <p className="max-w-md text-lg font-medium leading-relaxed text-studio-muted md:text-xl">
+                Shaping spatial identities through silence, precision, and architectural intent.
+              </p>
+              <div className="pt-8">
+                <button
+                  onClick={() => navigate('/work')}
+                  className="group flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-studio-ink"
+                >
+                  <span className="h-px w-8 bg-studio-ink transition-all group-hover:w-12" />
+                  Explore Projects
+                </button>
+              </div>
+            </div>
+
+            <div className="md:col-span-5 lg:col-span-6">
+              <div className="aspect-[3/4] overflow-hidden rounded-sm bg-studio-stone/5 shadow-studio relative group">
+                <img
+                  src="https://images.unsplash.com/photo-1600585154340-be6161a20a61?auto=format&fit=crop&q=80&w=1200"
+                  alt="Atmosphere"
+                  className="h-full w-full object-cover grayscale brightness-110 transition-transform duration-[3000ms] group-hover:scale-105"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.parentElement.classList.add('bg-studio-stone/10');
+                  }}
+                />
+                <div className="absolute inset-0 bg-white/5 mix-blend-overlay" />
+              </div>
+              <div className="mt-4 flex justify-end">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-studio-muted/40 italic">01 / Material Study, Bangkok</span>
+              </div>
             </div>
           </div>
         </section>
 
-        <section className="px-5 py-24 md:px-8">
-          <div className="mx-auto max-w-screen-2xl grid gap-12 md:grid-cols-2 items-start">
-            <div className="aspect-[4/5] overflow-hidden rounded-sm bg-studio-stone/10 shadow-studioSoft relative group">
-              <img
-                src="https://images.unsplash.com/photo-1600585154340-be6161a20a61?auto=format&fit=crop&q=80&w=1200"
-                alt="Atmosphere 1"
-                className="h-full w-full object-cover transition-transform duration-[2000ms] group-hover:scale-105"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.parentElement.classList.add('bg-gradient-to-br', 'from-studio-stone/40', 'to-studio-stone/10');
-                }}
-              />
-              <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-            </div>
-            <div className="md:mt-48 aspect-[4/5] overflow-hidden rounded-sm bg-studio-stone/10 shadow-studioSoft relative group">
-              <img
-                src="https://images.unsplash.com/photo-1600607687940-4e524cb35a36?auto=format&fit=crop&q=80&w=1200"
-                alt="Atmosphere 2"
-                className="h-full w-full object-cover transition-transform duration-[2000ms] group-hover:scale-105"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.parentElement.classList.add('bg-gradient-to-tl', 'from-studio-stone/40', 'to-studio-stone/10');
-                }}
-              />
-              <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-            </div>
-          </div>
-        </section>
-
-        <section id="about" className="mx-auto max-w-7xl px-5 py-32 md:px-8">
-          <div className="grid gap-16 md:grid-cols-[1fr_2fr]">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">Philosophy</span>
-            <div className="space-y-12">
-              <h2 className="text-3xl font-bold leading-tight text-studio-ink md:text-5xl">
-                We design quiet spatial systems: clear plans, tactile material stories, and details built for real use.
-              </h2>
-              <p className="max-w-2xl text-lg font-medium leading-relaxed text-studio-muted">
-                Our approach is rooted in the belief that space should be a blank canvas for human experience—refined, intentional, and enduring.
+        {/* Spatial Narrative Section 1 */}
+        <section id="about" className="mx-auto max-w-screen-2xl px-5 py-48 md:px-8">
+          <div className="grid gap-24 md:grid-cols-12 items-end">
+            <div className="md:col-span-4 space-y-8">
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-studio-muted">Philosophy</span>
+              <p className="text-sm font-medium leading-relaxed text-studio-muted">
+                Our approach is rooted in the belief that space should be a blank canvas for human experience—refined, intentional, and enduring. We design quiet spatial systems: clear plans, tactile material stories, and details built for real use.
               </p>
             </div>
+            <div className="md:col-span-8">
+              <h2 className="text-3xl font-bold leading-tight text-studio-ink md:text-5xl lg:text-6xl tracking-tight max-w-3xl">
+                We believe in the tension between raw structure and refined detail.
+              </h2>
+            </div>
           </div>
         </section>
 
-        <section className="border-y border-black/[0.05] bg-studio-stone/10 px-5 py-32 md:px-8">
-          <div className="mx-auto max-w-7xl">
-            <div className="grid gap-16 md:grid-cols-3">
-              {[
-                { title: 'Inquiry', detail: 'We begin with silence, listening to the site, the client, and the constraints.' },
-                { title: 'Precision', detail: 'Technical delivery is as critical as the conceptual spark. Every line matters.' },
-                { title: 'Atmosphere', detail: 'We curate light and texture to evoke emotion without noise.' },
-              ].map((step, i) => (
-                <div key={step.title} className="space-y-6">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">0{i + 1}</span>
-                  <h3 className="text-xl font-bold tracking-tight text-studio-ink">{step.title}</h3>
-                  <p className="text-sm font-medium leading-relaxed text-studio-muted">{step.detail}</p>
+        {/* Spatial Rhythm: Overlapping Images */}
+        <section className="px-5 py-24 md:px-8">
+          <div className="mx-auto max-w-screen-2xl relative min-h-[80vh]">
+            <div className="md:absolute md:top-0 md:left-0 md:w-1/2 aspect-[16/10] overflow-hidden rounded-sm bg-studio-stone/5 shadow-premium z-10 group">
+              <img
+                src="https://images.unsplash.com/photo-1600607687940-4e524cb35a36?auto=format&fit=crop&q=80&w=1200"
+                alt="Architecture 1"
+                className="h-full w-full object-cover transition-transform duration-[2000ms] group-hover:scale-105"
+                onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.classList.add('bg-studio-stone/10'); }}
+              />
+            </div>
+            <div className="mt-12 md:mt-0 md:absolute md:bottom-0 md:right-0 md:w-[45%] aspect-[4/5] overflow-hidden rounded-sm bg-studio-stone/5 shadow-studio group">
+              <img
+                src="https://images.unsplash.com/photo-1600566752355-35792bedcfea?auto=format&fit=crop&q=80&w=1200"
+                alt="Architecture 2"
+                className="h-full w-full object-cover transition-transform duration-[2000ms] group-hover:scale-105"
+                onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.classList.add('bg-studio-stone/10'); }}
+              />
+            </div>
+            <div className="hidden lg:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-64 bg-black/[0.05]" />
+          </div>
+        </section>
+
+        {/* Narrative Section 2 */}
+        <section className="mx-auto max-w-7xl px-5 py-48 md:px-8">
+          <div className="grid gap-16 md:grid-cols-2 items-center">
+            <div className="space-y-12">
+               <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-studio-muted">Precision & Delivery</h3>
+               <div className="space-y-8">
+                 <h4 className="text-2xl font-bold tracking-tight md:text-4xl">Technical delivery is as critical as the conceptual spark.</h4>
+                 <p className="text-lg font-medium text-studio-muted leading-relaxed">
+                   We curate light and texture to evoke emotion without noise. Every line matters, from the initial sketch to the final construction detail.
+                 </p>
+               </div>
+            </div>
+            <div className="md:pl-24">
+               <div className="h-64 w-px bg-black/[0.08] mx-auto md:mx-0" />
+            </div>
+          </div>
+        </section>
+
+        {/* Selected Works: Editorial Layout */}
+        <section id="work" className="px-5 py-48 md:px-8 bg-white">
+          <div className="mx-auto max-w-screen-2xl">
+            <div className="mb-32 flex items-end justify-between border-b border-black/[0.03] pb-12">
+              <h2 className="text-4xl font-bold tracking-tight text-studio-ink">Selected <br /> Delivery</h2>
+              <button
+                onClick={() => navigate('/work')}
+                className="text-[10px] font-bold uppercase tracking-widest text-studio-ink hover:opacity-50 transition-opacity"
+              >
+                Archive &rarr;
+              </button>
+            </div>
+
+            <div className="space-y-64">
+              {featuredItems.slice(0, 3).map((item, i) => (
+                <div
+                  key={item.id}
+                  className={`flex flex-col md:flex-row gap-16 items-center ${i % 2 === 1 ? 'md:flex-row-reverse' : ''}`}
+                >
+                  <button
+                    className="w-full md:w-2/3 aspect-[16/10] overflow-hidden rounded-sm bg-studio-stone/5 shadow-studio relative group"
+                    onClick={() => navigate(`/portfolio/${encodeURIComponent(item.id)}`)}
+                  >
+                    <img
+                      alt={item.title}
+                      className="h-full w-full object-cover transition-all duration-[1500ms] ease-studio-out group-hover:scale-105"
+                      src={item.imageUrl}
+                      onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.classList.add('bg-studio-stone/10'); }}
+                    />
+                  </button>
+                  <div className="w-full md:w-1/3 space-y-6">
+                    <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-studio-muted">Project 0{i + 1}</span>
+                    <div className="space-y-4">
+                       <h3 className="text-3xl font-bold tracking-tight text-studio-ink">{item.title}</h3>
+                       <p className="text-sm font-medium text-studio-muted leading-relaxed line-clamp-4">{item.description}</p>
+                    </div>
+                    <button
+                       onClick={() => navigate(`/portfolio/${encodeURIComponent(item.id)}`)}
+                       className="text-[10px] font-bold uppercase tracking-widest border-b border-black pb-1 hover:text-studio-muted hover:border-black/20 transition-all"
+                    >
+                       View Project
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        <section id="work" className="px-5 py-32 md:px-8 bg-white border-y border-black/[0.03]">
-          <div className="mx-auto max-w-7xl">
-            <div className="mb-24 flex items-center justify-between">
-              <div className="space-y-2">
-                <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-studio-muted">Selected Works</h2>
-                <div className="h-px w-12 bg-studio-ink/10" />
-              </div>
-              <button
-                onClick={() => navigate('/work')}
-                className="text-[10px] font-bold uppercase tracking-widest text-studio-ink hover:text-studio-orange transition-colors group flex items-center gap-2"
-              >
-                Enter Archive <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
-              </button>
-            </div>
-            <div className="grid gap-32">
-              {featuredItems.slice(0, 2).map((item, i) => (
-                <button
-                  key={item.id}
-                  className={`group grid md:grid-cols-12 gap-12 text-left items-center ${i % 2 === 1 ? 'md:flex-row-reverse' : ''}`}
-                  type="button"
-                  onClick={() => navigate(`/portfolio/${encodeURIComponent(item.id)}`)}
+        {/* Minimal Footer */}
+        <footer className="border-t border-black/[0.08] bg-white px-5 py-32 text-center md:px-8">
+          <div className="mx-auto max-w-4xl space-y-16">
+            <h2 className="text-3xl font-bold tracking-tight md:text-5xl">Stay in silence.</h2>
+            <div className="flex flex-col items-center gap-12">
+               <button
+                  onClick={() => navigate('/work')}
+                  className="rounded-full border border-black px-12 py-4 text-[10px] font-bold uppercase tracking-widest transition hover:bg-black hover:text-white"
                 >
-                  <div className={`md:col-span-8 aspect-[16/10] overflow-hidden rounded-sm bg-studio-stone/5 shadow-studio relative ${i % 2 === 1 ? 'md:order-last' : ''}`}>
-                    <img
-                      alt={item.title}
-                      className="h-full w-full object-cover transition-all duration-[1500ms] ease-studio-out group-hover:scale-105"
-                      src={item.imageUrl}
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.parentElement.classList.add('bg-studio-stone/10');
-                      }}
-                    />
-                  </div>
-                  <div className="md:col-span-4 space-y-6">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">0{i + 1}</span>
-                    <div className="space-y-2">
-                       <h3 className="text-3xl font-bold tracking-tight text-studio-ink">{item.title}</h3>
-                       <p className="text-sm font-medium text-studio-muted leading-relaxed line-clamp-3">{item.description}</p>
-                    </div>
-                    <div className="pt-4">
-                       <span className="text-[10px] font-bold uppercase tracking-widest text-studio-ink group-hover:text-studio-orange transition-colors">Project View &rarr;</span>
-                    </div>
-                  </div>
+                  Full Portfolio
                 </button>
-              ))}
+                <div className="space-y-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-studio-ink">Architecture / Interior / Objects</p>
+                  <p className="text-sm font-medium text-studio-muted">Bangkok / Phuket / Chiang Mai</p>
+                </div>
             </div>
           </div>
-        </section>
-
-        <footer className="border-t border-black/[0.08] bg-white px-5 py-24 text-center md:px-8">
-          <div className="mx-auto max-w-4xl space-y-10">
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-studio-ink">Architecture / Interior / Objects</p>
-            <p className="text-xl font-medium leading-relaxed text-studio-muted">
-              A Bangkok-based architecture and interior studio shaping spatial identities for hospitality, residential, and cultural work.
-            </p>
-            <p className="text-sm font-medium italic text-studio-muted/60">Selected works, project notes, and studio operations.</p>
-            <div className="pt-12">
-              <button
-                onClick={() => navigate('/work')}
-                className="rounded-full border border-black/10 px-8 py-3 text-[11px] font-bold uppercase tracking-widest transition hover:bg-black hover:text-white"
-              >
-                Enter Archive
-              </button>
-            </div>
-          </div>
-          <div className="mt-32 flex flex-col gap-6 text-[10px] font-bold uppercase tracking-widest text-studio-muted/40 md:flex-row md:items-center md:justify-between">
-            <span>Bangkok / Phuket / Chiang Mai</span>
+          <div className="mt-48 flex flex-col gap-6 text-[10px] font-bold uppercase tracking-[0.2em] text-studio-muted/30 md:flex-row md:items-center md:justify-between border-t border-black/[0.03] pt-12">
+            <span>© 2024 BE BLANK TO BEHIND</span>
             <a className="transition hover:text-studio-ink" href="mailto:studio@beblanktobehindstudio.com">
               studio@beblanktobehindstudio.com
             </a>
-            <span>© 2024</span>
+            <span className="flex gap-4">
+              <a href="#" className="hover:text-studio-ink transition-colors">Instagram</a>
+              <a href="#" className="hover:text-studio-ink transition-colors">Behance</a>
+            </span>
           </div>
         </footer>
       </main>
