@@ -8,6 +8,7 @@ import {
   Upload,
   Wind,
   Layers,
+  ArrowLeft,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '../components/Badge.jsx';
@@ -61,7 +62,7 @@ const tabs = [
   { id: 'portfolio', label: 'Gallery', icon: ImageIcon },
 ];
 
-export function StudioOSApp({ navigate }) {
+export function StudioOSApp({ navigate, routePath }) {
   const {
     user: studioUser,
     authMessage,
@@ -74,6 +75,28 @@ export function StudioOSApp({ navigate }) {
 
   const [activeTab, setActiveTab] = useState('flow');
   const [selectedArtworkProjectId, setSelectedArtworkProjectId] = useState('');
+
+  // Sync state with deep routes
+  useEffect(() => {
+    if (routePath?.startsWith('/os/artwork/')) {
+      const id = routePath.replace('/os/artwork/', '');
+      setSelectedArtworkProjectId(id);
+      setActiveTab('artwork');
+    } else if (routePath === '/os' || routePath === '/dashboard') {
+       // Reset if at root but only if coming from a deep route
+    }
+  }, [routePath]);
+
+  const handleSelectArtwork = (id) => {
+    setSelectedArtworkProjectId(id);
+    setActiveTab('artwork');
+    navigate(`/os/artwork/${id}`);
+  };
+
+  const handleBackToGallery = () => {
+    setSelectedArtworkProjectId('');
+    navigate('/os');
+  };
   const [contentItems, setContentItems] = useLocalStorage('beBlank.content', initialContentItems);
   const [portfolioItems, setPortfolioItems] = useState(initialPortfolioItems);
   const [copiedId, setCopiedId] = useState('');
@@ -320,10 +343,7 @@ export function StudioOSApp({ navigate }) {
                 onAdd={addProject}
                 onDelete={deleteProject}
                 onUpdate={updateProject}
-                onOpenSpace={(id) => {
-                  setSelectedArtworkProjectId(id);
-                  setActiveTab('artwork');
-                }}
+                onOpenSpace={handleSelectArtwork}
                 user={studioUser}
               />
             )}
@@ -333,14 +353,14 @@ export function StudioOSApp({ navigate }) {
                 {!selectedArtworkProjectId ? (
                   <BoardGallery
                     projects={projects}
-                    onSelect={(id) => setSelectedArtworkProjectId(id)}
+                    onSelect={handleSelectArtwork}
                   />
                 ) : (
                   <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                     <header className="flex items-center justify-between border-b border-black/[0.05] pb-6">
                       <div className="flex items-center gap-4">
                         <button
-                          onClick={() => setSelectedArtworkProjectId('')}
+                          onClick={handleBackToGallery}
                           className="grid h-10 w-10 place-items-center rounded-full border border-black/[0.05] bg-white text-studio-muted hover:text-studio-ink transition-all"
                         >
                           <ArrowLeft size={18} />
@@ -356,7 +376,7 @@ export function StudioOSApp({ navigate }) {
                         <span className="text-[10px] font-bold uppercase tracking-widest text-studio-muted mr-2">Switch board</span>
                         <select
                           value={selectedArtworkProjectId}
-                          onChange={(e) => setSelectedArtworkProjectId(e.target.value)}
+                          onChange={(e) => handleSelectArtwork(e.target.value)}
                           className="bg-white border border-black/5 rounded-full px-4 py-2 text-xs font-bold outline-none focus:ring-1 focus:ring-studio-ink/10"
                         >
                           {projects.map(p => (
