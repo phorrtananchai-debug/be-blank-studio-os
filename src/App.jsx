@@ -61,8 +61,8 @@ function App() {
     return <MobileStudioApp navigate={navigate} />;
   }
 
-  if (routePath === '/os' || routePath === '/dashboard') {
-    return <StudioOSApp navigate={navigate} />;
+  if (routePath === '/os' || routePath === '/dashboard' || routePath.startsWith('/os/')) {
+    return <StudioOSApp navigate={navigate} routePath={routePath} />;
   }
 
   if (routePath === '/work' || routePath === '/portfolio') {

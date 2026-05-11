@@ -299,20 +299,30 @@ export function PublicHomepage({ portfolioItems, navigate }) {
         </section>
 
         <section className="px-5 py-24 md:px-8">
-          <div className="mx-auto max-w-screen-2xl grid gap-8 md:grid-cols-2">
-            <div className="aspect-[4/5] overflow-hidden rounded-sm bg-studio-stone/20 shadow-studioSoft">
+          <div className="mx-auto max-w-screen-2xl grid gap-12 md:grid-cols-2 items-start">
+            <div className="aspect-[4/5] overflow-hidden rounded-sm bg-studio-stone/10 shadow-studioSoft relative group">
               <img
                 src="https://images.unsplash.com/photo-1600585154340-be6161a20a61?auto=format&fit=crop&q=80&w=1200"
                 alt="Atmosphere 1"
-                className="h-full w-full object-cover transition-transform duration-[2000ms] hover:scale-105"
+                className="h-full w-full object-cover transition-transform duration-[2000ms] group-hover:scale-105"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.parentElement.classList.add('bg-gradient-to-br', 'from-studio-stone/40', 'to-studio-stone/10');
+                }}
               />
+              <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
             </div>
-            <div className="mt-24 aspect-[4/5] overflow-hidden rounded-sm bg-studio-stone/20 shadow-studioSoft">
+            <div className="md:mt-48 aspect-[4/5] overflow-hidden rounded-sm bg-studio-stone/10 shadow-studioSoft relative group">
               <img
                 src="https://images.unsplash.com/photo-1600607687940-4e524cb35a36?auto=format&fit=crop&q=80&w=1200"
                 alt="Atmosphere 2"
-                className="h-full w-full object-cover transition-transform duration-[2000ms] hover:scale-105"
+                className="h-full w-full object-cover transition-transform duration-[2000ms] group-hover:scale-105"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.parentElement.classList.add('bg-gradient-to-tl', 'from-studio-stone/40', 'to-studio-stone/10');
+                }}
               />
+              <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
             </div>
           </div>
         </section>
@@ -349,34 +359,48 @@ export function PublicHomepage({ portfolioItems, navigate }) {
           </div>
         </section>
 
-        <section id="work" className="px-5 py-32 md:px-8">
+        <section id="work" className="px-5 py-32 md:px-8 bg-white border-y border-black/[0.03]">
           <div className="mx-auto max-w-7xl">
-            <div className="mb-16 flex items-end justify-between border-b border-black/[0.05] pb-8">
-              <h2 className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">Highlights</h2>
+            <div className="mb-24 flex items-center justify-between">
+              <div className="space-y-2">
+                <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-studio-muted">Selected Works</h2>
+                <div className="h-px w-12 bg-studio-ink/10" />
+              </div>
               <button
                 onClick={() => navigate('/work')}
-                className="text-[10px] font-bold uppercase tracking-widest text-studio-ink transition hover:text-studio-muted"
+                className="text-[10px] font-bold uppercase tracking-widest text-studio-ink hover:text-studio-orange transition-colors group flex items-center gap-2"
               >
-                View Archive &rarr;
+                Enter Archive <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
               </button>
             </div>
-            <div className="grid gap-24 md:grid-cols-2">
-              {featuredItems.slice(0, 2).map((item) => (
+            <div className="grid gap-32">
+              {featuredItems.slice(0, 2).map((item, i) => (
                 <button
                   key={item.id}
-                  className="group text-left"
+                  className={`group grid md:grid-cols-12 gap-12 text-left items-center ${i % 2 === 1 ? 'md:flex-row-reverse' : ''}`}
                   type="button"
                   onClick={() => navigate(`/portfolio/${encodeURIComponent(item.id)}`)}
                 >
-                  <div className="aspect-[16/10] overflow-hidden rounded-sm bg-studio-stone/20 shadow-studioSoft">
+                  <div className={`md:col-span-8 aspect-[16/10] overflow-hidden rounded-sm bg-studio-stone/5 shadow-studio relative ${i % 2 === 1 ? 'md:order-last' : ''}`}>
                     <img
                       alt={item.title}
-                      className="h-full w-full object-cover transition-all duration-[1500ms] ease-studio-out group-hover:scale-[1.05]"
+                      className="h-full w-full object-cover transition-all duration-[1500ms] ease-studio-out group-hover:scale-105"
                       src={item.imageUrl}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.parentElement.classList.add('bg-studio-stone/10');
+                      }}
                     />
                   </div>
-                  <div className="mt-8">
-                    <PortfolioCardMeta item={item} />
+                  <div className="md:col-span-4 space-y-6">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">0{i + 1}</span>
+                    <div className="space-y-2">
+                       <h3 className="text-3xl font-bold tracking-tight text-studio-ink">{item.title}</h3>
+                       <p className="text-sm font-medium text-studio-muted leading-relaxed line-clamp-3">{item.description}</p>
+                    </div>
+                    <div className="pt-4">
+                       <span className="text-[10px] font-bold uppercase tracking-widest text-studio-ink group-hover:text-studio-orange transition-colors">Project View &rarr;</span>
+                    </div>
                   </div>
                 </button>
               ))}

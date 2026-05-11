@@ -8,7 +8,29 @@ import { ImageElement } from './ImageElement.jsx';
 import { AtmosphereCard } from './AtmosphereCard.jsx';
 import { StickyNoteElement } from './StickyNoteElement.jsx';
 import { ConnectorElement } from './ConnectorElement.jsx';
-import { Loader2, Layers } from 'lucide-react';
+import {
+  Loader2,
+  Layers,
+  Plus,
+  Download,
+  Minus,
+  Type,
+  StickyNote,
+  Image as ImageIcon,
+  Share2,
+} from 'lucide-react';
+
+function ToolButton({ icon: Icon, active, onClick, label }) {
+  return (
+    <button
+      onClick={onClick}
+      title={label}
+      className={`p-2 rounded-full transition-all ${active ? 'bg-studio-ink text-white shadow-md' : 'text-studio-muted hover:bg-black/5 hover:text-studio-ink'}`}
+    >
+      <Icon size={14} strokeWidth={2.5} />
+    </button>
+  );
+}
 
 export function ArtworkSpace({ projectId, user, isPresentation = false }) {
   const {
@@ -185,43 +207,65 @@ export function ArtworkSpace({ projectId, user, isPresentation = false }) {
   const isEmpty = elements.length === 0;
 
   return (
-    <div className={`relative ${isPresentation ? 'h-full' : 'h-[80vh]'} w-full rounded-[40px] overflow-hidden border border-black/5 shadow-studio`} onPaste={handlePaste}>
+    <div className={`relative flex flex-col ${isPresentation ? 'h-full' : 'h-[80vh]'} w-full rounded-[40px] overflow-hidden border border-black/5 shadow-studio bg-studio-bone`} onPaste={handlePaste}>
+      {/* Enhanced Board Header/Toolbar */}
       {!isPresentation && (
-        <>
-          <div className="absolute top-8 right-32 z-[60] pointer-events-none">
-            <div className="flex items-center gap-2 bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-black/5 shadow-sm">
-               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-               <span className="text-[9px] font-bold uppercase tracking-widest text-studio-muted">Live Sync Active</span>
-            </div>
+        <header className="absolute top-6 left-6 right-6 z-[100] flex items-center justify-between pointer-events-none">
+          <div className="flex items-center gap-3 bg-white/90 backdrop-blur-md p-1.5 rounded-full border border-black/5 shadow-studio pointer-events-auto">
+             <div className="flex items-center gap-3 px-4">
+                <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-studio-ink">Project Design Surface</span>
+             </div>
+             <div className="h-4 w-px bg-black/[0.08]" />
+             <div className="flex items-center gap-1">
+                <ToolButton icon={Type} onClick={() => handleToolSelect('note')} label="Text" />
+                <ToolButton icon={StickyNote} onClick={() => handleToolSelect('sticky')} label="Sticky" />
+                <ToolButton icon={ImageIcon} onClick={() => handleToolSelect('image')} label="Image" />
+                <ToolButton icon={Share2} onClick={() => handleToolSelect('connector')} label="Connector" />
+             </div>
           </div>
 
-          <div className="absolute top-8 left-1/2 -translate-x-1/2 z-[60] w-64">
+          <div className="absolute left-1/2 -translate-x-1/2 pointer-events-auto">
              <input
                type="text"
                value={filterQuery}
                onChange={(e) => setFilterQuery(e.target.value)}
                placeholder="Search board..."
-               className="w-full bg-white/80 backdrop-blur-md border border-black/5 rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest outline-none focus:ring-1 focus:ring-studio-ink/10"
+               className="w-64 bg-white/90 backdrop-blur-md border border-black/5 rounded-full px-6 py-2.5 text-[10px] font-bold uppercase tracking-widest outline-none focus:ring-2 focus:ring-studio-ink/5 shadow-studio transition-all"
              />
           </div>
-        </>
+
+          <div className="flex items-center gap-3 bg-white/90 backdrop-blur-md p-1.5 rounded-full border border-black/5 shadow-studio pointer-events-auto">
+             <button
+               onClick={handleExport}
+               className="flex items-center gap-2 px-4 py-2 hover:bg-black/5 rounded-full transition-colors"
+             >
+                <Download size={14} className="text-studio-muted" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">Export</span>
+             </button>
+             <div className="h-4 w-px bg-black/[0.08]" />
+             <div className="flex items-center gap-1 px-2">
+                <button onClick={() => canvasRef.current?.zoomTo(canvasRef.current?.getScale() * 0.9)} className="p-2 hover:bg-black/5 rounded-full"><Minus size={14} /></button>
+                <span className="text-[9px] font-bold font-mono min-w-[32px] text-center">
+                  {Math.round((canvasRef.current?.getScale() || 1) * 100)}%
+                </span>
+                <button onClick={() => canvasRef.current?.zoomTo(canvasRef.current?.getScale() * 1.1)} className="p-2 hover:bg-black/5 rounded-full"><Plus size={14} /></button>
+             </div>
+          </div>
+        </header>
       )}
 
       {isEmpty && (
         <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center p-12 text-center">
           <div className="max-w-md space-y-6 animate-in fade-in zoom-in duration-1000">
-            <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-studio-bone text-studio-muted">
+            <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-white border border-black/5 shadow-studio text-studio-muted">
               <Layers size={32} strokeWidth={1.5} />
             </div>
             <div className="space-y-2">
-              <h3 className="text-xl font-bold text-studio-ink">Empty Design Surface</h3>
+              <h3 className="text-xl font-bold text-studio-ink">Start Your Composition</h3>
               <p className="text-sm font-medium leading-relaxed text-studio-muted">
-                An infinite canvas for spatial thinking. Double-click to add notes, drag images here, or paste from your clipboard.
+                This is your infinite architectural desk. Double-click to start or drag files directly onto the surface.
               </p>
-            </div>
-            <div className="flex flex-wrap justify-center gap-4 pt-4">
-              <div className="rounded-full bg-black/5 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-studio-muted">Double-click to start</div>
-              <div className="rounded-full bg-black/5 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-studio-muted">Cmd+V to Paste</div>
             </div>
           </div>
         </div>
