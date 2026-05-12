@@ -10,19 +10,19 @@ import {
   Layers,
   ArrowLeft,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Badge } from '../components/Badge.jsx';
 import { Button } from '../components/Button.jsx';
 import { MetricCard } from '../components/MetricCard.jsx';
 import { LoginPage } from '../components/LoginPage.jsx';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
+import { usePortfolioItems } from '../hooks/usePortfolioItems.js';
 import { useStudioAuth } from '../hooks/useStudioAuth.js';
 import { useStudioProjects } from '../hooks/useStudioProjects.js';
 import {
   addCollectionItem,
   deleteCollectionItem,
   getFirebaseDebugInfo,
-  subscribeToCollection,
   updateCollectionItem,
 } from '../services/firebase.js';
 import {
@@ -107,7 +107,7 @@ export function StudioOSApp({ navigate, routePath }) {
     navigate('/os/artwork');
   };
   const [contentItems, setContentItems] = useLocalStorage('beBlank.content', initialContentItems);
-  const [portfolioItems, setPortfolioItems] = useState(initialPortfolioItems);
+  const { portfolioItems, setPortfolioItems } = usePortfolioItems({ enabled: Boolean(studioUser), seedWhenEmpty: true });
   const [copiedId, setCopiedId] = useState('');
   const [backupMessage, setBackupMessage] = useState('');
   const [showDebug, setShowDebug] = useState(false);
@@ -116,28 +116,6 @@ export function StudioOSApp({ navigate, routePath }) {
   const dataMode = isFirebaseConfigured
     ? (studioUser ? 'firebase' : 'firebase-auth')
     : 'checking';
-
-  useEffect(() => {
-    if (!studioUser || !isFirebaseConfigured) {
-      return undefined;
-    }
-
-    let didSeedPortfolio = false;
-
-    return subscribeToCollection(
-      'portfolioItems',
-      async (items) => {
-        if (!items.length && !didSeedPortfolio) {
-          didSeedPortfolio = true;
-          await Promise.all(initialPortfolioItems.map((item) => addCollectionItem('portfolioItems', item)));
-          return;
-        }
-
-        setPortfolioItems(items.length ? items : initialPortfolioItems);
-      },
-      () => setPortfolioItems(initialPortfolioItems),
-    );
-  }, [studioUser, isFirebaseConfigured]);
 
   const statusCounts = useMemo(() => countByStatus(projects, projectStatuses), [projects]);
   const activeProjects = projects.filter((project) => project.status !== 'open').length;

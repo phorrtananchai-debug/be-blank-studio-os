@@ -30,7 +30,7 @@ export function MobileDashboard({ onSignOut, user }) {
     return () => window.removeEventListener('mobile-open-quick-add', handleOpenQuickAdd);
   }, []);
 
-  const projects = useMobileProjects();
+  const projects = useMobileProjects(user);
   const notes = useMobileNotes();
   const showToast = (message) => {
     setToastMessage(message);
