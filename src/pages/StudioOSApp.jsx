@@ -1,23 +1,12 @@
-import {
-  FileJson,
-  LayoutDashboard,
-  CalendarClock,
-  ClipboardCopy,
-  Image as ImageIcon,
-  Sparkles,
-  Upload,
-  Wind,
-  Layers,
-  ArrowLeft,
-  Command as CommandIcon,
-} from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
-import { Badge } from '../components/Badge.jsx';
-import { Button } from '../components/Button.jsx';
 import { CommandPalette } from '../components/CommandPalette.jsx';
-import { MetricCard } from '../components/MetricCard.jsx';
 import { LoginPage } from '../components/LoginPage.jsx';
-import { StatusToast } from '../components/StatusToast.jsx';
+import { QuickCapture } from '../components/dashboard/QuickCapture.jsx';
+import { StudioOSDebugPanel } from '../components/studio-os/StudioOSDebugPanel.jsx';
+import { StudioOSHeader } from '../components/studio-os/StudioOSHeader.jsx';
+import { StudioOSNavigation } from '../components/studio-os/StudioOSNavigation.jsx';
+import { StudioOSToolbar } from '../components/studio-os/StudioOSToolbar.jsx';
+import { StudioOSWorkspaceContent } from '../components/studio-os/StudioOSWorkspaceContent.jsx';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
 import { usePortfolioItems } from '../hooks/usePortfolioItems.js';
 import { useStudioAuth } from '../hooks/useStudioAuth.js';
@@ -47,24 +36,6 @@ import {
   downloadJson,
   formatDate,
 } from '../utils/dashboard.js';
-
-import { ProjectDashboard } from '../components/dashboard/ProjectDashboard.jsx';
-import { TimelineCalculator } from '../components/dashboard/TimelineCalculator.jsx';
-import { ContentPlanner } from '../components/dashboard/ContentPlanner.jsx';
-import { PortfolioManager } from '../components/dashboard/PortfolioManager.jsx';
-import { DailyFlow } from '../components/dashboard/DailyFlow.jsx';
-import { QuickCapture } from '../components/dashboard/QuickCapture.jsx';
-import { ArtworkSpace } from '../components/artwork/ArtworkSpace.jsx';
-import { BoardGallery } from '../components/artwork/BoardGallery.jsx';
-
-const tabs = [
-  { id: 'flow', label: 'Daily Flow', icon: Wind },
-  { id: 'projects', label: 'Overview', icon: LayoutDashboard },
-  { id: 'artwork', label: 'Artwork Space', icon: Layers },
-  { id: 'timeline', label: 'Schedule', icon: CalendarClock },
-  { id: 'content', label: 'Journal', icon: ClipboardCopy },
-  { id: 'portfolio', label: 'Gallery', icon: ImageIcon },
-];
 
 export function StudioOSApp({ navigate, routePath }) {
   const {
@@ -366,204 +337,56 @@ export function StudioOSApp({ navigate, routePath }) {
   return (
     <div className="min-h-screen bg-studio-bone text-studio-ink selection:bg-studio-ink/10 selection:text-studio-ink">
       <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-16 px-8 py-12 lg:px-12">
-        <header className="grid gap-12 xl:grid-cols-[1fr_auto] xl:items-end border-b border-black/[0.08] pb-12">
-          <div className="space-y-10">
-            <button
-              className="text-[9px] font-bold uppercase  text-studio-muted transition hover:text-studio-ink"
-              type="button"
-              onClick={() => navigate('/')}
-            >
-              &larr; Studio Profile
-            </button>
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-wider text-studio-orange">
-                <Sparkles size={14} strokeWidth={2} />
-                Operating System
-              </div>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none text-studio-ink">
-                Be Blank Studio OS
-              </h1>
-              <p className="max-w-2xl text-base font-medium text-studio-muted leading-relaxed">
-                A calm workspace for architectural delivery, content strategy, and portfolio management.
-              </p>
-            </div>
-          </div>
-          <div className="grid w-full grid-cols-2 gap-4 sm:grid-cols-4 xl:w-[700px]">
-            <MetricCard label="Active Projects" value={activeProjects} />
-            <MetricCard label="Approved posts" value={contentApproved} />
-            <MetricCard label="Archive Items" value={portfolioItems.length} />
-            <MetricCard label="Next Handover" value={nextOpening ? formatDate(nextOpening.openingDate) : 'TBD'} />
-          </div>
-        </header>
+        <StudioOSHeader
+          activeProjects={activeProjects}
+          contentApproved={contentApproved}
+          nextHandover={nextOpening ? formatDate(nextOpening.openingDate) : 'TBD'}
+          portfolioCount={portfolioItems.length}
+          onBackHome={() => navigate('/')}
+        />
 
-        <section className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between border-y border-black/[0.02] py-12">
-          <div className="space-y-1">
-            <p className="text-[9px] font-bold uppercase  text-studio-orange">Realtime Workspace</p>
-            <p className="text-sm font-medium text-studio-muted">
-              Projects and assets are synced via Firestore &bull; Local backups remain active.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-4">
-            <Badge tone={dataMode === 'firebase' ? 'safe' : 'medium'}>
-              {dataMode === 'firebase' ? 'Encrypted Connection' : 'Sync Offline'}
-            </Badge>
-            {isFirebaseConfigured && studioUser && (
-              <Button variant="secondary" onClick={handleFirebaseSignOut}>
-                Disconnect
-              </Button>
-            )}
-            {(authMessage || projectsError) && <span className="text-[11px] font-bold uppercase  text-red-500">{authMessage || projectsError}</span>}
-            {toast?.message && <StatusToast message={toast.message} tone={toast.tone} />}
-            <input ref={importInputRef} accept="application/json" className="hidden" type="file" onChange={importBackup} />
-            <Button variant="secondary" onClick={() => setIsCommandPaletteOpen(true)}>
-              <CommandIcon size={14} strokeWidth={2.5} />
-              Commands
-            </Button>
-            <Button variant="secondary" onClick={() => importInputRef.current?.click()}>
-              <Upload size={14} strokeWidth={2.5} />
-              Import
-            </Button>
-            <Button onClick={exportBackup}>
-              <FileJson size={14} strokeWidth={2.5} />
-              Export
-            </Button>
-            <button
-              onClick={toggleDebugPanel}
-              className="size-11 grid place-items-center rounded-full border border-black/[0.03] text-studio-muted hover:text-studio-ink transition-colors"
-            >
-              <LayoutDashboard size={16} strokeWidth={1.5} />
-            </button>
-          </div>
-        </section>
+        <StudioOSToolbar
+          authMessage={authMessage}
+          dataMode={dataMode}
+          importInputRef={importInputRef}
+          isFirebaseConfigured={isFirebaseConfigured}
+          projectsError={projectsError}
+          studioUser={studioUser}
+          toast={toast}
+          onDisconnect={handleFirebaseSignOut}
+          onExportBackup={exportBackup}
+          onImportBackup={importBackup}
+          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+          onToggleDebug={toggleDebugPanel}
+        />
 
-        {showDebug && (
-          <section className="rounded-2xl border border-black/[0.02] bg-[#f9f9f7] p-8 text-[10px] font-bold uppercase  text-studio-muted/50">
-            <p className="mb-6 text-studio-orange">System Debug Trace</p>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              <span>apiKeyExists: {String(firebaseDebugInfo.apiKeyExists)}</span>
-              <span>configSource: {firebaseDebugInfo.configSource}</span>
-              <span>apiKeySuffix: {firebaseDebugInfo.apiKeySuffix || 'missing'}</span>
-              <span>projectId: {firebaseDebugInfo.projectId || 'missing'}</span>
-              <span>authDomain: {firebaseDebugInfo.authDomain || 'missing'}</span>
-              <span>appIdExists: {String(firebaseDebugInfo.appIdExists)}</span>
-              <span>storageBucket: {firebaseDebugInfo.storageBucket || 'missing'}</span>
-            </div>
-          </section>
-        )}
+        {showDebug && <StudioOSDebugPanel debugInfo={firebaseDebugInfo} />}
 
-        <div className="sticky top-0 z-[100] -mx-8 bg-studio-bone/80 px-8 py-4 backdrop-blur-md border-b border-black/[0.05]">
-          <nav className="flex items-center gap-1">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
+        <StudioOSNavigation activeTab={activeTab} onTabChange={handleTabChange} />
 
-              return (
-                <button
-                  key={tab.id}
-                  className={`flex h-9 items-center gap-2 rounded-lg px-4 text-[12px] font-bold transition-all ${
-                    isActive
-                      ? 'bg-black text-white'
-                      : tab.id === 'artwork'
-                        ? 'bg-studio-orange/5 text-studio-ink hover:bg-studio-orange/10'
-                        : 'text-studio-muted hover:bg-black/[0.05] hover:text-studio-ink'
-                  }`}
-                  type="button"
-                      onClick={() => handleTabChange(tab.id)}
-                >
-                  <Icon size={14} strokeWidth={2.5} />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        <div className="space-y-32 page-fade">
-          <div key={activeTab} className="page-fade">
-            {activeTab === 'flow' && <DailyFlow projects={projects} />}
-
-            {activeTab === 'projects' && (
-              <ProjectDashboard
-                projects={projects}
-                statusCounts={statusCounts}
-                onAdd={addProject}
-                onDelete={deleteProject}
-                onUpdate={updateProject}
-                onOpenSpace={handleSelectArtwork}
-                user={studioUser}
-              />
-            )}
-
-            {activeTab === 'artwork' && (
-              <div className="space-y-12">
-                {!selectedArtworkProjectId ? (
-                  <BoardGallery
-                    projects={projects}
-                    onSelect={handleSelectArtwork}
-                  />
-                ) : (
-                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                    <header className="flex items-center justify-between border-b border-black/[0.05] pb-6">
-                      <div className="flex items-center gap-4">
-                        <button
-                          onClick={handleBackToGallery}
-                          className="grid h-10 w-10 place-items-center rounded-full border border-black/[0.05] bg-white text-studio-muted hover:text-studio-ink transition-all"
-                        >
-                          <ArrowLeft size={18} />
-                        </button>
-                        <div>
-                          <h2 className="text-2xl font-bold tracking-tight text-studio-ink">
-                            {projects.find(p => p.id === selectedArtworkProjectId)?.name}
-                          </h2>
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">Studio Space</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-studio-muted mr-2">Switch board</span>
-                        <select
-                          value={selectedArtworkProjectId}
-                          onChange={(e) => handleSelectArtwork(e.target.value)}
-                          className="bg-white border border-black/5 rounded-full px-4 py-2 text-xs font-bold outline-none focus:ring-1 focus:ring-studio-ink/10"
-                        >
-                          {projects.map(p => (
-                            <option key={p.id} value={p.id}>{p.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </header>
-                    <ArtworkSpace
-                      projectId={selectedArtworkProjectId}
-                      user={studioUser}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'timeline' && <TimelineCalculator projects={projects} onUpdate={updateProject} />}
-
-            {activeTab === 'content' && (
-              <ContentPlanner
-                contentItems={contentItems}
-                copiedId={copiedId}
-                onAdd={addContent}
-                onCopy={copyCaption}
-                onDelete={deleteContent}
-                onUpdate={updateContent}
-              />
-            )}
-
-            {activeTab === 'portfolio' && (
-              <PortfolioManager
-                portfolioItems={portfolioItems}
-                onAdd={addPortfolio}
-                onDelete={deletePortfolio}
-                onExport={exportPortfolio}
-                onUpdate={updatePortfolio}
-              />
-            )}
-          </div>
-        </div>
+        <StudioOSWorkspaceContent
+          activeTab={activeTab}
+          addContent={addContent}
+          addPortfolio={addPortfolio}
+          addProject={addProject}
+          contentItems={contentItems}
+          copiedId={copiedId}
+          copyCaption={copyCaption}
+          deleteContent={deleteContent}
+          deletePortfolio={deletePortfolio}
+          deleteProject={deleteProject}
+          exportPortfolio={exportPortfolio}
+          handleBackToGallery={handleBackToGallery}
+          handleSelectArtwork={handleSelectArtwork}
+          portfolioItems={portfolioItems}
+          projects={projects}
+          selectedArtworkProjectId={selectedArtworkProjectId}
+          statusCounts={statusCounts}
+          studioUser={studioUser}
+          updateContent={updateContent}
+          updatePortfolio={updatePortfolio}
+          updateProject={updateProject}
+        />
 
         <footer className="border-t border-black/[0.03] pt-16 pb-24 text-center">
           <p className="text-[9px] font-bold uppercase  text-studio-muted/40">
