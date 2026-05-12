@@ -1,17 +1,6 @@
-import { useEffect, useState } from 'react';
-import { isFirebaseConfigured } from '../../../services/firebase.js';
-import { subscribeToProjects } from '../../../services/firebaseProjects.js';
+import { useProjectsSubscription } from '../../../hooks/useProjectsSubscription.js';
 
-export function useMobileProjects() {
-  const [projects, setProjects] = useState([]);
-
-  useEffect(() => {
-    if (!isFirebaseConfigured()) {
-      return undefined;
-    }
-
-    return subscribeToProjects(setProjects, () => setProjects([]));
-  }, []);
-
+export function useMobileProjects(user) {
+  const { projects } = useProjectsSubscription({ enabled: Boolean(user) });
   return projects;
 }

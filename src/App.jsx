@@ -1,7 +1,6 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { isFirebaseConfigured, subscribeToCollection } from './services/firebase.js';
-import { initialPortfolioItems } from './data/seed.js';
+import { usePortfolioItems } from './hooks/usePortfolioItems.js';
 
 const MobileStudioApp = lazy(() => import('./pages/MobileStudioApp.jsx').then((module) => ({ default: module.MobileStudioApp })));
 const PortfolioDetailPage = lazy(() => import('./pages/PortfolioDetailPage.jsx').then((module) => ({ default: module.PortfolioDetailPage })));
@@ -67,31 +66,21 @@ function PortfolioRoute({ navigate, portfolioItems }) {
 function App() {
   const location = useLocation();
   const routerNavigate = useNavigate();
-  const [publicPortfolioItems, setPublicPortfolioItems] = useState(initialPortfolioItems);
+  const isPublicPortfolioRoute = (
+    location.pathname === '/' ||
+    location.pathname === '/about' ||
+    location.pathname === '/journal' ||
+    location.pathname === '/work' ||
+    location.pathname === '/portfolio' ||
+    location.pathname.startsWith('/portfolio/')
+  );
+  const { portfolioItems: publicPortfolioItems } = usePortfolioItems({ enabled: isPublicPortfolioRoute });
 
   useEffect(() => {
     if (location.pathname === '/' && isMobileDevice()) {
       routerNavigate('/m', { replace: true });
     }
   }, [location.pathname, routerNavigate]);
-
-  useEffect(() => {
-    if (!isFirebaseConfigured()) {
-      setPublicPortfolioItems(initialPortfolioItems);
-      return undefined;
-    }
-
-    try {
-      return subscribeToCollection(
-        'portfolioItems',
-        (items) => setPublicPortfolioItems(items.length ? items : initialPortfolioItems),
-        () => setPublicPortfolioItems(initialPortfolioItems),
-      );
-    } catch {
-      setPublicPortfolioItems(initialPortfolioItems);
-      return undefined;
-    }
-  }, []);
 
   const navigate = (path, options = {}) => {
     routerNavigate(path, options);
