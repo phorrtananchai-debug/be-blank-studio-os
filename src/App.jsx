@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
+import { Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { isFirebaseConfigured, subscribeToCollection } from './services/firebase.js';
 import { initialPortfolioItems } from './data/seed.js';
 
@@ -7,10 +8,6 @@ const PortfolioDetailPage = lazy(() => import('./pages/PortfolioDetailPage.jsx')
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage.jsx').then((module) => ({ default: module.PortfolioPage })));
 const PublicHomepage = lazy(() => import('./pages/PublicHomepage.jsx').then((module) => ({ default: module.PublicHomepage })));
 const StudioOSApp = lazy(() => import('./pages/StudioOSApp.jsx').then((module) => ({ default: module.StudioOSApp })));
-
-function getRoutePath() {
-  return window.location.pathname || '/';
-}
 
 function isMobileDevice() {
   if (typeof window === 'undefined') return false;
@@ -29,22 +26,54 @@ function LoadingFallback() {
   );
 }
 
+function RouteFallback({ children }) {
+  return <Suspense fallback={<LoadingFallback />}>{children}</Suspense>;
+}
+
+function StudioOSRoute({ navigate, routePath }) {
+  return (
+    <RouteFallback>
+      <StudioOSApp navigate={navigate} routePath={routePath} />
+    </RouteFallback>
+  );
+}
+
+function PortfolioDetailRoute({ navigate, portfolioItems }) {
+  const { portfolioId = '' } = useParams();
+
+  return (
+    <RouteFallback>
+      <PortfolioDetailPage item={portfolioItems.find((item) => item.id === portfolioId)} navigate={navigate} />
+    </RouteFallback>
+  );
+}
+
+function PublicHomepageRoute({ navigate, portfolioItems }) {
+  return (
+    <RouteFallback>
+      <PublicHomepage portfolioItems={portfolioItems} navigate={navigate} />
+    </RouteFallback>
+  );
+}
+
+function PortfolioRoute({ navigate, portfolioItems }) {
+  return (
+    <RouteFallback>
+      <PortfolioPage portfolioItems={portfolioItems} navigate={navigate} />
+    </RouteFallback>
+  );
+}
+
 function App() {
-  const [routePath, setRoutePath] = useState(getRoutePath);
+  const location = useLocation();
+  const routerNavigate = useNavigate();
   const [publicPortfolioItems, setPublicPortfolioItems] = useState(initialPortfolioItems);
 
   useEffect(() => {
-    const handleRouteChange = () => setRoutePath(getRoutePath());
-    window.addEventListener('popstate', handleRouteChange);
-    return () => window.removeEventListener('popstate', handleRouteChange);
-  }, []);
-
-  useEffect(() => {
-    if (routePath === '/' && isMobileDevice()) {
-      window.history.replaceState({}, '', '/m');
-      setRoutePath('/m');
+    if (location.pathname === '/' && isMobileDevice()) {
+      routerNavigate('/m', { replace: true });
     }
-  }, [routePath]);
+  }, [location.pathname, routerNavigate]);
 
   useEffect(() => {
     if (!isFirebaseConfigured()) {
@@ -64,49 +93,31 @@ function App() {
     }
   }, []);
 
-  const navigate = (path) => {
-    window.history.pushState({}, '', path);
-    setRoutePath(path);
+  const navigate = (path, options = {}) => {
+    routerNavigate(path, options);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  if (routePath === '/m') {
-    return (
-      <Suspense fallback={<LoadingFallback />}>
-        <MobileStudioApp navigate={navigate} />
-      </Suspense>
-    );
-  }
-
-  if (routePath === '/os' || routePath === '/dashboard' || routePath.startsWith('/os/')) {
-    return (
-      <Suspense fallback={<LoadingFallback />}>
-        <StudioOSApp navigate={navigate} routePath={routePath} />
-      </Suspense>
-    );
-  }
-
-  if (routePath === '/work' || routePath === '/portfolio') {
-    return (
-      <Suspense fallback={<LoadingFallback />}>
-        <PortfolioPage portfolioItems={publicPortfolioItems} navigate={navigate} />
-      </Suspense>
-    );
-  }
-
-  if (routePath.startsWith('/portfolio/')) {
-    const portfolioId = decodeURIComponent(routePath.replace('/portfolio/', ''));
-    return (
-      <Suspense fallback={<LoadingFallback />}>
-        <PortfolioDetailPage item={publicPortfolioItems.find((item) => item.id === portfolioId)} navigate={navigate} />
-      </Suspense>
-    );
-  }
-
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <PublicHomepage portfolioItems={publicPortfolioItems} navigate={navigate} />
-    </Suspense>
+    <Routes>
+      <Route path="/" element={<PublicHomepageRoute portfolioItems={publicPortfolioItems} navigate={navigate} />} />
+      <Route path="/about" element={<PublicHomepageRoute portfolioItems={publicPortfolioItems} navigate={navigate} />} />
+      <Route path="/journal" element={<PublicHomepageRoute portfolioItems={publicPortfolioItems} navigate={navigate} />} />
+      <Route path="/work" element={<PortfolioRoute portfolioItems={publicPortfolioItems} navigate={navigate} />} />
+      <Route path="/portfolio" element={<PortfolioRoute portfolioItems={publicPortfolioItems} navigate={navigate} />} />
+      <Route path="/portfolio/:portfolioId" element={<PortfolioDetailRoute portfolioItems={publicPortfolioItems} navigate={navigate} />} />
+      <Route path="/dashboard" element={<StudioOSRoute navigate={navigate} routePath={location.pathname} />} />
+      <Route path="/os/*" element={<StudioOSRoute navigate={navigate} routePath={location.pathname} />} />
+      <Route
+        path="/m"
+        element={(
+          <RouteFallback>
+            <MobileStudioApp navigate={navigate} />
+          </RouteFallback>
+        )}
+      />
+      <Route path="*" element={<PublicHomepageRoute portfolioItems={publicPortfolioItems} navigate={navigate} />} />
+    </Routes>
   );
 }
 
