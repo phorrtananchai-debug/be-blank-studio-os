@@ -37,9 +37,11 @@ export function useMobileTasks({ onSelectTask, onToast }) {
       });
 
       onToast(addToCalendar ? 'Saved. Calendar sync pending.' : 'Task created.');
+      return true;
     } catch (error) {
       console.error(error);
       onToast('Task creation failed. Check your connection and try again.', 'error');
+      return false;
     }
   };
 

@@ -46,6 +46,14 @@ export function MobileDashboard({ onSignOut, user }) {
   } = useMobileTasks({ onSelectTask: setSelectedTask, onToast: showToast });
 
   const openQuickAdd = () => setIsQuickAddOpen(true);
+  const createMobileTask = async (task, addToCalendar = false) => {
+    if (useDemoData) {
+      showToast('Preview data is read-only. Connect Firebase to create mobile tasks.', 'info');
+      return false;
+    }
+
+    return createTask(task, addToCalendar);
+  };
   const updateProfileImage = (dataUrl) => {
     setProfileImage(dataUrl);
     setProfileImageState(dataUrl);
@@ -76,6 +84,7 @@ export function MobileDashboard({ onSignOut, user }) {
         onMoveTask={moveTask}
         onOpenProject={openProject}
         onOpenTask={setSelectedTask}
+        onQuickAdd={openQuickAdd}
       />
     ),
     Calendar: <MobileCalendar initialDate={initialMobileDate} projects={displayProjects} tasks={displayTasks} onDeleteTask={deleteTask} onDoneTask={markTaskDone} onDuplicateTask={duplicateTask} onEditTask={editTask} onMoveTask={moveTask} onOpenTask={setSelectedTask} />,
@@ -108,6 +117,11 @@ export function MobileDashboard({ onSignOut, user }) {
 
         <section className="min-h-0 flex-1 overflow-y-auto px-4 pb-32 pt-5">
           {toast?.message && <StatusToast className="mb-5" message={toast.message} tone={toast.tone} />}
+          {useDemoData && (
+            <div className="mb-5 rounded-[18px] border border-[rgba(33,33,33,0.08)] bg-white/70 px-4 py-3 text-xs leading-5 text-[#777777]">
+              <span className="font-semibold text-[#212121]">Preview workspace.</span> Demo projects and tasks are read-only until live mobile data is synced.
+            </div>
+          )}
           {content}
         </section>
       </div>
@@ -118,8 +132,9 @@ export function MobileDashboard({ onSignOut, user }) {
             key={tab}
             aria-current={activeTab === tab ? 'page' : undefined}
             aria-label={tab === '+' ? 'Quick add' : tab}
+            title={tab === '+' ? 'Quick add' : tab}
             className={`flex min-h-11 items-center justify-center rounded-[18px] transition duration-[120ms] ease-out active:scale-95 ${
-              tab === '+' ? 'mx-auto size-12 rounded-full bg-white text-xl text-[#212121]' : activeTab === tab ? 'scale-105 text-[#FFF0A3]' : 'text-white/55'
+              tab === '+' ? 'mx-auto size-12 rounded-full bg-white text-xl text-[#212121] shadow-[0_8px_22px_rgba(255,255,255,0.12)]' : activeTab === tab ? 'scale-105 text-[#FFF0A3]' : 'text-white/55'
             }`}
             type="button"
             onClick={() => {
@@ -139,8 +154,19 @@ export function MobileDashboard({ onSignOut, user }) {
         ))}
       </nav>
 
-      {selectedTask && <MobileTaskSheet projects={displayProjects} task={selectedTask} onClose={() => setSelectedTask(null)} onDone={markTaskDone} />}
-      {isQuickAddOpen && <MobileQuickAdd projects={displayProjects} onClose={() => setIsQuickAddOpen(false)} onCreate={createTask} />}
+      {selectedTask && (
+        <MobileTaskSheet
+          projects={displayProjects}
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
+          onDelete={deleteTask}
+          onDone={markTaskDone}
+          onDuplicate={duplicateTask}
+          onEdit={editTask}
+          onMove={moveTask}
+        />
+      )}
+      {isQuickAddOpen && <MobileQuickAdd projects={displayProjects} onClose={() => setIsQuickAddOpen(false)} onCreate={createMobileTask} />}
       {isProfileOpen && (
         <MobileProfileSheet
           profileImage={profileImage}
