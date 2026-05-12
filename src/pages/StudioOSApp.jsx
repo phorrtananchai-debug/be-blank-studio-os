@@ -17,10 +17,12 @@ import { Button } from '../components/Button.jsx';
 import { CommandPalette } from '../components/CommandPalette.jsx';
 import { MetricCard } from '../components/MetricCard.jsx';
 import { LoginPage } from '../components/LoginPage.jsx';
+import { StatusToast } from '../components/StatusToast.jsx';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
 import { usePortfolioItems } from '../hooks/usePortfolioItems.js';
 import { useStudioAuth } from '../hooks/useStudioAuth.js';
 import { useStudioProjects } from '../hooks/useStudioProjects.js';
+import { useToastMessage } from '../hooks/useToastMessage.js';
 import {
   addCollectionItem,
   deleteCollectionItem,
@@ -111,7 +113,7 @@ export function StudioOSApp({ navigate, routePath }) {
   const [contentItems, setContentItems] = useLocalStorage('beBlank.content', initialContentItems);
   const { portfolioItems, setPortfolioItems } = usePortfolioItems({ enabled: Boolean(studioUser), seedWhenEmpty: true });
   const [copiedId, setCopiedId] = useState('');
-  const [backupMessage, setBackupMessage] = useState('');
+  const { showToast, toast } = useToastMessage();
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   const importInputRef = useRef(null);
@@ -133,56 +135,123 @@ export function StudioOSApp({ navigate, routePath }) {
 
   const updateProject = async (id, updates) => {
     if (!studioUser) return;
-    await updateFirebaseProject(id, updates);
+    try {
+      await updateFirebaseProject(id, updates);
+      showToast('Project updated.');
+    } catch (error) {
+      console.error(error);
+      showToast('Project update failed. Check your connection and try again.', 'error');
+    }
   };
 
   const addProject = async () => {
     if (!studioUser) return;
-    await createFirebaseProject(createProject());
+    try {
+      await createFirebaseProject(createProject());
+      showToast('New project created.');
+    } catch (error) {
+      console.error(error);
+      showToast('Project creation failed. Check your connection and try again.', 'error');
+    }
   };
 
   const deleteProject = async (id) => {
     if (!studioUser) return;
-    await deleteFirebaseProject(id);
+    try {
+      await deleteFirebaseProject(id);
+      showToast('Project deleted.');
+    } catch (error) {
+      console.error(error);
+      showToast('Project delete failed. Check your connection and try again.', 'error');
+    }
   };
 
   const updateContent = (id, updates) => {
     setContentItems((items) => items.map((item) => (item.id === id ? { ...item, ...updates } : item)));
+    showToast('Journal item updated.');
+  };
+
+  const addContent = () => {
+    setContentItems((items) => [createContentItem(), ...items]);
+    showToast('Journal item created.');
+  };
+
+  const deleteContent = (id) => {
+    setContentItems((items) => items.filter((item) => item.id !== id));
+    showToast('Journal item deleted.');
   };
 
   const addPortfolio = async () => {
     if (!studioUser) return;
-    await addCollectionItem('portfolioItems', createPortfolioItem());
+    try {
+      await addCollectionItem('portfolioItems', createPortfolioItem());
+      showToast('Portfolio item added.');
+    } catch (error) {
+      console.error(error);
+      showToast('Portfolio item could not be added.', 'error');
+    }
   };
 
   const updatePortfolio = async (id, updates) => {
     if (!studioUser) return;
-    await updateCollectionItem('portfolioItems', id, updates);
+    try {
+      await updateCollectionItem('portfolioItems', id, updates);
+      showToast('Portfolio item updated.');
+    } catch (error) {
+      console.error(error);
+      showToast('Portfolio update failed. Check your connection and try again.', 'error');
+    }
   };
 
   const deletePortfolio = async (id) => {
     if (!studioUser) return;
-    await deleteCollectionItem('portfolioItems', id);
+    try {
+      await deleteCollectionItem('portfolioItems', id);
+      showToast('Portfolio item deleted.');
+    } catch (error) {
+      console.error(error);
+      showToast('Portfolio delete failed. Check your connection and try again.', 'error');
+    }
+  };
+
+  const exportPortfolio = () => {
+    try {
+      downloadJson('be-blank-portfolio.json', portfolioItems);
+      showToast('Portfolio export downloaded.');
+    } catch (error) {
+      console.error(error);
+      showToast('Portfolio export failed.', 'error');
+    }
   };
 
   const copyCaption = async (item) => {
     const text = `${item.captionTH}\n\n${item.captionEN}`.trim();
-    await navigator.clipboard.writeText(text);
-    setCopiedId(item.id);
-    window.setTimeout(() => setCopiedId(''), 1400);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(item.id);
+      showToast('Caption copied.');
+      window.setTimeout(() => setCopiedId(''), 1400);
+    } catch (error) {
+      console.error(error);
+      showToast('Caption could not be copied.', 'error');
+    }
   };
 
   const exportBackup = () => {
-    downloadJson('be-blank-studio-os-backup.json', {
-      app: 'Be Blank Studio OS',
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      projects,
-      contentItems,
-      portfolioItems,
-    });
-    setBackupMessage('Backup exported');
-    window.setTimeout(() => setBackupMessage(''), 1800);
+    try {
+      downloadJson('be-blank-studio-os-backup.json', {
+        app: 'Be Blank Studio OS',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        projects,
+        contentItems,
+        portfolioItems,
+      });
+      showToast('Backup exported.');
+    } catch (error) {
+      console.error(error);
+      showToast('Backup export failed.', 'error');
+    }
   };
 
   const importBackup = async (event) => {
@@ -200,13 +269,21 @@ export function StudioOSApp({ navigate, routePath }) {
       }
       setContentItems(data.contentItems);
       setPortfolioItems(data.portfolioItems);
-      setBackupMessage('Backup restored');
-    } catch {
-      setBackupMessage('Import failed');
+      showToast('Backup restored.');
+    } catch (error) {
+      console.error(error);
+      showToast('Import failed. Use a valid Studio OS backup file.', 'error');
     } finally {
       event.target.value = '';
-      window.setTimeout(() => setBackupMessage(''), 2200);
     }
+  };
+
+  const toggleDebugPanel = () => {
+    setShowDebug((value) => {
+      const nextValue = !value;
+      showToast(nextValue ? 'Debug panel opened.' : 'Debug panel hidden.', 'info');
+      return nextValue;
+    });
   };
 
   const firebaseDebugInfo = getFirebaseDebugInfo();
@@ -282,7 +359,7 @@ export function StudioOSApp({ navigate, routePath }) {
       label: 'Toggle Debug Panel',
       description: 'Show or hide Firebase debug trace',
       group: 'System',
-      run: () => setShowDebug((value) => !value),
+      run: toggleDebugPanel,
     },
   ];
 
@@ -336,7 +413,7 @@ export function StudioOSApp({ navigate, routePath }) {
               </Button>
             )}
             {(authMessage || projectsError) && <span className="text-[11px] font-bold uppercase  text-red-500">{authMessage || projectsError}</span>}
-            {backupMessage && <span className="text-[11px] font-bold uppercase  text-studio-orange">{backupMessage}</span>}
+            {toast?.message && <StatusToast message={toast.message} tone={toast.tone} />}
             <input ref={importInputRef} accept="application/json" className="hidden" type="file" onChange={importBackup} />
             <Button variant="secondary" onClick={() => setIsCommandPaletteOpen(true)}>
               <CommandIcon size={14} strokeWidth={2.5} />
@@ -351,7 +428,7 @@ export function StudioOSApp({ navigate, routePath }) {
               Export
             </Button>
             <button
-              onClick={() => setShowDebug(!showDebug)}
+              onClick={toggleDebugPanel}
               className="size-11 grid place-items-center rounded-full border border-black/[0.03] text-studio-muted hover:text-studio-ink transition-colors"
             >
               <LayoutDashboard size={16} strokeWidth={1.5} />
@@ -469,9 +546,9 @@ export function StudioOSApp({ navigate, routePath }) {
               <ContentPlanner
                 contentItems={contentItems}
                 copiedId={copiedId}
-                onAdd={() => setContentItems((items) => [createContentItem(), ...items])}
+                onAdd={addContent}
                 onCopy={copyCaption}
-                onDelete={(id) => setContentItems((items) => items.filter((item) => item.id !== id))}
+                onDelete={deleteContent}
                 onUpdate={updateContent}
               />
             )}
@@ -481,7 +558,7 @@ export function StudioOSApp({ navigate, routePath }) {
                 portfolioItems={portfolioItems}
                 onAdd={addPortfolio}
                 onDelete={deletePortfolio}
-                onExport={() => downloadJson('be-blank-portfolio.json', portfolioItems)}
+                onExport={exportPortfolio}
                 onUpdate={updatePortfolio}
               />
             )}

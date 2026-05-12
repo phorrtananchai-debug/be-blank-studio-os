@@ -29,58 +29,79 @@ export function useMobileTasks({ onSelectTask, onToast }) {
     const taskPayload = { ...task };
     delete taskPayload.type;
 
-    await addCollectionItem(taskCollection, {
-      ...taskPayload,
-      calendarLinked: false,
-      pendingCalendarSync: addToCalendar,
-    });
+    try {
+      await addCollectionItem(taskCollection, {
+        ...taskPayload,
+        calendarLinked: false,
+        pendingCalendarSync: addToCalendar,
+      });
 
-    if (addToCalendar) {
-      onToast('Saved. Calendar sync pending.');
+      onToast(addToCalendar ? 'Saved. Calendar sync pending.' : 'Task created.');
+    } catch (error) {
+      console.error(error);
+      onToast('Task creation failed. Check your connection and try again.', 'error');
     }
   };
 
   const markTaskDone = async (task) => {
     if (isDemoItem(task)) {
-      onToast('Demo data is read-only.');
+      onToast('Demo data is read-only.', 'info');
       onSelectTask(null);
       return;
     }
 
-    await updateCollectionItem(taskCollection, task.id, { status: 'done', completedAt: new Date().toISOString() });
-    onSelectTask(null);
+    try {
+      await updateCollectionItem(taskCollection, task.id, { status: 'done', completedAt: new Date().toISOString() });
+      onToast('Task marked done.');
+      onSelectTask(null);
+    } catch (error) {
+      console.error(error);
+      onToast('Task update failed. Check your connection and try again.', 'error');
+    }
   };
 
   const deleteTask = async (task) => {
     if (isDemoItem(task)) {
-      onToast('Demo data is read-only.');
+      onToast('Demo data is read-only.', 'info');
       onSelectTask(null);
       return;
     }
 
-    await deleteCollectionItem(taskCollection, task.id);
-    onSelectTask(null);
+    try {
+      await deleteCollectionItem(taskCollection, task.id);
+      onToast('Task deleted.');
+      onSelectTask(null);
+    } catch (error) {
+      console.error(error);
+      onToast('Task delete failed. Check your connection and try again.', 'error');
+    }
   };
 
   const duplicateTask = async (task) => {
     if (isDemoItem(task)) {
-      onToast('Demo data is read-only.');
+      onToast('Demo data is read-only.', 'info');
       return;
     }
 
     const copy = { ...task };
     delete copy.id;
     delete copy.completedAt;
-    await addCollectionItem(taskCollection, {
-      ...copy,
-      status: 'todo',
-      title: `${task.title || 'Untitled task'} copy`,
-    });
+    try {
+      await addCollectionItem(taskCollection, {
+        ...copy,
+        status: 'todo',
+        title: `${task.title || 'Untitled task'} copy`,
+      });
+      onToast('Task duplicated.');
+    } catch (error) {
+      console.error(error);
+      onToast('Task duplicate failed. Check your connection and try again.', 'error');
+    }
   };
 
   const moveTask = async (task) => {
     if (isDemoItem(task)) {
-      onToast('Demo data is read-only.');
+      onToast('Demo data is read-only.', 'info');
       return;
     }
 
@@ -88,17 +109,29 @@ export function useMobileTasks({ onSelectTask, onToast }) {
     if (!nextDate) {
       return;
     }
-    await updateCollectionItem(taskCollection, task.id, { dueDate: nextDate, startDate: nextDate });
+    try {
+      await updateCollectionItem(taskCollection, task.id, { dueDate: nextDate, startDate: nextDate });
+      onToast('Task moved.');
+    } catch (error) {
+      console.error(error);
+      onToast('Task move failed. Check your connection and try again.', 'error');
+    }
   };
 
   const clearCompletedTasks = async () => {
     const completedTasks = tasks.filter(isTaskDone);
-    await Promise.all(completedTasks.map((task) => deleteCollectionItem(taskCollection, task.id)));
+    try {
+      await Promise.all(completedTasks.map((task) => deleteCollectionItem(taskCollection, task.id)));
+    } catch (error) {
+      console.error(error);
+      onToast('Could not clear completed tasks. Check your connection and try again.', 'error');
+      throw error;
+    }
   };
 
   const editTask = async (task) => {
     if (isDemoItem(task)) {
-      onToast('Demo data is read-only.');
+      onToast('Demo data is read-only.', 'info');
       return;
     }
 
@@ -107,7 +140,13 @@ export function useMobileTasks({ onSelectTask, onToast }) {
       return;
     }
     const nextDetail = window.prompt('Task detail', task.notes || task.detail || '');
-    await updateCollectionItem(taskCollection, task.id, { title: nextTitle, detail: nextDetail || '', notes: nextDetail || '' });
+    try {
+      await updateCollectionItem(taskCollection, task.id, { title: nextTitle, detail: nextDetail || '', notes: nextDetail || '' });
+      onToast('Task updated.');
+    } catch (error) {
+      console.error(error);
+      onToast('Task update failed. Check your connection and try again.', 'error');
+    }
   };
 
   return {
