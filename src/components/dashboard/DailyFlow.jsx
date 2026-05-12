@@ -1,14 +1,215 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  Sun,
-  Moon,
+  AlertCircle,
+  ArrowUpRight,
+  CalendarDays,
   Clock,
-  Target,
   Image as ImageIcon,
+  Moon,
   StickyNote,
-  ArrowUpRight
+  Sun,
+  Target,
 } from 'lucide-react';
 import { formatDate } from '../../utils/dashboard.js';
+
+const attentionWindowDays = 21;
+const activeStatuses = ['concept', 'design', 'construction', 'handover', 'in-progress'];
+const closedStatuses = ['open', 'done', 'complete', 'completed'];
+const millisecondsPerDay = 1000 * 60 * 60 * 24;
+
+function parseDate(value) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function startOfToday() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
+
+function getDaysUntil(value, today = startOfToday()) {
+  const date = parseDate(value);
+  if (!date) {
+    return null;
+  }
+
+  return Math.ceil((date - today) / millisecondsPerDay);
+}
+
+function getDateTone(daysUntil) {
+  if (daysUntil === null) {
+    return 'muted';
+  }
+
+  if (daysUntil < 0) {
+    return 'critical';
+  }
+
+  if (daysUntil <= 7) {
+    return 'urgent';
+  }
+
+  if (daysUntil <= attentionWindowDays) {
+    return 'watch';
+  }
+
+  return 'steady';
+}
+
+function getToneClass(tone) {
+  if (tone === 'critical') {
+    return 'border-red-700/20 bg-red-50 text-red-800';
+  }
+
+  if (tone === 'urgent') {
+    return 'border-amber-700/20 bg-amber-50 text-amber-800';
+  }
+
+  if (tone === 'watch') {
+    return 'border-[#FFF0A3] bg-[#FFF8CD] text-[#212121]';
+  }
+
+  return 'border-black/[0.05] bg-white text-studio-ink';
+}
+
+function formatDaysLabel(daysUntil) {
+  if (daysUntil === null) {
+    return 'No date';
+  }
+
+  if (daysUntil < 0) {
+    return `${Math.abs(daysUntil)}d overdue`;
+  }
+
+  if (daysUntil === 0) {
+    return 'Today';
+  }
+
+  return `${daysUntil}d left`;
+}
+
+function getActiveProjects(projects) {
+  return projects.filter((project) => {
+    const status = String(project.status || '').toLowerCase();
+    return activeStatuses.includes(status) && !closedStatuses.includes(status);
+  });
+}
+
+function getProjectDates(projects) {
+  const today = startOfToday();
+
+  return projects
+    .flatMap((project) => [
+      { project, label: 'Handover', value: project.handoverDate },
+      { project, label: 'Opening', value: project.openingDate },
+      { project, label: 'Design complete', value: project.designCompleteDate },
+    ])
+    .map((item) => ({
+      ...item,
+      daysUntil: getDaysUntil(item.value, today),
+    }))
+    .filter((item) => item.daysUntil !== null && item.daysUntil <= attentionWindowDays)
+    .sort((left, right) => left.daysUntil - right.daysUntil);
+}
+
+function getMissingNextActions(projects) {
+  return getActiveProjects(projects)
+    .filter((project) => !String(project.nextAction || '').trim())
+    .slice(0, 5);
+}
+
+function getUpcomingRiskProjects(projects) {
+  return getProjectDates(projects)
+    .filter((item) => ['Handover', 'Opening'].includes(item.label))
+    .slice(0, 5);
+}
+
+function getTodaySummary(projects) {
+  const activeProjects = getActiveProjects(projects);
+  const missingNextActions = getMissingNextActions(projects);
+  const datedAttention = getProjectDates(projects);
+  const overdueDates = datedAttention.filter((item) => item.daysUntil < 0);
+  const dueToday = datedAttention.filter((item) => item.daysUntil === 0);
+  const upcoming = datedAttention.filter((item) => item.daysUntil > 0);
+
+  return {
+    activeProjects,
+    datedAttention,
+    dueToday,
+    missingNextActions,
+    overdueDates,
+    upcoming,
+  };
+}
+
+function getActiveTaskSummary(projects) {
+  const nextActions = getActiveProjects(projects).filter((project) => String(project.nextAction || '').trim());
+  const openSiteLogs = projects.flatMap((project) => (
+    Array.isArray(project.siteLogs)
+      ? project.siteLogs.map((log) => ({ ...log, projectName: project.name }))
+      : []
+  ));
+
+  return {
+    nextActions,
+    openSiteLogs,
+    total: nextActions.length + openSiteLogs.length,
+  };
+}
+
+function EmptyState({ message }) {
+  return (
+    <p className="rounded-xl border border-black/[0.04] bg-white px-4 py-5 text-sm font-medium leading-6 text-studio-muted">
+      {message}
+    </p>
+  );
+}
+
+function AttentionRow({ daysUntil, label, project }) {
+  const tone = getDateTone(daysUntil);
+
+  return (
+    <div className={`flex items-center gap-4 rounded-xl border p-4 shadow-sm transition-all hover:shadow-md ${getToneClass(tone)}`}>
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/70">
+        <CalendarDays size={16} strokeWidth={2} className="text-studio-muted" />
+      </div>
+      <div className="min-w-0 flex-1 space-y-0.5">
+        <h4 className="truncate text-[13px] font-bold uppercase tracking-wide">{project.name || 'Untitled Project'}</h4>
+        <p className="text-xs font-medium text-studio-muted">{label} / {formatDate(project[label === 'Handover' ? 'handoverDate' : label === 'Opening' ? 'openingDate' : 'designCompleteDate'])}</p>
+      </div>
+      <p className="shrink-0 text-right text-[11px] font-bold uppercase tracking-tight">{formatDaysLabel(daysUntil)}</p>
+    </div>
+  );
+}
+
+function MissingActionRow({ project }) {
+  return (
+    <div className="group flex items-start justify-between gap-4 border-b border-black/[0.05] pb-4 transition-colors hover:border-black/10">
+      <div className="space-y-1">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-studio-orange">{project.status || 'active'}</p>
+        <h4 className="text-lg font-semibold tracking-tight text-studio-ink">{project.name || 'Untitled Project'}</h4>
+        <p className="text-xs font-medium text-studio-muted">{project.client || project.location || 'Next action not set'}</p>
+      </div>
+      <span className="rounded-full border border-black/[0.05] bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-tight text-studio-muted">
+        Needs action
+      </span>
+    </div>
+  );
+}
+
+function NextActionRow({ project }) {
+  return (
+    <div className="rounded-xl border border-black/[0.05] bg-white p-4 shadow-sm">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-studio-muted">{project.name || 'Untitled Project'}</p>
+      <p className="mt-2 text-sm font-semibold leading-6 text-studio-ink">{project.nextAction}</p>
+    </div>
+  );
+}
 
 export function DailyFlow({ projects = [] }) {
   const [time, setTime] = useState(new Date());
@@ -20,24 +221,18 @@ export function DailyFlow({ projects = [] }) {
     return () => clearInterval(timer);
   }, []);
 
-  const activePhases = projects
-    .filter(p => p.status === 'in-progress' || p.status === 'concept')
-    .slice(0, 3);
-
-  const upcomingDeadlines = projects
-    .filter(p => p.openingDate)
-    .sort((a, b) => new Date(a.openingDate) - new Date(b.openingDate))
-    .slice(0, 3);
-
+  const summary = useMemo(() => getTodaySummary(projects), [projects]);
+  const taskSummary = useMemo(() => getActiveTaskSummary(projects), [projects]);
+  const upcomingRiskProjects = useMemo(() => getUpcomingRiskProjects(projects), [projects]);
   const hour = time.getHours();
   const greeting = hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening';
   const Icon = hour < 18 ? Sun : Moon;
+  const clearState = !summary.overdueDates.length && !summary.dueToday.length && !summary.missingNextActions.length;
 
   return (
     <div className="space-y-16 page-fade">
-      {/* Functional Header */}
       <section className="border-b border-black/[0.08] pb-8">
-        <div className="flex flex-col md:flex-row md:items-baseline justify-between gap-6">
+        <div className="flex flex-col gap-6 md:flex-row md:items-baseline md:justify-between">
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-studio-muted">
               <Icon size={12} strokeWidth={2.5} />
@@ -48,25 +243,24 @@ export function DailyFlow({ projects = [] }) {
             </h2>
           </div>
 
-          <div className="flex items-center gap-8">
-            <div className="space-y-1">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-studio-muted">Studio Capacity</p>
-              <p className="text-sm font-bold">Optimal Focus</p>
-            </div>
-            <div className="h-6 w-px bg-black/[0.08]" />
-            <div className="space-y-1">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-studio-muted">Active Pulse</p>
-              <p className="text-sm font-bold">{activePhases.length} Projects</p>
-            </div>
+          <div className="flex flex-wrap items-center gap-8">
+            <SummaryMetric label="Needs Attention" value={summary.overdueDates.length + summary.dueToday.length + summary.missingNextActions.length} />
+            <div className="hidden h-6 w-px bg-black/[0.08] sm:block" />
+            <SummaryMetric label="Active Pulse" value={`${summary.activeProjects.length} Projects`} />
+            <div className="hidden h-6 w-px bg-black/[0.08] sm:block" />
+            <SummaryMetric label="Task Signals" value={taskSummary.total || 'Clear'} />
           </div>
         </div>
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-        {/* Main Column */}
-        <div className="lg:col-span-8 space-y-16">
+      <section className="grid gap-4 md:grid-cols-3">
+        <DailySummaryCard icon={AlertCircle} label="Overdue" value={summary.overdueDates.length} tone="critical" />
+        <DailySummaryCard icon={Clock} label="Due Today" value={summary.dueToday.length} tone="watch" />
+        <DailySummaryCard icon={Target} label="Missing Next Action" value={summary.missingNextActions.length} tone="steady" />
+      </section>
 
-          {/* Daily Focus */}
+      <div className="grid grid-cols-1 gap-16 lg:grid-cols-12">
+        <div className="space-y-16 lg:col-span-8">
           <section className="space-y-4">
             <header className="flex items-center justify-between">
               <h3 className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">Primary Focus</h3>
@@ -75,77 +269,71 @@ export function DailyFlow({ projects = [] }) {
             <div className="group relative">
               <textarea
                 value={focus}
-                onChange={(e) => setFocus(e.target.value)}
-                placeholder="Today's core objective..."
-                className="w-full bg-transparent text-xl font-bold tracking-tight outline-none placeholder:text-black/[0.1] resize-none overflow-hidden h-auto py-1"
+                onChange={(event) => setFocus(event.target.value)}
+                placeholder={clearState ? 'Today looks clear. Set one studio objective...' : 'Choose the one thing that unlocks today...'}
+                className="h-auto w-full resize-none overflow-hidden bg-transparent py-1 text-xl font-bold tracking-tight outline-none placeholder:text-black/[0.1]"
                 rows={1}
               />
               <div className="absolute -bottom-1 left-0 h-px w-full bg-black/[0.08] transition-colors group-focus-within:bg-studio-ink" />
             </div>
           </section>
 
-          {/* Active Phases & Deadlines */}
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-20">
+          <section className="grid grid-cols-1 gap-20 md:grid-cols-2">
             <div className="space-y-8">
-              <h3 className="text-[11px] font-bold uppercase tracking-wider text-studio-muted">Studio Phases</h3>
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-studio-muted">Missing Next Action</h3>
               <div className="space-y-6">
-                {activePhases.map((project) => (
-                  <div key={project.id} className="group flex items-start justify-between border-b border-black/[0.05] pb-4 transition-colors hover:border-black/10">
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-studio-orange">{project.status}</p>
-                      <h4 className="text-lg font-semibold tracking-tight text-studio-ink">{project.name}</h4>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-studio-muted">Progress</p>
-                      <p className="text-sm font-semibold">{Math.floor(Math.random() * 40) + 60}%</p>
-                    </div>
-                  </div>
+                {summary.missingNextActions.map((project) => (
+                  <MissingActionRow key={project.id} project={project} />
                 ))}
+                {!summary.missingNextActions.length && <EmptyState message="Every active project has a next action. Good morning, clean slate." />}
               </div>
             </div>
 
             <div className="space-y-8">
-              <h3 className="text-[11px] font-bold uppercase tracking-wider text-studio-muted">Deliverables</h3>
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-studio-muted">Handover & Opening Watch</h3>
               <div className="space-y-4">
-                {upcomingDeadlines.map((project) => (
-                  <div key={project.id} className="flex items-center gap-4 rounded-xl border border-black/[0.04] bg-white p-4 shadow-sm transition-all hover:shadow-md">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-studio-bone">
-                      <Clock size={16} strokeWidth={2} className="text-studio-muted" />
-                    </div>
-                    <div className="space-y-0.5">
-                      <h4 className="text-[13px] font-bold uppercase tracking-wide text-studio-ink">{project.name}</h4>
-                      <p className="text-xs font-medium text-studio-muted">{formatDate(project.openingDate)}</p>
-                    </div>
-                  </div>
+                {upcomingRiskProjects.map((item) => (
+                  <AttentionRow key={`${item.project.id}-${item.label}`} daysUntil={item.daysUntil} label={item.label} project={item.project} />
                 ))}
+                {!upcomingRiskProjects.length && <EmptyState message="No handover or opening dates need attention in the next 21 days." />}
               </div>
             </div>
           </section>
 
-          {/* Inspiration Strip */}
+          <section className="space-y-8">
+            <header className="flex items-center justify-between border-b border-black/[0.05] pb-4">
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-studio-muted">Overdue & Upcoming Dates</h3>
+              <CalendarDays size={14} className="text-studio-muted" />
+            </header>
+            <div className="grid gap-4 md:grid-cols-2">
+              {summary.datedAttention.slice(0, 6).map((item) => (
+                <AttentionRow key={`${item.project.id}-${item.label}-${item.value}`} daysUntil={item.daysUntil} label={item.label} project={item.project} />
+              ))}
+              {!summary.datedAttention.length && <EmptyState message="No dated risks are visible inside the current attention window." />}
+            </div>
+          </section>
+
           <section className="space-y-8">
             <header className="flex items-center justify-between border-b border-black/[0.05] pb-4">
               <h3 className="text-[11px] font-bold uppercase tracking-wider text-studio-muted">Reference & Atmosphere</h3>
               <ImageIcon size={14} className="text-studio-muted" />
             </header>
             <div className="flex gap-8 overflow-x-auto pb-8 no-scrollbar scroll-smooth">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="relative aspect-[4/5] min-w-[280px] overflow-hidden rounded-sm bg-studio-stone/20 transition-transform hover:scale-[1.02] duration-700">
-                   <img
-                    src={`https://images.unsplash.com/photo-${1600585154340 + i}-be6161a20a61?auto=format&fit=crop&q=80&w=800`}
+              {[1, 2, 3, 4, 5].map((item) => (
+                <div key={item} className="relative aspect-[4/5] min-w-[280px] overflow-hidden rounded-sm bg-studio-stone/20 transition-transform duration-700 hover:scale-[1.02]">
+                  <img
+                    src={`https://images.unsplash.com/photo-${1600585154340 + item}-be6161a20a61?auto=format&fit=crop&q=80&w=800`}
                     alt="Atmosphere"
-                    className="h-full w-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
+                    className="h-full w-full object-cover grayscale transition-all duration-1000 hover:grayscale-0"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 transition-opacity hover:opacity-100" />
                 </div>
               ))}
             </div>
           </section>
         </div>
 
-        {/* Sidebar */}
-        <aside className="lg:col-span-4 space-y-12">
-          {/* Quick Notes */}
+        <aside className="space-y-12 lg:col-span-4">
           <section className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-studio">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -155,39 +343,77 @@ export function DailyFlow({ projects = [] }) {
             </div>
             <textarea
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={(event) => setNotes(event.target.value)}
               placeholder="Transient thoughts..."
               className="min-h-[240px] w-full bg-transparent text-xs font-medium leading-relaxed text-studio-ink outline-none placeholder:text-studio-muted/40"
             />
           </section>
 
-          {/* Timeline Progression */}
           <section className="space-y-6">
-             <h3 className="text-[11px] font-bold uppercase tracking-wider text-studio-muted">Q2 Progression</h3>
-             <div className="space-y-3">
-                <div className="h-1.5 w-full bg-black/[0.05] rounded-full overflow-hidden">
-                  <div className="h-full bg-studio-ink w-2/3 rounded-full" />
-                </div>
-                <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-studio-muted">
-                  <span>April</span>
-                  <span>June</span>
-                </div>
-             </div>
+            <h3 className="text-[11px] font-bold uppercase tracking-wider text-studio-muted">Active Tasks Summary</h3>
+            <div className="grid gap-3">
+              {taskSummary.nextActions.slice(0, 4).map((project) => (
+                <NextActionRow key={project.id} project={project} />
+              ))}
+              {!taskSummary.nextActions.length && <EmptyState message="No project next actions are set yet." />}
+            </div>
           </section>
 
-          {/* Action Callouts */}
+          <section className="space-y-6">
+            <h3 className="text-[11px] font-bold uppercase tracking-wider text-studio-muted">Studio Confidence</h3>
+            <div className="space-y-3">
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/[0.05]">
+                <div
+                  className="h-full rounded-full bg-studio-ink"
+                  style={{ width: `${Math.max(12, Math.min(100, 100 - ((summary.overdueDates.length + summary.missingNextActions.length) * 12)))}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-studio-muted">
+                <span>Risk</span>
+                <span>{clearState ? 'Clear' : 'Review'}</span>
+              </div>
+            </div>
+          </section>
+
           <section className="space-y-3">
             <button className="group flex w-full items-center justify-between rounded-2xl border border-black/[0.06] bg-white p-5 transition-all hover:bg-black/[0.02] hover:shadow-sm">
               <span className="text-[13px] font-bold uppercase tracking-wide">Review Journal</span>
-              <ArrowUpRight size={14} className="text-studio-muted transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              <ArrowUpRight size={14} className="text-studio-muted transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </button>
             <button className="group flex w-full items-center justify-between rounded-2xl border border-black/[0.06] bg-white p-5 transition-all hover:bg-black/[0.02] hover:shadow-sm">
               <span className="text-[13px] font-bold uppercase tracking-wide">Archive Session</span>
-              <ArrowUpRight size={14} className="text-studio-muted transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              <ArrowUpRight size={14} className="text-studio-muted transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </button>
           </section>
         </aside>
       </div>
+    </div>
+  );
+}
+
+function SummaryMetric({ label, value }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-[9px] font-bold uppercase tracking-widest text-studio-muted">{label}</p>
+      <p className="text-sm font-bold">{value}</p>
+    </div>
+  );
+}
+
+function DailySummaryCard({ icon: Icon, label, tone, value }) {
+  const toneClass = tone === 'critical'
+    ? 'bg-red-50 text-red-800 border-red-700/20'
+    : tone === 'watch'
+      ? 'bg-[#FFF8CD] text-[#212121] border-[#FFF0A3]'
+      : 'bg-white text-studio-ink border-black/[0.05]';
+
+  return (
+    <div className={`rounded-2xl border p-5 shadow-sm ${toneClass}`}>
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-wider">{label}</p>
+        <Icon size={14} strokeWidth={2.4} />
+      </div>
+      <p className="mt-4 text-3xl font-bold tracking-tight">{value}</p>
     </div>
   );
 }
