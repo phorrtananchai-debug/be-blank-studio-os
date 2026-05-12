@@ -115,6 +115,36 @@ test.describe('backup import and export smoke checks', () => {
     await fileInput.setInputFiles({
       buffer: Buffer.from(JSON.stringify({
         app: 'Be Blank Studio OS',
+        contentItems: [
+          { id: 'content-01', title: 'Concept Reel' },
+          { id: 'content-02', title: '' },
+        ],
+        portfolioItems: [
+          { id: 'portfolio-01', title: 'Karun Phuket' },
+        ],
+        projects: [
+          { id: 'project-01', name: '' },
+          { id: 'project-02', name: 'Void Cafe' },
+        ],
+      })),
+      mimeType: 'application/json',
+      name: 'sparse-backup.json',
+    });
+    await expect(page.getByText('Review Backup Import')).toBeVisible();
+    await expect(page.getByText('This backup contains 2 projects, 2 content items, 1 portfolio item.')).toBeVisible();
+    await expect(page.getByText('Untitled Project')).toBeVisible();
+    await expect(page.getByText('Void Cafe')).toBeVisible();
+    await expect(page.getByText('Concept Reel')).toBeVisible();
+    await expect(page.getByText('Untitled Content Item')).toBeVisible();
+    await expect(page.getByText('Karun Phuket')).toBeVisible();
+    await expect(page.getByText('Backup restored.')).toBeHidden();
+
+    await page.getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.getByText('Review Backup Import')).toBeHidden();
+
+    await fileInput.setInputFiles({
+      buffer: Buffer.from(JSON.stringify({
+        app: 'Be Blank Studio OS',
         contentItems: [],
         portfolioItems: [],
         projects: [],

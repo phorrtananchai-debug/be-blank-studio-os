@@ -2,26 +2,25 @@ const backupCollections = [
   {
     key: 'projects',
     label: 'projects',
-    requiredFields: ['id', 'name', 'status'],
+    sampleField: 'name',
+    untitledLabel: 'Untitled Project',
   },
   {
     key: 'contentItems',
-    label: 'journal items',
-    requiredFields: ['id', 'title', 'platform', 'status'],
+    label: 'content items',
+    sampleField: 'title',
+    untitledLabel: 'Untitled Content Item',
   },
   {
     key: 'portfolioItems',
     label: 'portfolio items',
-    requiredFields: ['id', 'title'],
+    sampleField: 'title',
+    untitledLabel: 'Untitled Portfolio Item',
   },
 ];
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
-
-function getItemLabel(item, fallback) {
-  return item.title || item.name || item.id || fallback;
 }
 
 function validateCollection(data, collection) {
@@ -35,12 +34,18 @@ function validateCollection(data, collection) {
       return [`${collection.label} item ${index + 1} must be an object.`];
     }
 
-    const missingFields = collection.requiredFields.filter((field) => item[field] === undefined || item[field] === null || item[field] === '');
-    if (!missingFields.length) {
-      return [];
-    }
+    return [];
+  });
+}
 
-    return [`${getItemLabel(item, `${collection.label} item ${index + 1}`)} is missing ${missingFields.join(', ')}.`];
+function getSampleItems(items, collection) {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items.slice(0, 3).map((item) => {
+    const value = isPlainObject(item) ? item[collection.sampleField] : '';
+    return String(value || '').trim() || collection.untitledLabel;
   });
 }
 
@@ -79,11 +84,14 @@ export function validateStudioBackup(data) {
   }
 
   const errors = backupCollections.flatMap((collection) => validateCollection(data, collection));
-  const preview = {
-    contentItems: Array.isArray(data.contentItems) ? data.contentItems.length : 0,
-    portfolioItems: Array.isArray(data.portfolioItems) ? data.portfolioItems.length : 0,
-    projects: Array.isArray(data.projects) ? data.projects.length : 0,
-  };
+  const preview = backupCollections.reduce((nextPreview, collection) => ({
+    ...nextPreview,
+    [collection.key]: Array.isArray(data[collection.key]) ? data[collection.key].length : 0,
+    samples: {
+      ...nextPreview.samples,
+      [collection.key]: getSampleItems(data[collection.key], collection),
+    },
+  }), { samples: {} });
 
   if (errors.length) {
     return { backup: null, errors, preview };
