@@ -44,13 +44,13 @@ Install Command: npm install
 4. Add these Vercel Environment Variables for Production, Preview, and Development:
 
 ```bash
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=be-blank-studio-os.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=be-blank-studio-os
-VITE_FIREBASE_STORAGE_BUCKET=be-blank-studio-os.firebasestorage.app
-VITE_FIREBASE_MESSAGING_SENDER_ID=290937844212
-VITE_FIREBASE_APP_ID=1:290937844212:web:ac514b9d1a0fe07593c9a1
-VITE_ALLOWED_STUDIO_EMAIL=phorr.tananchai@beblanktobehindstudio.com
+VITE_FIREBASE_API_KEY=your-firebase-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project-id.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
+VITE_FIREBASE_APP_ID=your-firebase-app-id
+VITE_ALLOWED_STUDIO_EMAIL=studio@example.com
 ```
 
 The same template is available in `.env.production.example`.
@@ -143,13 +143,13 @@ Firebase is the primary online architecture when configured. The local API and `
 5. Fill in:
 
 ```bash
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=be-blank-studio-os.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=be-blank-studio-os
-VITE_FIREBASE_STORAGE_BUCKET=be-blank-studio-os.firebasestorage.app
-VITE_FIREBASE_MESSAGING_SENDER_ID=290937844212
-VITE_FIREBASE_APP_ID=1:290937844212:web:ac514b9d1a0fe07593c9a1
-VITE_ALLOWED_STUDIO_EMAIL=phorr.tananchai@beblanktobehindstudio.com
+VITE_FIREBASE_API_KEY=your-firebase-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project-id.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
+VITE_FIREBASE_APP_ID=your-firebase-app-id
+VITE_ALLOWED_STUDIO_EMAIL=studio@example.com
 ```
 
 Install dependencies after pulling this change:
