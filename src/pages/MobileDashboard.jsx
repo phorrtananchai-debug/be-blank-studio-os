@@ -3,6 +3,8 @@ import { MobileHome } from '../components/mobile/MobileHome.jsx';
 import { MobileMore } from '../components/mobile/MobileMore.jsx';
 import { MobileProfileSheet } from '../components/mobile/MobileProfileSheet.jsx';
 import { MobileQuickAdd, MobileTaskSheet } from '../components/mobile/MobileTaskSheet.jsx';
+import { StatusToast } from '../components/StatusToast.jsx';
+import { useToastMessage } from '../hooks/useToastMessage.js';
 import { ProfileAvatar } from './mobileComponents.jsx';
 import { DEMO_MODE } from './mobileConfig.js';
 import { demoFocusDate, demoNotes, demoProjects, demoTasks } from './mobileDemoData.js';
@@ -22,7 +24,7 @@ export function MobileDashboard({ onSignOut, user }) {
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [profileImage, setProfileImageState] = useState(() => getProfileImage());
-  const [toastMessage, setToastMessage] = useState('');
+  const { showToast, toast } = useToastMessage();
 
   useEffect(() => {
     const handleOpenQuickAdd = () => setIsQuickAddOpen(true);
@@ -32,10 +34,6 @@ export function MobileDashboard({ onSignOut, user }) {
 
   const projects = useMobileProjects(user);
   const notes = useMobileNotes();
-  const showToast = (message) => {
-    setToastMessage(message);
-    window.setTimeout(() => setToastMessage(''), 3200);
-  };
   const {
     clearCompletedTasks,
     createTask,
@@ -109,11 +107,7 @@ export function MobileDashboard({ onSignOut, user }) {
         </header>
 
         <section className="min-h-0 flex-1 overflow-y-auto px-4 pb-32 pt-5">
-          {toastMessage && (
-            <div className="mb-5 rounded-[16px] border border-[rgba(33,33,33,0.08)] px-4 py-3 text-sm text-[#212121]">
-              {toastMessage}
-            </div>
-          )}
+          {toast?.message && <StatusToast className="mb-5" message={toast.message} tone={toast.tone} />}
           {content}
         </section>
       </div>

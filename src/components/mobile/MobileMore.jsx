@@ -135,9 +135,13 @@ export function MobileMore({ onClearCompleted, onOpenProfile, onSignOut, profile
                 className="h-12 rounded-[18px] bg-[#FFF0A3] text-sm font-semibold text-[#212121] transition duration-[120ms] ease-out active:scale-95"
                 type="button"
                 onClick={async () => {
-                  await onClearCompleted();
-                  setConfirmClear(false);
-                  showToolMessage('Completed tasks cleared.');
+                  try {
+                    await onClearCompleted();
+                    setConfirmClear(false);
+                    showToolMessage('Completed tasks cleared.');
+                  } catch {
+                    showToolMessage('Could not clear completed tasks.');
+                  }
                 }}
               >
                 Clear
