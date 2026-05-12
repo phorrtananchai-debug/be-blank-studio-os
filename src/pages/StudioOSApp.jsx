@@ -4,6 +4,7 @@ import { LoginPage } from '../components/LoginPage.jsx';
 import { QuickCapture } from '../components/dashboard/QuickCapture.jsx';
 import { StudioOSDebugPanel } from '../components/studio-os/StudioOSDebugPanel.jsx';
 import { StudioOSHeader } from '../components/studio-os/StudioOSHeader.jsx';
+import { StudioOSImportPreview } from '../components/studio-os/StudioOSImportPreview.jsx';
 import { StudioOSNavigation } from '../components/studio-os/StudioOSNavigation.jsx';
 import { StudioOSToolbar } from '../components/studio-os/StudioOSToolbar.jsx';
 import { StudioOSWorkspaceContent } from '../components/studio-os/StudioOSWorkspaceContent.jsx';
@@ -36,6 +37,7 @@ import {
   downloadJson,
   formatDate,
 } from '../utils/dashboard.js';
+import { parseBackupJson, validateStudioBackup } from '../utils/backupValidation.js';
 
 export function StudioOSApp({ navigate, routePath }) {
   const {
@@ -87,6 +89,7 @@ export function StudioOSApp({ navigate, routePath }) {
   const { showToast, toast } = useToastMessage();
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
+  const [pendingBackup, setPendingBackup] = useState(null);
   const importInputRef = useRef(null);
 
   const dataMode = isFirebaseConfigured
@@ -212,6 +215,7 @@ export function StudioOSApp({ navigate, routePath }) {
     try {
       downloadJson('be-blank-studio-os-backup.json', {
         app: 'Be Blank Studio OS',
+        schema: 'studio-os-backup',
         version: 1,
         exportedAt: new Date().toISOString(),
         projects,
@@ -230,23 +234,55 @@ export function StudioOSApp({ navigate, routePath }) {
     if (!file) return;
 
     try {
-      const data = JSON.parse(await file.text());
-      if (!Array.isArray(data.projects) || !Array.isArray(data.contentItems) || !Array.isArray(data.portfolioItems)) {
-        throw new Error('Invalid backup file');
+      const { data, error: parseError } = parseBackupJson(await file.text());
+      if (parseError) {
+        throw new Error(parseError);
       }
 
-      if (Array.isArray(data.projects) && studioUser) {
-        await Promise.all(data.projects.map((project) => createFirebaseProject(project)));
+      const { backup, errors, preview } = validateStudioBackup(data);
+      if (errors.length) {
+        throw new Error(errors[0]);
       }
-      setContentItems(data.contentItems);
-      setPortfolioItems(data.portfolioItems);
-      showToast('Backup restored.');
+
+      setPendingBackup({ backup, fileName: file.name, preview });
+      showToast('Backup ready to review.', 'info');
     } catch (error) {
       console.error(error);
-      showToast('Import failed. Use a valid Studio OS backup file.', 'error');
+      setPendingBackup(null);
+      showToast(error.message || 'Import failed. Use a valid Studio OS backup file.', 'error');
     } finally {
       event.target.value = '';
     }
+  };
+
+  const confirmImportBackup = async () => {
+    if (!pendingBackup) return;
+
+    const { backup, preview } = pendingBackup;
+
+    try {
+      if (preview.projects && studioUser) {
+        await Promise.all(backup.projects.map((project) => createFirebaseProject(project)));
+      }
+
+      setContentItems(backup.contentItems);
+      setPortfolioItems(backup.portfolioItems);
+      setPendingBackup(null);
+      showToast(
+        preview.projects && !studioUser
+          ? 'Backup imported. Projects skipped until sign-in.'
+          : 'Backup restored.',
+        preview.projects && !studioUser ? 'warning' : 'success',
+      );
+    } catch (error) {
+      console.error(error);
+      showToast('Import failed before local data changed. Check your connection and try again.', 'error');
+    }
+  };
+
+  const cancelImportBackup = () => {
+    setPendingBackup(null);
+    showToast('Backup import cancelled.', 'info');
   };
 
   const toggleDebugPanel = () => {
@@ -358,6 +394,13 @@ export function StudioOSApp({ navigate, routePath }) {
           onImportBackup={importBackup}
           onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
           onToggleDebug={toggleDebugPanel}
+        />
+
+        <StudioOSImportPreview
+          pendingBackup={pendingBackup}
+          studioUser={studioUser}
+          onCancel={cancelImportBackup}
+          onConfirm={confirmImportBackup}
         />
 
         {showDebug && <StudioOSDebugPanel debugInfo={firebaseDebugInfo} />}

@@ -84,6 +84,52 @@ test.describe('command palette smoke checks', () => {
   });
 });
 
+test.describe('backup import and export smoke checks', () => {
+  test('exports backup and validates imports before applying', async ({ page }) => {
+    await page.goto('/os');
+    await expectStudioShell(page);
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Export' }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('be-blank-studio-os-backup.json');
+    await expect(page.getByText('Backup exported.')).toBeVisible();
+
+    const fileInput = page.locator('input[type="file"]');
+    await fileInput.setInputFiles({
+      buffer: Buffer.from('{'),
+      mimeType: 'application/json',
+      name: 'bad-backup.json',
+    });
+    await expect(page.getByRole('alert')).toContainText('Backup file is not valid JSON.');
+    await expect(page.getByText('Review Backup Import')).toBeHidden();
+
+    await fileInput.setInputFiles({
+      buffer: Buffer.from(JSON.stringify({ app: 'Be Blank Studio OS', projects: [] })),
+      mimeType: 'application/json',
+      name: 'missing-arrays.json',
+    });
+    await expect(page.getByRole('alert')).toContainText('Missing contentItems array.');
+    await expect(page.getByText('Review Backup Import')).toBeHidden();
+
+    await fileInput.setInputFiles({
+      buffer: Buffer.from(JSON.stringify({
+        app: 'Be Blank Studio OS',
+        contentItems: [],
+        portfolioItems: [],
+        projects: [],
+      })),
+      mimeType: 'application/json',
+      name: 'empty-backup.json',
+    });
+    await expect(page.getByText('Review Backup Import')).toBeVisible();
+    await expect(page.getByText('Backup restored.')).toBeHidden();
+
+    await page.getByRole('button', { name: 'Confirm Import' }).click();
+    await expect(page.getByText('Backup restored.')).toBeVisible();
+  });
+});
+
 test.describe('mobile shell smoke checks', () => {
   test('renders preview dashboard and tab navigation', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
