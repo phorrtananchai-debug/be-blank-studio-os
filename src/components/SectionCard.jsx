@@ -9,7 +9,7 @@ export function SectionCard({ action, children, compact = false, eyebrow, title 
         <div className="mb-12 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-4">
             {eyebrow && (
-              <p className="text-[9px] font-bold uppercase tracking-tight text-studio-orange/80">
+              <p className="text-[9px] font-bold uppercase tracking-tight text-studio-accent/80">
                 {eyebrow}
               </p>
             )}

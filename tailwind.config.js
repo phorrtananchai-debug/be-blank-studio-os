@@ -16,11 +16,22 @@ export default {
           panel: '#ffffff',
           panelSoft: '#f8f9fa',
           line: 'rgba(0,0,0,0.06)',
-          orange: '#212529', // Neutralized
-          gold: '#495057',   // Neutralized
+          accent: '#212529',
+          accentMuted: '#495057',
+          orange: '#212529',
+          gold: '#495057',
           ink: '#212529',
           inkLight: '#343a40',
           muted: '#868e96',
+          mobile: {
+            canvas: '#F5F5FA',
+            ink: '#212121',
+            muted: '#777777',
+            line: 'rgba(33,33,33,0.08)',
+            active: '#FFF0A3',
+            progress: '#DBDFE9',
+            success: '#CFDECA',
+          },
         },
       },
       boxShadow: {
