@@ -9,10 +9,12 @@ import {
   Wind,
   Layers,
   ArrowLeft,
+  Command as CommandIcon,
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { Badge } from '../components/Badge.jsx';
 import { Button } from '../components/Button.jsx';
+import { CommandPalette } from '../components/CommandPalette.jsx';
 import { MetricCard } from '../components/MetricCard.jsx';
 import { LoginPage } from '../components/LoginPage.jsx';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
@@ -110,6 +112,7 @@ export function StudioOSApp({ navigate, routePath }) {
   const { portfolioItems, setPortfolioItems } = usePortfolioItems({ enabled: Boolean(studioUser), seedWhenEmpty: true });
   const [copiedId, setCopiedId] = useState('');
   const [backupMessage, setBackupMessage] = useState('');
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   const importInputRef = useRef(null);
 
@@ -207,6 +210,81 @@ export function StudioOSApp({ navigate, routePath }) {
   };
 
   const firebaseDebugInfo = getFirebaseDebugInfo();
+  const commandPaletteCommands = [
+    {
+      id: 'go-dashboard',
+      label: 'Go to Dashboard',
+      description: 'Open the Daily Flow dashboard',
+      group: 'Navigate',
+      keywords: ['home', 'flow', 'daily'],
+      run: () => navigate('/os'),
+    },
+    {
+      id: 'go-projects',
+      label: 'Go to Projects',
+      description: 'Open project overview',
+      group: 'Navigate',
+      keywords: ['overview', 'status'],
+      run: () => navigate('/os/projects'),
+    },
+    {
+      id: 'go-artwork',
+      label: 'Go to Artwork Space',
+      description: 'Open studio artwork boards',
+      group: 'Navigate',
+      keywords: ['board', 'canvas'],
+      run: () => navigate('/os/artwork'),
+    },
+    {
+      id: 'go-portfolio',
+      label: 'Go to Portfolio',
+      description: 'Open portfolio management',
+      group: 'Navigate',
+      keywords: ['gallery', 'archive'],
+      run: () => navigate('/os/portfolio'),
+    },
+    {
+      id: 'go-mobile',
+      label: 'Go to Mobile OS',
+      description: 'Open the mobile workspace',
+      group: 'Navigate',
+      keywords: ['phone', 'mobile'],
+      run: () => navigate('/m'),
+    },
+    {
+      id: 'create-project',
+      label: 'Create New Project',
+      description: 'Add a new Firebase project record',
+      group: 'Action',
+      disabled: !studioUser,
+      keywords: ['new', 'add'],
+      run: () => {
+        addProject();
+        navigate('/os/projects');
+      },
+    },
+    {
+      id: 'export-backup',
+      label: 'Export Backup',
+      description: 'Download a JSON backup',
+      group: 'Action',
+      run: exportBackup,
+    },
+    {
+      id: 'import-backup',
+      label: 'Import Backup',
+      description: 'Choose a JSON backup file',
+      group: 'Action',
+      run: () => importInputRef.current?.click(),
+    },
+    {
+      id: 'toggle-debug',
+      label: 'Toggle Debug Panel',
+      description: 'Show or hide Firebase debug trace',
+      group: 'System',
+      run: () => setShowDebug((value) => !value),
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-studio-bone text-studio-ink selection:bg-studio-ink/10 selection:text-studio-ink">
@@ -260,6 +338,10 @@ export function StudioOSApp({ navigate, routePath }) {
             {(authMessage || projectsError) && <span className="text-[11px] font-bold uppercase  text-red-500">{authMessage || projectsError}</span>}
             {backupMessage && <span className="text-[11px] font-bold uppercase  text-studio-orange">{backupMessage}</span>}
             <input ref={importInputRef} accept="application/json" className="hidden" type="file" onChange={importBackup} />
+            <Button variant="secondary" onClick={() => setIsCommandPaletteOpen(true)}>
+              <CommandIcon size={14} strokeWidth={2.5} />
+              Commands
+            </Button>
             <Button variant="secondary" onClick={() => importInputRef.current?.click()}>
               <Upload size={14} strokeWidth={2.5} />
               Import
@@ -413,6 +495,12 @@ export function StudioOSApp({ navigate, routePath }) {
         </footer>
       </div>
       <QuickCapture onOpenArtwork={() => handleTabChange('artwork')} />
+      <CommandPalette
+        commands={commandPaletteCommands}
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onOpen={() => setIsCommandPaletteOpen(true)}
+      />
     </div>
   );
 }
