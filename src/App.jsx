@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { LoadingState } from './components/LoadingState.jsx';
 import { usePortfolioItems } from './hooks/usePortfolioItems.js';
 
 const MobileStudioApp = lazy(() => import('./pages/MobileStudioApp.jsx').then((module) => ({ default: module.MobileStudioApp })));
@@ -13,20 +14,8 @@ function isMobileDevice() {
   return window.matchMedia('(max-width: 767px), (pointer: coarse)').matches;
 }
 
-function LoadingFallback() {
-  return (
-    <main className="grid min-h-screen place-items-center bg-[#F5F5FA] px-5 text-[#212121]">
-      <div className="text-center">
-        <p className="text-sm font-medium tracking-tight">Studio OS</p>
-        <div className="mx-auto my-4 h-px w-10 bg-black/[0.18]" />
-        <p className="text-xs tracking-tight text-[#777777]">Loading workspace</p>
-      </div>
-    </main>
-  );
-}
-
 function RouteFallback({ children }) {
-  return <Suspense fallback={<LoadingFallback />}>{children}</Suspense>;
+  return <Suspense fallback={<LoadingState backgroundClass="bg-studio-mobile-canvas" textClass="text-studio-mobile-ink" />}>{children}</Suspense>;
 }
 
 function StudioOSRoute({ navigate, routePath }) {

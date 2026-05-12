@@ -122,6 +122,8 @@ export function MobileDashboard({ onSignOut, user }) {
         {tabs.map((tab) => (
           <button
             key={tab}
+            aria-current={activeTab === tab ? 'page' : undefined}
+            aria-label={tab === '+' ? 'Quick add' : tab}
             className={`flex min-h-11 items-center justify-center rounded-[18px] transition duration-[120ms] ease-out active:scale-95 ${
               tab === '+' ? 'mx-auto size-12 rounded-full bg-white text-xl text-[#212121]' : activeTab === tab ? 'scale-105 text-[#FFF0A3]' : 'text-white/55'
             }`}
