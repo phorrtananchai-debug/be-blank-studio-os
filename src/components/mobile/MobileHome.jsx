@@ -22,12 +22,17 @@ import {
   startOfToday,
 } from '../../pages/mobile/mobileTaskUtils.js';
 
-function EmptyMessage({ lines }) {
+function EmptyMessage({ actionLabel, lines, onAction }) {
   return (
     <div className="rounded-[24px] border border-[rgba(33,33,33,0.08)] bg-white px-4 py-5 text-xs leading-relaxed text-[#777777]">
       {lines.map((line) => (
         <p key={line}>{line}</p>
       ))}
+      {onAction && (
+        <button className="mt-4 min-h-10 rounded-full bg-[#212121] px-4 text-[11px] font-semibold uppercase tracking-tight text-[#F5F5FA] transition-all duration-150 active:scale-[0.98]" type="button" onClick={onAction}>
+          {actionLabel}
+        </button>
+      )}
     </div>
   );
 }
@@ -108,7 +113,7 @@ function InProgressRow({ projects, selectedDate, task }) {
   );
 }
 
-export function MobileHome({ initialDate, onDeleteTask, onDoneTask, onDuplicateTask, onEditTask, onMoveTask, onOpenProject, onOpenTask, projects, tasks }) {
+export function MobileHome({ initialDate, onDeleteTask, onDoneTask, onDuplicateTask, onEditTask, onMoveTask, onOpenProject, onOpenTask, onQuickAdd, projects, tasks }) {
   const today = startOfDay(initialDate) || startOfToday();
   const [selectedDate, setSelectedDate] = useState(today);
   const inProgressRef = useRef(null);
@@ -201,7 +206,7 @@ export function MobileHome({ initialDate, onDeleteTask, onDoneTask, onDuplicateT
           {activeTodayTasks.map((task) => (
             <SharedTaskRow key={task.id} projects={projects} task={task} toneClass={getTaskTone(task)} onDelete={onDeleteTask} onDone={onDoneTask} onDuplicate={onDuplicateTask} onEdit={onEditTask} onMove={onMoveTask} onOpen={onOpenTask} />
           ))}
-          {!activeTodayTasks.length && <EmptyMessage lines={['Nothing scheduled today.']} />}
+          {!activeTodayTasks.length && <EmptyMessage actionLabel="Quick add" lines={['Nothing scheduled today.', 'Add one clear next step when you are ready.']} onAction={onQuickAdd} />}
         </div>
       </section>
 
@@ -214,7 +219,7 @@ export function MobileHome({ initialDate, onDeleteTask, onDoneTask, onDuplicateT
           {laterTasks.map((task) => (
             <SharedTaskRow key={task.id} projects={projects} task={task} toneClass={getTaskTone(task)} onDelete={onDeleteTask} onDone={onDoneTask} onDuplicate={onDuplicateTask} onEdit={onEditTask} onMove={onMoveTask} onOpen={onOpenTask} />
           ))}
-          {!laterTasks.length && <EmptyMessage lines={['Nothing queued later.', 'Clear desk, clear mind.']} />}
+          {!laterTasks.length && <EmptyMessage actionLabel="Add later task" lines={['Nothing queued later.', 'Capture the next loose thread before it drifts.']} onAction={onQuickAdd} />}
         </div>
       </section>
 
@@ -255,6 +260,7 @@ export function MobileHome({ initialDate, onDeleteTask, onDoneTask, onDuplicateT
           {activeProjects.slice(0, 5).map((project) => (
             <ProjectRow key={project.id} project={project} onOpen={onOpenProject} />
           ))}
+          {!activeProjects.length && <EmptyMessage lines={['No active projects are visible yet.', 'Projects will appear here once synced.']} />}
         </div>
       </section>
     </div>

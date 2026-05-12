@@ -237,7 +237,7 @@ function ProjectDetail({ notes, onBack, project, tasks }) {
   return (
     <div className="page-fade pb-28">
       <button className="rounded-full border border-black/5 bg-white px-4 py-2 text-[11px] font-medium uppercase tracking-tight text-[#777777] transition duration-[120ms] ease-out active:scale-95" type="button" onClick={onBack}>
-        Projects
+        Back to projects
       </button>
 
       <div className="mt-6 rounded-[28px] border border-black/5 bg-white p-5 shadow-sm">
@@ -276,7 +276,7 @@ function ProjectDetail({ notes, onBack, project, tasks }) {
             </div>
           );
         })}
-        {!projectTasks.length && <p className="rounded-[24px] border border-black/5 bg-white px-4 py-5 text-sm text-[#777777]">No tasks yet.</p>}
+        {!projectTasks.length && <p className="rounded-[24px] border border-black/5 bg-white px-4 py-5 text-sm leading-6 text-[#777777]">No tasks yet. Use quick add from the bottom bar to capture the next project step.</p>}
       </section>
 
       <section className="mt-6">
@@ -286,7 +286,7 @@ function ProjectDetail({ notes, onBack, project, tasks }) {
             {note.body || note.text || note.title}
           </p>
         ))}
-        {!projectNotes.length && <p className="rounded-[24px] border border-black/5 bg-white px-4 py-5 text-sm text-[#777777]">{project.notes || 'Notes placeholder.'}</p>}
+        {!projectNotes.length && <p className="rounded-[24px] border border-black/5 bg-white px-4 py-5 text-sm leading-6 text-[#777777]">{project.notes || 'No notes synced yet.'}</p>}
       </section>
 
       <section className="mt-6">
@@ -297,7 +297,7 @@ function ProjectDetail({ notes, onBack, project, tasks }) {
             <p className="text-sm font-medium text-[#212121]">{value}</p>
           </div>
         ))}
-        {!timeline.length && <p className="rounded-[24px] border border-black/5 bg-white px-4 py-5 text-sm text-[#777777]">Timeline placeholder.</p>}
+        {!timeline.length && <p className="rounded-[24px] border border-black/5 bg-white px-4 py-5 text-sm leading-6 text-[#777777]">No timeline dates synced yet.</p>}
       </section>
     </div>
   );
@@ -364,7 +364,12 @@ export function MobileProjects({ notes, onSelectProject, projects, selectedProje
             </section>
           ) : null
         ))}
-        {!projects.length && <p className="py-4 text-sm text-[#777777]">No projects synced yet.</p>}
+        {!projects.length && (
+          <div className="rounded-[24px] border border-black/5 bg-white px-4 py-5 text-sm leading-6 text-[#777777]">
+            <p>No projects synced yet.</p>
+            <p className="mt-1">Once Firebase projects are available, they will appear here grouped by status.</p>
+          </div>
+        )}
       </div>
     </div>
   );

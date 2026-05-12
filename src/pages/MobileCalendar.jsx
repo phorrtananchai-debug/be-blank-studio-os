@@ -993,7 +993,7 @@ function MonthLegend() {
 function EmptyDay() {
   return (
     <p className="rounded-[24px] bg-white px-4 py-5 text-xs text-[#777777]">
-      Nothing scheduled today.
+      Nothing scheduled for this date. Use quick add when a next step appears.
     </p>
   );
 }
