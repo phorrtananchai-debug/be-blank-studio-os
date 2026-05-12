@@ -24,41 +24,16 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 
-const hardcodedFirebaseConfig = {
-  apiKey: 'AIzaSyAuc8dXGfmnJkKg0x-OSqrR5kibXj88HbI',
-  authDomain: 'be-blank-studio-os.firebaseapp.com',
-  projectId: 'be-blank-studio-os',
-  storageBucket: 'be-blank-studio-os.firebasestorage.app',
-  messagingSenderId: '290937844212',
-  appId: '1:290937844212:web:ac514b9d1a0fe07593c9a1',
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const isVercelDeployment = import.meta.env.VERCEL === true || import.meta.env.VERCEL === '1' || import.meta.env.VERCEL === 'true';
-
-function getLocalFirebaseEnvConfig() {
-  return {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  };
-}
-
-const localFirebaseEnvConfig = isVercelDeployment ? null : getLocalFirebaseEnvConfig();
-const firebaseConfig = isVercelDeployment
-  ? hardcodedFirebaseConfig
-  : {
-      apiKey: localFirebaseEnvConfig.apiKey || hardcodedFirebaseConfig.apiKey,
-      authDomain: localFirebaseEnvConfig.authDomain || hardcodedFirebaseConfig.authDomain,
-      projectId: localFirebaseEnvConfig.projectId || hardcodedFirebaseConfig.projectId,
-      storageBucket: localFirebaseEnvConfig.storageBucket || hardcodedFirebaseConfig.storageBucket,
-      messagingSenderId: localFirebaseEnvConfig.messagingSenderId || hardcodedFirebaseConfig.messagingSenderId,
-      appId: localFirebaseEnvConfig.appId || hardcodedFirebaseConfig.appId,
-    };
-
-const firebaseConfigSource = isVercelDeployment ? 'vercel-fallback' : localFirebaseEnvConfig.apiKey ? 'env' : 'fallback';
+const firebaseConfigSource = isFirebaseConfigured() ? 'env' : 'missing-env';
 
 export const allowedStudioEmail = String(import.meta.env.VITE_ALLOWED_STUDIO_EMAIL || '').trim();
 
