@@ -21,11 +21,14 @@ async function expectStudioShell(page) {
 test.describe('route smoke checks', () => {
   test('loads key routes directly', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'Be Blank to Behind Studio' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'BE BLANK TO BEHIND STUDIO' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'contact' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'instagram' })).toBeVisible();
 
     await page.goto('/work');
-    await expect(page.getByText('Portfolio').first()).toBeVisible();
-    await expect(page.getByText('Project Archive')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'BE BLANK TO BEHIND STUDIO' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '[projects]' })).toBeVisible();
+    await expect(page.getByText('Project Archive')).toBeHidden();
 
     await page.goto('/os');
     await expectStudioShell(page);
@@ -39,7 +42,7 @@ test.describe('route smoke checks', () => {
   test('survives browser refresh on routed pages', async ({ page }) => {
     await page.goto('/work');
     await page.reload();
-    await expect(page.getByText('Project Archive')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'BE BLANK TO BEHIND STUDIO' })).toBeVisible();
 
     await page.goto('/os/projects');
     await page.reload();
