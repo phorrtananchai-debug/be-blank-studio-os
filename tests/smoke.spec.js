@@ -55,6 +55,21 @@ test.describe('route smoke checks', () => {
     await page.reload();
     await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible();
   });
+
+  test('opens public visual editor separately from Studio OS', async ({ page }) => {
+    await page.goto('/work');
+    await expect(page.getByRole('button', { name: 'os', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'edit', exact: true })).toBeVisible();
+
+    await page.getByRole('button', { name: 'edit', exact: true }).click();
+    await expect(page).toHaveURL(/\/work$/);
+    await expect(page.getByLabel('Public visual editor controls')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Resize/ }).first()).toBeVisible();
+
+    await page.getByRole('button', { name: 'os', exact: true }).click();
+    await expect(page).toHaveURL(/\/os$/);
+    await expectStudioShell(page);
+  });
 });
 
 test.describe('command palette smoke checks', () => {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { initialPortfolioItems } from '../data/seed.js';
-import { addCollectionItem, isFirebaseConfigured, subscribeToCollection } from '../services/firebase.js';
+import { addCollectionItem, isFirebaseConfigured, subscribeToCollection, updateCollectionItem } from '../services/firebase.js';
 
 const portfolioCollection = 'portfolioItems';
 
@@ -35,5 +35,15 @@ export function usePortfolioItems({ seedWhenEmpty = false, enabled = true } = {}
     }
   }, [enabled, seedWhenEmpty]);
 
-  return { portfolioItems, setPortfolioItems };
+  const updatePortfolioItem = async (id, updates) => {
+    setPortfolioItems((items) => items.map((item) => (item.id === id ? { ...item, ...updates } : item)));
+
+    if (isFirebaseConfigured()) {
+      await updateCollectionItem(portfolioCollection, id, updates);
+    }
+
+    return { id, ...updates };
+  };
+
+  return { portfolioItems, setPortfolioItems, updatePortfolioItem };
 }
