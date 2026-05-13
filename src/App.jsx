@@ -36,18 +36,18 @@ function PortfolioDetailRoute({ navigate, portfolioItems }) {
   );
 }
 
-function PublicHomepageRoute({ navigate, portfolioItems }) {
+function PublicHomepageRoute({ navigate, portfolioItems, updatePortfolioItem }) {
   return (
     <RouteFallback>
-      <PublicHomepage portfolioItems={portfolioItems} navigate={navigate} />
+      <PublicHomepage portfolioItems={portfolioItems} navigate={navigate} updatePortfolioItem={updatePortfolioItem} />
     </RouteFallback>
   );
 }
 
-function PortfolioRoute({ navigate, portfolioItems }) {
+function PortfolioRoute({ navigate, portfolioItems, updatePortfolioItem }) {
   return (
     <RouteFallback>
-      <PortfolioPage portfolioItems={portfolioItems} navigate={navigate} />
+      <PortfolioPage portfolioItems={portfolioItems} navigate={navigate} updatePortfolioItem={updatePortfolioItem} />
     </RouteFallback>
   );
 }
@@ -63,7 +63,7 @@ function App() {
     location.pathname === '/portfolio' ||
     location.pathname.startsWith('/portfolio/')
   );
-  const { portfolioItems: publicPortfolioItems } = usePortfolioItems({ enabled: isPublicPortfolioRoute });
+  const { portfolioItems: publicPortfolioItems, updatePortfolioItem } = usePortfolioItems({ enabled: isPublicPortfolioRoute });
 
   useEffect(() => {
     if (location.pathname === '/' && isMobileDevice()) {
@@ -78,11 +78,11 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<PublicHomepageRoute portfolioItems={publicPortfolioItems} navigate={navigate} />} />
-      <Route path="/about" element={<PublicHomepageRoute portfolioItems={publicPortfolioItems} navigate={navigate} />} />
-      <Route path="/journal" element={<PublicHomepageRoute portfolioItems={publicPortfolioItems} navigate={navigate} />} />
-      <Route path="/work" element={<PortfolioRoute portfolioItems={publicPortfolioItems} navigate={navigate} />} />
-      <Route path="/portfolio" element={<PortfolioRoute portfolioItems={publicPortfolioItems} navigate={navigate} />} />
+      <Route path="/" element={<PublicHomepageRoute portfolioItems={publicPortfolioItems} navigate={navigate} updatePortfolioItem={updatePortfolioItem} />} />
+      <Route path="/about" element={<PublicHomepageRoute portfolioItems={publicPortfolioItems} navigate={navigate} updatePortfolioItem={updatePortfolioItem} />} />
+      <Route path="/journal" element={<PublicHomepageRoute portfolioItems={publicPortfolioItems} navigate={navigate} updatePortfolioItem={updatePortfolioItem} />} />
+      <Route path="/work" element={<PortfolioRoute portfolioItems={publicPortfolioItems} navigate={navigate} updatePortfolioItem={updatePortfolioItem} />} />
+      <Route path="/portfolio" element={<PortfolioRoute portfolioItems={publicPortfolioItems} navigate={navigate} updatePortfolioItem={updatePortfolioItem} />} />
       <Route path="/portfolio/:portfolioId" element={<PortfolioDetailRoute portfolioItems={publicPortfolioItems} navigate={navigate} />} />
       <Route path="/dashboard" element={<StudioOSRoute navigate={navigate} routePath={location.pathname} />} />
       <Route path="/os/*" element={<StudioOSRoute navigate={navigate} routePath={location.pathname} />} />
@@ -94,7 +94,7 @@ function App() {
           </RouteFallback>
         )}
       />
-      <Route path="*" element={<PublicHomepageRoute portfolioItems={publicPortfolioItems} navigate={navigate} />} />
+      <Route path="*" element={<PublicHomepageRoute portfolioItems={publicPortfolioItems} navigate={navigate} updatePortfolioItem={updatePortfolioItem} />} />
     </Routes>
   );
 }
