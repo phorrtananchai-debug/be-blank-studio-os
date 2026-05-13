@@ -179,6 +179,23 @@
     letter-spacing: var(--tracking-calm);
   }
 
+  .public-editorial-nav {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: 0;
+    text-transform: lowercase;
+  }
+
+  .public-project-meta {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: 0;
+  }
+
   .rhythm-page {
     gap: var(--space-editorial);
   }
