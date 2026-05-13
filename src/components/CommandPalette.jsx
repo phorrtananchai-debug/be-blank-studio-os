@@ -116,13 +116,13 @@ export function CommandPalette({ commands, isOpen, onClose, onOpen }) {
           <Search className="size-4 text-studio-muted" aria-hidden="true" />
           <input
             ref={inputRef}
-            className="h-14 min-w-0 flex-1 bg-transparent text-[15px] font-medium text-studio-ink outline-none placeholder:text-studio-muted/50"
+            className="type-field h-14 min-w-0 flex-1 bg-transparent text-studio-ink outline-none placeholder:text-studio-muted/50"
             placeholder="Search commands"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={handleKeyDown}
           />
-          <span className="rounded-full border border-black/[0.08] px-2.5 py-1 text-[10px] font-bold uppercase tracking-tight text-studio-muted">
+          <span className="type-control rounded-full border border-black/[0.08] px-2.5 py-1 text-studio-muted">
             {shortcutLabel}
           </span>
         </div>
@@ -144,16 +144,16 @@ export function CommandPalette({ commands, isOpen, onClose, onOpen }) {
                 onClick={() => runCommand(command)}
               >
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-semibold">{command.label}</span>
-                  {command.description && <span className="mt-1 block truncate text-xs text-studio-muted">{command.description}</span>}
+                  <span className="type-card-title block truncate">{command.label}</span>
+                  {command.description && <span className="type-caption mt-1 block truncate">{command.description}</span>}
                 </span>
-                {command.group && <span className="shrink-0 text-[10px] font-bold uppercase tracking-tight text-studio-muted/70">{command.group}</span>}
+                {command.group && <span className="type-control shrink-0 text-studio-muted/70">{command.group}</span>}
               </button>
             );
           })}
 
           {!filteredCommands.length && (
-            <div className="px-4 py-10 text-center text-sm font-medium text-studio-muted">
+            <div className="type-body px-4 py-10 text-center">
               No commands found.
             </div>
           )}

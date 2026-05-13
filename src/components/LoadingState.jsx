@@ -8,9 +8,9 @@ export function LoadingState({
   return (
     <main className={`grid min-h-screen place-items-center px-5 ${backgroundClass} ${textClass}`}>
       <div className="text-center">
-        <p className="whitespace-nowrap text-sm font-medium tracking-tight">{eyebrow}</p>
+        <p className="type-card-title whitespace-nowrap">{eyebrow}</p>
         <div className="mx-auto my-4 h-px w-10 bg-black/[0.18]" />
-        <p className={`${messageClass} tracking-tight text-studio-muted`}>{message}</p>
+        <p className={`${messageClass} type-caption text-studio-muted`}>{message}</p>
       </div>
     </main>
   );

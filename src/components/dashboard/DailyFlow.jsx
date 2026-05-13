@@ -164,7 +164,7 @@ function getActiveTaskSummary(projects) {
 
 function EmptyState({ message }) {
   return (
-    <p className="rounded-xl border border-black/[0.04] bg-white px-4 py-5 text-sm font-medium leading-6 text-studio-muted">
+    <p className="type-body rounded-xl border border-black/[0.04] bg-white px-4 py-5">
       {message}
     </p>
   );
@@ -179,10 +179,10 @@ function AttentionRow({ daysUntil, label, project }) {
         <CalendarDays size={16} strokeWidth={2} className="text-studio-muted" />
       </div>
       <div className="min-w-0 flex-1 space-y-0.5">
-        <h4 className="truncate text-[13px] font-bold uppercase tracking-wide">{project.name || 'Untitled Project'}</h4>
-        <p className="text-xs font-medium text-studio-muted">{label} / {formatDate(project[label === 'Handover' ? 'handoverDate' : label === 'Opening' ? 'openingDate' : 'designCompleteDate'])}</p>
+        <h4 className="type-control truncate">{project.name || 'Untitled Project'}</h4>
+        <p className="type-caption">{label} / {formatDate(project[label === 'Handover' ? 'handoverDate' : label === 'Opening' ? 'openingDate' : 'designCompleteDate'])}</p>
       </div>
-      <p className="shrink-0 text-right text-[11px] font-bold uppercase tracking-tight">{formatDaysLabel(daysUntil)}</p>
+      <p className="type-control shrink-0 text-right">{formatDaysLabel(daysUntil)}</p>
     </div>
   );
 }
@@ -191,11 +191,11 @@ function MissingActionRow({ project }) {
   return (
     <div className="group flex items-start justify-between gap-4 border-b border-black/[0.05] pb-4 transition-colors hover:border-black/10">
       <div className="space-y-1">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-studio-orange">{project.status || 'active'}</p>
-        <h4 className="text-lg font-semibold tracking-tight text-studio-ink">{project.name || 'Untitled Project'}</h4>
-        <p className="text-xs font-medium text-studio-muted">{project.client || project.location || 'Next action not set'}</p>
+        <p className="type-label text-studio-orange">{project.status || 'active'}</p>
+        <h4 className="type-section-title">{project.name || 'Untitled Project'}</h4>
+        <p className="type-caption">{project.client || project.location || 'Next action not set'}</p>
       </div>
-      <span className="rounded-full border border-black/[0.05] bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-tight text-studio-muted">
+      <span className="type-control rounded-full border border-black/[0.05] bg-white px-3 py-1 text-studio-muted">
         Needs action
       </span>
     </div>
@@ -205,8 +205,8 @@ function MissingActionRow({ project }) {
 function NextActionRow({ project }) {
   return (
     <div className="rounded-xl border border-black/[0.05] bg-white p-4 shadow-sm">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-studio-muted">{project.name || 'Untitled Project'}</p>
-      <p className="mt-2 text-sm font-semibold leading-6 text-studio-ink">{project.nextAction}</p>
+      <p className="type-label">{project.name || 'Untitled Project'}</p>
+      <p className="type-body mt-2 font-semibold text-studio-ink">{project.nextAction}</p>
     </div>
   );
 }
@@ -234,11 +234,11 @@ export function DailyFlow({ projects = [] }) {
       <section className="border-b border-black/[0.08] pb-8">
         <div className="flex flex-col gap-6 md:flex-row md:items-baseline md:justify-between">
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-studio-muted">
+            <div className="type-label flex items-center gap-2">
               <Icon size={12} strokeWidth={2.5} />
               {greeting} / {time.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
             </div>
-            <h2 className="text-4xl font-bold tracking-tight text-studio-ink">
+            <h2 className="type-page-title">
               {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
             </h2>
           </div>
@@ -263,7 +263,7 @@ export function DailyFlow({ projects = [] }) {
         <div className="space-y-16 lg:col-span-8">
           <section className="space-y-4">
             <header className="flex items-center justify-between">
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">Primary Focus</h3>
+              <h3 className="type-label">Primary Focus</h3>
               <Target size={12} className="text-studio-ink" />
             </header>
             <div className="group relative">
@@ -271,7 +271,7 @@ export function DailyFlow({ projects = [] }) {
                 value={focus}
                 onChange={(event) => setFocus(event.target.value)}
                 placeholder={clearState ? 'Today looks clear. Set one studio objective...' : 'Choose the one thing that unlocks today...'}
-                className="h-auto w-full resize-none overflow-hidden bg-transparent py-1 text-xl font-bold tracking-tight outline-none placeholder:text-black/[0.1]"
+                className="type-section-title h-auto w-full resize-none overflow-hidden bg-transparent py-1 font-bold outline-none placeholder:text-black/[0.1]"
                 rows={1}
               />
               <div className="absolute -bottom-1 left-0 h-px w-full bg-black/[0.08] transition-colors group-focus-within:bg-studio-ink" />
@@ -280,7 +280,7 @@ export function DailyFlow({ projects = [] }) {
 
           <section className="grid grid-cols-1 gap-20 md:grid-cols-2">
             <div className="space-y-8">
-              <h3 className="text-[11px] font-bold uppercase tracking-wider text-studio-muted">Missing Next Action</h3>
+              <h3 className="type-label">Missing Next Action</h3>
               <div className="space-y-6">
                 {summary.missingNextActions.map((project) => (
                   <MissingActionRow key={project.id} project={project} />
@@ -290,7 +290,7 @@ export function DailyFlow({ projects = [] }) {
             </div>
 
             <div className="space-y-8">
-              <h3 className="text-[11px] font-bold uppercase tracking-wider text-studio-muted">Handover & Opening Watch</h3>
+              <h3 className="type-label">Handover & Opening Watch</h3>
               <div className="space-y-4">
                 {upcomingRiskProjects.map((item) => (
                   <AttentionRow key={`${item.project.id}-${item.label}`} daysUntil={item.daysUntil} label={item.label} project={item.project} />
@@ -302,7 +302,7 @@ export function DailyFlow({ projects = [] }) {
 
           <section className="space-y-8">
             <header className="flex items-center justify-between border-b border-black/[0.05] pb-4">
-              <h3 className="text-[11px] font-bold uppercase tracking-wider text-studio-muted">Overdue & Upcoming Dates</h3>
+              <h3 className="type-label">Overdue & Upcoming Dates</h3>
               <CalendarDays size={14} className="text-studio-muted" />
             </header>
             <div className="grid gap-4 md:grid-cols-2">
@@ -315,7 +315,7 @@ export function DailyFlow({ projects = [] }) {
 
           <section className="space-y-8">
             <header className="flex items-center justify-between border-b border-black/[0.05] pb-4">
-              <h3 className="text-[11px] font-bold uppercase tracking-wider text-studio-muted">Reference & Atmosphere</h3>
+              <h3 className="type-label">Reference & Atmosphere</h3>
               <ImageIcon size={14} className="text-studio-muted" />
             </header>
             <div className="flex gap-8 overflow-x-auto pb-8 no-scrollbar scroll-smooth">
@@ -338,19 +338,19 @@ export function DailyFlow({ projects = [] }) {
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <StickyNote size={12} className="text-studio-ink" />
-                <h3 className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">Scratchpad</h3>
+                <h3 className="type-label">Scratchpad</h3>
               </div>
             </div>
             <textarea
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
               placeholder="Transient thoughts..."
-              className="min-h-[240px] w-full bg-transparent text-xs font-medium leading-relaxed text-studio-ink outline-none placeholder:text-studio-muted/40"
+              className="type-caption min-h-[240px] w-full bg-transparent text-studio-ink outline-none placeholder:text-studio-muted/40"
             />
           </section>
 
           <section className="space-y-6">
-            <h3 className="text-[11px] font-bold uppercase tracking-wider text-studio-muted">Active Tasks Summary</h3>
+            <h3 className="type-label">Active Tasks Summary</h3>
             <div className="grid gap-3">
               {taskSummary.nextActions.slice(0, 4).map((project) => (
                 <NextActionRow key={project.id} project={project} />
@@ -360,7 +360,7 @@ export function DailyFlow({ projects = [] }) {
           </section>
 
           <section className="space-y-6">
-            <h3 className="text-[11px] font-bold uppercase tracking-wider text-studio-muted">Studio Confidence</h3>
+            <h3 className="type-label">Studio Confidence</h3>
             <div className="space-y-3">
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/[0.05]">
                 <div
@@ -368,7 +368,7 @@ export function DailyFlow({ projects = [] }) {
                   style={{ width: `${Math.max(12, Math.min(100, 100 - ((summary.overdueDates.length + summary.missingNextActions.length) * 12)))}%` }}
                 />
               </div>
-              <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-studio-muted">
+              <div className="type-control flex justify-between text-studio-muted">
                 <span>Risk</span>
                 <span>{clearState ? 'Clear' : 'Review'}</span>
               </div>
@@ -377,11 +377,11 @@ export function DailyFlow({ projects = [] }) {
 
           <section className="space-y-3">
             <button className="group flex w-full items-center justify-between rounded-2xl border border-black/[0.06] bg-white p-5 transition-all hover:bg-black/[0.02] hover:shadow-sm">
-              <span className="text-[13px] font-bold uppercase tracking-wide">Review Journal</span>
+              <span className="type-control">Review Journal</span>
               <ArrowUpRight size={14} className="text-studio-muted transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </button>
             <button className="group flex w-full items-center justify-between rounded-2xl border border-black/[0.06] bg-white p-5 transition-all hover:bg-black/[0.02] hover:shadow-sm">
-              <span className="text-[13px] font-bold uppercase tracking-wide">Archive Session</span>
+              <span className="type-control">Archive Session</span>
               <ArrowUpRight size={14} className="text-studio-muted transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </button>
           </section>
@@ -394,8 +394,8 @@ export function DailyFlow({ projects = [] }) {
 function SummaryMetric({ label, value }) {
   return (
     <div className="space-y-1">
-      <p className="text-[9px] font-bold uppercase tracking-widest text-studio-muted">{label}</p>
-      <p className="text-sm font-bold">{value}</p>
+      <p className="type-label">{label}</p>
+      <p className="type-card-title">{value}</p>
     </div>
   );
 }
@@ -410,10 +410,10 @@ function DailySummaryCard({ icon: Icon, label, tone, value }) {
   return (
     <div className={`rounded-2xl border p-5 shadow-sm ${toneClass}`}>
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-wider">{label}</p>
+        <p className="type-control">{label}</p>
         <Icon size={14} strokeWidth={2.4} />
       </div>
-      <p className="mt-4 text-3xl font-bold tracking-tight">{value}</p>
+      <p className="type-page-title mt-4">{value}</p>
     </div>
   );
 }

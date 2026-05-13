@@ -111,14 +111,14 @@ export function MobileDashboard({ onSignOut, user }) {
               className="h-auto w-7 object-contain"
             />
           </button>
-          <h1 className="text-sm font-medium tracking-tight text-[#212121]">Studio OS</h1>
+          <h1 className="type-mobile-title text-sm font-medium">Studio OS</h1>
           <ProfileAvatar profileImage={profileImage} user={user} onClick={() => setIsProfileOpen(true)} />
         </header>
 
         <section className="min-h-0 flex-1 overflow-y-auto px-4 pb-32 pt-5">
           {toast?.message && <StatusToast className="mb-5" message={toast.message} tone={toast.tone} />}
           {useDemoData && (
-            <div className="mb-5 rounded-[18px] border border-[rgba(33,33,33,0.08)] bg-white/70 px-4 py-3 text-xs leading-5 text-[#777777]">
+            <div className="type-mobile-body mb-5 rounded-[18px] border border-[rgba(33,33,33,0.08)] bg-white/70 px-4 py-3 text-xs leading-5">
               <span className="font-semibold text-[#212121]">Preview workspace.</span> Demo projects and tasks are read-only until live mobile data is synced.
             </div>
           )}
@@ -126,7 +126,7 @@ export function MobileDashboard({ onSignOut, user }) {
         </section>
       </div>
 
-      <nav className="absolute bottom-5 left-4 right-4 z-50 grid h-[64px] grid-cols-5 items-center rounded-full bg-[#212121] px-3 text-[11px] font-semibold text-white/55">
+      <nav className="type-mobile-nav absolute bottom-5 left-4 right-4 z-50 grid h-[64px] grid-cols-5 items-center rounded-full bg-[#212121] px-3 text-white/55">
         {tabs.map((tab) => (
           <button
             key={tab}

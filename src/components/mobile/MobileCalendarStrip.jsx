@@ -12,7 +12,7 @@ export function MobileCalendarStrip({ onSelectDate, selectedDate, weekDays }) {
             type="button"
             onClick={() => onSelectDate(day.date)}
           >
-            <span className={`block text-[10px] font-semibold uppercase tracking-tight ${selected ? 'text-white/60' : 'text-[#777777]'}`}>
+            <span className={`type-control block ${selected ? 'text-white/60' : 'text-[#777777]'}`}>
               {day.date.toLocaleDateString([], { weekday: 'short' })}
             </span>
             <span className="mt-1 block text-sm font-bold">{day.date.getDate()}</span>

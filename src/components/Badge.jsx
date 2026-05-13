@@ -24,7 +24,7 @@ export function Badge({ children, tone }) {
   const style = badgeStyles[key] || badgeStyles.default;
 
   return (
-    <span className={`inline-flex min-h-8 shrink-0 items-center whitespace-nowrap rounded-full border px-3.5 text-[11px] font-semibold uppercase leading-none tracking-tight ${style}`}>
+    <span className={`type-control inline-flex min-h-8 shrink-0 items-center whitespace-nowrap rounded-full border px-3.5 leading-none ${style}`}>
       {children}
     </span>
   );
