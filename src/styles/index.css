@@ -199,9 +199,9 @@
   .public-project-title {
     font-family: 'Inter Tight', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     font-size: 0.8125rem;
-    font-weight: 800;
-    line-height: 1.05;
-    letter-spacing: 0.015em;
+    font-weight: 600;
+    line-height: 1.02;
+    letter-spacing: 0.01em;
     text-transform: uppercase;
   }
 
