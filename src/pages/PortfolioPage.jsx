@@ -2,17 +2,27 @@ import { useEffect, useMemo, useState } from 'react';
 import { initialPortfolioItems } from '../data/seed.js';
 import { getPortfolioImageObjectPosition, getPortfolioLayout } from '../utils/layout.js';
 
-function useScrolledTitle() {
-  const [isScrolled, setIsScrolled] = useState(false);
+function useTitleTransition() {
+  const [transition, setTransition] = useState({ progress: 0, viewportHeight: 800 });
 
   useEffect(() => {
-    const updateScrolledState = () => setIsScrolled(window.scrollY > 96);
+    const updateScrolledState = () => {
+      const isMobile = window.matchMedia('(max-width: 767px)').matches;
+      const threshold = isMobile ? 120 : 240;
+      const progress = Math.min(Math.max(window.scrollY / threshold, 0), 1);
+      setTransition({ progress, viewportHeight: window.innerHeight || 800 });
+    };
+
     updateScrolledState();
     window.addEventListener('scroll', updateScrolledState, { passive: true });
-    return () => window.removeEventListener('scroll', updateScrolledState);
+    window.addEventListener('resize', updateScrolledState);
+    return () => {
+      window.removeEventListener('scroll', updateScrolledState);
+      window.removeEventListener('resize', updateScrolledState);
+    };
   }, []);
 
-  return isScrolled;
+  return transition;
 }
 
 function hasLayoutFields(item) {
@@ -88,13 +98,25 @@ function ArchiveItem({ index, item, navigate }) {
 }
 
 export function PortfolioPage({ portfolioItems, navigate }) {
-  const isScrolled = useScrolledTitle();
+  const titleTransition = useTitleTransition();
   const archiveItems = useMemo(() => (portfolioItems.length ? portfolioItems : initialPortfolioItems), [portfolioItems]);
+  const { progress, viewportHeight } = titleTransition;
+  const isMobile = viewportHeight < 720;
+  const initialTop = isMobile ? viewportHeight * 0.2 : viewportHeight * 0.28;
+  const finalTop = isMobile ? 68 : 76;
+  const titleTop = initialTop + (finalTop - initialTop) * progress;
+  const titleScale = (isMobile ? 0.94 : 1) - progress * (isMobile ? 0.42 : 0.58);
+  const titleOpacity = 1 - progress * 0.34;
+  const navOpacity = 0.42 + progress * 0.58;
+  const mastheadBackground = 0.18 + progress * 0.72;
 
   return (
     <div className="min-h-screen bg-white text-[#111111] selection:bg-black/10">
-      <header className="fixed left-0 right-0 top-0 z-[100] px-5 py-5 mix-blend-normal md:px-8">
-        <nav className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 type-control text-[#111111]">
+      <header
+        className="fixed left-0 right-0 top-0 z-[100] px-5 py-5 backdrop-blur-md md:px-8"
+        style={{ backgroundColor: `rgba(255,255,255,${mastheadBackground})` }}
+      >
+        <nav className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 type-control text-[#111111]" style={{ opacity: navOpacity }}>
           <button className="justify-self-start text-left transition hover:text-[#777777]" type="button" onClick={() => navigate('/')}>
             BE BLANK
           </button>
@@ -110,16 +132,20 @@ export function PortfolioPage({ portfolioItems, navigate }) {
       </header>
 
       <div
-        className={`pointer-events-none fixed left-5 top-16 z-[90] origin-left transition-all duration-500 ease-studio-out md:left-8 ${
-          isScrolled ? 'translate-y-[-0.25rem] scale-[0.34] opacity-70' : 'scale-100 opacity-100'
-        }`}
+        className="pointer-events-none fixed left-0 right-0 z-[90] flex justify-center px-5 transition-[top,transform,opacity] duration-700 ease-studio-out md:px-8"
+        style={{
+          opacity: titleOpacity,
+          top: `${titleTop}px`,
+          transform: `scale(${titleScale})`,
+          transformOrigin: 'top center',
+        }}
       >
-        <p className="max-w-[12ch] text-[18vw] font-bold uppercase leading-[0.78] tracking-normal text-[#111111] md:text-[15vw]">
+        <p className="max-w-[10ch] text-center text-[18vw] font-bold uppercase leading-[0.78] tracking-normal text-[#111111] md:text-[13vw]">
           Be Blank Studio
         </p>
       </div>
 
-      <main className="mx-auto max-w-screen-2xl px-5 pb-32 pt-[72vh] md:px-8">
+      <main className="mx-auto max-w-screen-2xl px-5 pb-32 pt-[72vh] md:px-8 md:pt-[76vh]">
         <section className="mb-24 grid gap-8 border-t border-black/[0.08] pt-8 md:grid-cols-12 md:items-start">
           <div className="md:col-span-3">
             <p className="type-label text-[#777777]">Portfolio</p>
