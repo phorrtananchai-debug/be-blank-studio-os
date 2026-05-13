@@ -238,6 +238,37 @@
   .rhythm-mobile-card {
     padding: var(--space-mobile-card);
   }
+
+  .public-work-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: clamp(1.5rem, 3vw, 3rem);
+    row-gap: clamp(7rem, 11vw, 12rem);
+    align-items: start;
+  }
+
+  .public-work-item {
+    min-width: 0;
+  }
+
+  @media (max-width: 767px) {
+    .public-work-grid {
+      display: block;
+    }
+
+    .public-work-item {
+      margin-top: 4rem !important;
+    }
+
+    .public-work-item:first-child {
+      margin-top: 0 !important;
+    }
+
+    .public-work-item img {
+      height: auto !important;
+      aspect-ratio: 4 / 5;
+    }
+  }
 }
 
 html,
