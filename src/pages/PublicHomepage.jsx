@@ -3,17 +3,27 @@ import { useLocation } from 'react-router-dom';
 import { initialPortfolioItems } from '../data/seed.js';
 import { getPortfolioImageObjectPosition, getPortfolioLayout } from '../utils/layout.js';
 
-function useScrolledMasthead() {
-  const [isScrolled, setIsScrolled] = useState(false);
+function useMastheadTransition() {
+  const [transition, setTransition] = useState({ progress: 0, viewportHeight: 800 });
 
   useEffect(() => {
-    const update = () => setIsScrolled(window.scrollY > 72);
+    const update = () => {
+      const isMobile = window.matchMedia('(max-width: 767px)').matches;
+      const threshold = isMobile ? 120 : 240;
+      const progress = Math.min(Math.max(window.scrollY / threshold, 0), 1);
+      setTransition({ progress, viewportHeight: window.innerHeight || 800 });
+    };
+
     update();
     window.addEventListener('scroll', update, { passive: true });
-    return () => window.removeEventListener('scroll', update);
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
   }, []);
 
-  return isScrolled;
+  return transition;
 }
 
 function getItems(portfolioItems) {
@@ -49,16 +59,28 @@ function formatArea(areaSqm) {
   return areaSqm ? `[${areaSqm}m²]` : '';
 }
 
-function PublicMasthead({ isScrolled, navigate, routePath }) {
+function PublicMasthead({ navigate, routePath, transition }) {
   const navItems = [
     { label: 'work', path: '/work' },
     { label: 'about', path: '/about' },
     { label: 'journal', path: '/journal' },
   ];
+  const { progress, viewportHeight } = transition;
+  const isMobile = viewportHeight < 720;
+  const initialTop = isMobile ? viewportHeight * 0.2 : viewportHeight * 0.28;
+  const finalTop = isMobile ? 68 : 76;
+  const titleTop = initialTop + (finalTop - initialTop) * progress;
+  const titleScale = (isMobile ? 0.94 : 1) - progress * (isMobile ? 0.42 : 0.58);
+  const titleOpacity = 1 - progress * 0.34;
+  const navOpacity = 0.42 + progress * 0.58;
+  const mastheadBackground = 0.18 + progress * 0.72;
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-[120] bg-white/88 px-5 py-4 backdrop-blur-md md:px-8">
-      <nav className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 type-control text-[#111111]">
+    <header
+      className="fixed left-0 right-0 top-0 z-[120] px-5 py-4 backdrop-blur-md md:px-8"
+      style={{ backgroundColor: `rgba(255,255,255,${mastheadBackground})` }}
+    >
+      <nav className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 type-control text-[#111111]" style={{ opacity: navOpacity }}>
         <button className="justify-self-start text-left" type="button" onClick={() => navigate('/')}>
           BE BLANK
         </button>
@@ -78,8 +100,16 @@ function PublicMasthead({ isScrolled, navigate, routePath }) {
           instagram
         </a>
       </nav>
-      <div className={`mt-5 origin-left transition-all duration-500 ease-studio-out ${isScrolled ? 'scale-[0.72] opacity-60' : 'scale-100 opacity-100'}`}>
-        <h1 className="text-[13vw] font-bold leading-[0.82] tracking-normal text-[#111111] md:text-[9vw]">
+      <div
+        className="pointer-events-none fixed left-0 right-0 z-[110] flex justify-center px-5 transition-[top,transform,opacity] duration-700 ease-studio-out md:px-8"
+        style={{
+          opacity: titleOpacity,
+          top: `${titleTop}px`,
+          transform: `scale(${titleScale})`,
+          transformOrigin: 'top center',
+        }}
+      >
+        <h1 className="max-w-[11ch] text-center text-[16vw] font-bold leading-[0.82] tracking-normal text-[#111111] md:max-w-[12ch] md:text-[10vw]">
           Be Blank to Behind Studio
         </h1>
       </div>
@@ -184,15 +214,15 @@ function JournalArchive({ items, navigate }) {
 
 export function PublicHomepage({ portfolioItems, navigate }) {
   const location = useLocation();
-  const isScrolled = useScrolledMasthead();
+  const mastheadTransition = useMastheadTransition();
   const archiveItems = useMemo(() => getItems(portfolioItems), [portfolioItems]);
   const routePath = location.pathname;
 
   return (
     <div className="min-h-screen bg-white text-[#111111] selection:bg-black/10">
-      <PublicMasthead isScrolled={isScrolled} navigate={navigate} routePath={routePath} />
+      <PublicMasthead navigate={navigate} routePath={routePath} transition={mastheadTransition} />
 
-      <main className="mx-auto max-w-screen-2xl px-5 pb-32 pt-[44vh] md:px-8 md:pt-[48vh]">
+      <main className="mx-auto max-w-screen-2xl px-5 pb-32 pt-[72vh] md:px-8 md:pt-[76vh]">
         {routePath === '/about' ? (
           <AboutArchive />
         ) : routePath === '/journal' ? (
