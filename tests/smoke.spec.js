@@ -58,12 +58,25 @@ test.describe('route smoke checks', () => {
 
   test('opens public visual editor separately from Studio OS', async ({ page }) => {
     await page.goto('/work');
+    await expect(page.getByRole('button', { name: 'login', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'os', exact: true })).toBeHidden();
+    await expect(page.getByRole('button', { name: 'edit', exact: true })).toBeHidden();
+  });
+
+  test('opens public visual editor separately from Studio OS for signed-in users', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem('studio_mock_user', JSON.stringify({ email: 'studio@example.com', displayName: 'Studio' }));
+    });
+    await page.goto('/work');
     await expect(page.getByRole('button', { name: 'os', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'edit', exact: true })).toBeVisible();
 
     await page.getByRole('button', { name: 'edit', exact: true }).click();
     await expect(page).toHaveURL(/\/work$/);
     await expect(page.getByLabel('Public visual editor controls')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'save' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'reset' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'exit' })).toBeVisible();
     await expect(page.getByRole('button', { name: /Resize/ }).first()).toBeVisible();
 
     await page.getByRole('button', { name: 'os', exact: true }).click();

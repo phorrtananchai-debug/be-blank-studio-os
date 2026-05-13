@@ -19,26 +19,26 @@ export function toLayoutNumber(value, fallback) {
 
 export function getPortfolioLayout(item, index) {
   const defaultLayouts = [
-    { x: 7, y: 16, width: 24, height: 34, zIndex: 3 },
-    { x: 70, y: 23, width: 18, height: 26, zIndex: 3 },
-    { x: 18, y: 63, width: 15, height: 19, zIndex: 2 },
-    { x: 57, y: 66, width: 22, height: 20, zIndex: 2 },
+    { x: 7, y: 8, width: 24, height: 34, zIndex: 3 },
+    { x: 70, y: 18, width: 18, height: 26, zIndex: 3 },
+    { x: 18, y: 58, width: 15, height: 19, zIndex: 2 },
+    { x: 57, y: 62, width: 22, height: 20, zIndex: 2 },
   ];
   const scatteredLayout = defaultLayouts[index % defaultLayouts.length];
   const defaultLayout = {
     ...scatteredLayout,
-    y: scatteredLayout.y + Math.floor(index / defaultLayouts.length) * 6,
+    y: scatteredLayout.y + Math.floor(index / defaultLayouts.length) * 78,
   };
-  const hasLegacyPixelLayout = Number(item.y) > 100 || Number(item.height) > 100;
+  const hasLegacyPixelLayout = Number(item.width) > 100 || Number(item.height) > 100;
   const rawX = hasLegacyPixelLayout ? defaultLayout.x : normalizeLayoutPercent(item.x, defaultLayout.x);
-  const rawY = hasLegacyPixelLayout ? defaultLayout.y : normalizeLayoutPercent(item.y, defaultLayout.y);
+  const rawY = hasLegacyPixelLayout ? defaultLayout.y : toLayoutNumber(item.y, defaultLayout.y);
   const rawWidth = hasLegacyPixelLayout ? defaultLayout.width : normalizeLayoutPercent(item.width, defaultLayout.width);
   const rawHeight = hasLegacyPixelLayout ? defaultLayout.height : normalizeLayoutPercent(item.height, defaultLayout.height);
   const rawZIndex = hasLegacyPixelLayout ? defaultLayout.zIndex : toLayoutNumber(item.zIndex, defaultLayout.zIndex);
 
   return {
     x: clampNumber(rawX, 2, 84),
-    y: clampNumber(rawY, 5, 78),
+    y: clampNumber(rawY, 4, 320),
     width: clampNumber(rawWidth, 14, 42),
     height: clampNumber(rawHeight, 14, 48),
     zIndex: clampNumber(Math.round(rawZIndex), 1, 20),
@@ -84,7 +84,7 @@ export function getNextInteractionLayout(mode, initial, dxPercent, dyPercent) {
 
   return {
     x: clampNumber(initial.x + dxPercent, 2, 84),
-    y: clampNumber(initial.y + dyPercent, 5, 78),
+    y: clampNumber(initial.y + dyPercent, 4, 320),
   };
 }
 
