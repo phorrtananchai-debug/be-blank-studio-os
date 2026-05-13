@@ -56,7 +56,7 @@ function getHomeArchivePlacement(item, index) {
 }
 
 function formatArea(areaSqm) {
-  return areaSqm ? `[${areaSqm}sqm]` : '';
+  return areaSqm ? `[${areaSqm}m\u00b2]` : '';
 }
 
 function PublicMasthead({ navigate, routePath, transition }) {
@@ -115,7 +115,7 @@ function PublicMasthead({ navigate, routePath, transition }) {
         }}
       >
         <button className="pointer-events-auto block" type="button" onClick={() => navigate('/')}>
-          <h1 className="max-w-[13ch] text-center text-[13vw] font-bold uppercase leading-[0.82] tracking-normal text-[#111111] md:max-w-[14ch] md:text-[8vw]">
+          <h1 className="public-masthead-type max-w-[13ch] text-center text-[13vw] text-[#111111] md:max-w-[14ch] md:text-[8vw]">
             BE BLANK TO BEHIND STUDIO
           </h1>
         </button>
@@ -127,7 +127,7 @@ function PublicMasthead({ navigate, routePath, transition }) {
 function HomeArchiveItem({ index, item, navigate }) {
   const placement = getHomeArchivePlacement(item, index);
   const summary = item.category || item.subtitle || item.location || 'Archive';
-  const metadata = [summary, item.areaSqm ? formatArea(item.areaSqm) : ''].filter(Boolean).join(' ');
+  const area = item.areaSqm ? formatArea(item.areaSqm) : '';
 
   return (
     <article className="public-work-item" style={{ gridColumn: placement.gridColumn, marginTop: placement.marginTop, zIndex: placement.zIndex }}>
@@ -146,9 +146,12 @@ function HomeArchiveItem({ index, item, navigate }) {
             }}
           />
         </span>
-        <span className="public-project-meta mt-2 grid gap-1 text-[#111111]">
-          <span>{item.title || 'Untitled Project'}</span>
-          {metadata && <span className="text-[#777777]">{metadata}</span>}
+        <span className="mt-2 grid gap-1 text-[#111111]">
+          <span className="public-project-title">{item.title || 'Untitled Project'}</span>
+          <span className="public-project-meta text-[#777777]">
+            {summary}
+            {area && <span className="public-utility-meta ml-1 text-[#8a8a8a]">{area}</span>}
+          </span>
         </span>
       </button>
     </article>
@@ -207,8 +210,8 @@ function JournalArchive({ items, navigate }) {
             type="button"
             onClick={() => navigate(`/portfolio/${encodeURIComponent(entry.id)}`)}
           >
-            <span className="public-project-meta text-[#777777] md:col-span-2">{String(index + 1).padStart(2, '0')}</span>
-            <span className="type-card-title text-[#111111] md:col-span-6">{entry.title}</span>
+            <span className="public-utility-meta text-[#777777] md:col-span-2">{String(index + 1).padStart(2, '0')}</span>
+            <span className="public-project-title text-[#111111] md:col-span-6">{entry.title}</span>
             <span className="public-project-meta text-[#777777] md:col-span-4 md:text-right">{entry.meta || 'archive note'}</span>
           </button>
         ))}
