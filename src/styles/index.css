@@ -302,7 +302,14 @@
   }
 
   .public-work-item {
+    position: absolute;
     min-width: 0;
+  }
+
+  .public-archive-canvas {
+    position: relative;
+    min-height: 118vh;
+    isolation: isolate;
   }
 
   .public-utility-dock {
@@ -419,7 +426,7 @@
     z-index: 160;
     display: grid;
     width: min(28rem, calc(100vw - 2.5rem));
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 5rem repeat(2, minmax(0, 1fr));
     gap: 1rem;
     border-top: 1px solid rgba(17, 17, 17, 0.18);
     background: rgba(255, 255, 255, 0.76);
@@ -433,6 +440,28 @@
 
   .public-editor-controls p {
     margin: 0 0 0.5rem;
+    color: #111111;
+  }
+
+  .public-editor-toolbar {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .public-editor-toolbar button,
+  .public-editor-controls select {
+    border: 0;
+    border-bottom: 1px solid rgba(17, 17, 17, 0.22);
+    background: transparent;
+    color: inherit;
+    padding: 0;
+  }
+
+  .public-editor-toolbar button:hover,
+  .public-editor-toolbar button[aria-pressed='true'] {
+    border-color: #111111;
     color: #111111;
   }
 
@@ -470,11 +499,20 @@
   }
 
   @media (max-width: 767px) {
+    .public-archive-canvas {
+      display: block;
+      min-height: auto !important;
+    }
+
     .public-work-grid {
       display: block;
     }
 
     .public-work-item {
+      position: relative;
+      left: auto !important;
+      top: auto !important;
+      width: auto !important;
       margin-top: 4rem !important;
     }
 

@@ -13,17 +13,17 @@ export function useStudioAuth() {
   const [authMessage, setAuthMessage] = useState('');
 
   useEffect(() => {
-    if (!isFirebaseConfigured()) {
-      setAuthMessage('Firebase is not configured.');
-      setIsCheckingAuth(false);
-      return undefined;
-    }
-
     const mockUser = typeof window !== 'undefined' ? window.localStorage.getItem('studio_mock_user') : null;
     if (mockUser && import.meta.env.DEV) {
       setUser(JSON.parse(mockUser));
       setIsCheckingAuth(false);
       return () => {};
+    }
+
+    if (!isFirebaseConfigured()) {
+      setAuthMessage('Firebase is not configured.');
+      setIsCheckingAuth(false);
+      return undefined;
     }
 
     return onStudioAuthChange((user) => {

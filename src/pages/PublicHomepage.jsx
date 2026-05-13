@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { initialPortfolioItems } from '../data/seed.js';
+import { useStudioAuth } from '../hooks/useStudioAuth.js';
 import {
   getNextInteractionLayout,
   getPortfolioImageObjectPosition,
@@ -19,7 +20,18 @@ const defaultEditorSettings = {
   projectMaxWidth: 18,
   projectAlign: 'left',
   projectMetaOpacity: 0.86,
+  mastheadFont: 'grotesk',
+  projectTitleFont: 'grotesk',
+  metadataFont: 'serif',
 };
+
+const fontStacks = {
+  grotesk: "'Inter Tight', 'Helvetica Neue', Helvetica, Arial, sans-serif",
+  serif: "Baskerville, Georgia, 'Times New Roman', serif",
+  mono: "'Courier New', Courier, monospace",
+};
+
+const editorSettingsStorageKey = 'beBlankPublicEditorSettings';
 
 function useMastheadTransition() {
   const [transition, setTransition] = useState({ progress: 0, viewportHeight: 800 });
@@ -62,27 +74,36 @@ function useEditorAvailability() {
 
 function usePublicEditorSettings() {
   const [settings, setSettings] = useState(defaultEditorSettings);
+  const [savedSettings, setSavedSettings] = useState(defaultEditorSettings);
 
   useEffect(() => {
     try {
-      const storedSettings = window.localStorage.getItem('beBlankPublicEditorSettings');
+      const storedSettings = window.localStorage.getItem(editorSettingsStorageKey);
       if (storedSettings) {
-        setSettings({ ...defaultEditorSettings, ...JSON.parse(storedSettings) });
+        const parsedSettings = { ...defaultEditorSettings, ...JSON.parse(storedSettings) };
+        setSettings(parsedSettings);
+        setSavedSettings(parsedSettings);
       }
     } catch {
       setSettings(defaultEditorSettings);
+      setSavedSettings(defaultEditorSettings);
     }
   }, []);
 
   const updateSettings = (updates) => {
-    setSettings((current) => {
-      const next = { ...current, ...updates };
-      window.localStorage.setItem('beBlankPublicEditorSettings', JSON.stringify(next));
-      return next;
-    });
+    setSettings((current) => ({ ...current, ...updates }));
   };
 
-  return [settings, updateSettings];
+  const saveSettings = (nextSettings = settings) => {
+    window.localStorage.setItem(editorSettingsStorageKey, JSON.stringify(nextSettings));
+    setSavedSettings(nextSettings);
+  };
+
+  const resetSettings = () => {
+    setSettings(savedSettings);
+  };
+
+  return { resetSettings, savedSettings, saveSettings, settings, updateSettings };
 }
 
 function getItems(portfolioItems) {
@@ -93,25 +114,17 @@ function hasLayoutFields(item) {
   return ['x', 'y', 'width', 'height'].some((key) => item[key] !== undefined && item[key] !== '');
 }
 
-function getHomeArchivePlacement(item, index) {
-  const layout = hasLayoutFields(item)
-    ? getPortfolioLayout(item, index)
-    : {
-        x: [6, 56, 20, 62][index % 4],
-        y: [0, 9, 2, 14][index % 4],
-        width: [28, 22, 18, 26][index % 4],
-        height: [34, 28, 22, 36][index % 4],
-        zIndex: 1,
-      };
-  const span = Math.min(7, Math.max(3, Math.round(layout.width / 6)));
-  const columnStart = Math.min(13 - span, Math.max(1, Math.round(layout.x / 10) + 1));
+function getArchiveLayout(item, index) {
+  return getPortfolioLayout(hasLayoutFields(item) ? item : {}, index);
+}
 
-  return {
-    gridColumn: `${columnStart} / span ${span}`,
-    imageHeight: `${Math.min(560, Math.max(250, layout.height * 10))}px`,
-    marginTop: index === 0 ? '0px' : `${Math.min(80, Math.max(0, layout.y * 0.45))}px`,
-    zIndex: layout.zIndex,
-  };
+function getArchiveCanvasHeight(items, draftLayouts = {}) {
+  const maxBottom = items.reduce((bottom, item, index) => {
+    const layout = draftLayouts[item.id] || getArchiveLayout(item, index);
+    return Math.max(bottom, layout.y + layout.height + 18);
+  }, 120);
+
+  return `${Math.max(118, maxBottom)}vw`;
 }
 
 function formatArea(areaSqm) {
@@ -176,11 +189,14 @@ function PublicMasthead({ editorSettings, editMode, navigate, routePath, transit
         <button className="pointer-events-auto block" type="button" onClick={() => navigate('/')}>
           <h1
             className="public-masthead-type max-w-[13ch] text-[13vw] text-[#111111] md:max-w-[14ch] md:text-[8vw]"
-            style={editMode ? {
-              fontSize: `clamp(3.25rem, ${editorSettings.titleFontSize}vw, 11rem)`,
+            style={{
+              fontFamily: fontStacks[editorSettings.mastheadFont],
+              ...(editMode ? {
+                fontSize: `clamp(3.25rem, ${editorSettings.titleFontSize}vw, 11rem)`,
               maxWidth: `${editorSettings.titleMaxWidth}ch`,
               textAlign: editorSettings.titleAlign,
-            } : undefined}
+              } : {}),
+            }}
           >
             BE BLANK TO BEHIND STUDIO
           </h1>
@@ -191,12 +207,20 @@ function PublicMasthead({ editorSettings, editMode, navigate, routePath, transit
 }
 
 function HomeArchiveItem({ editorSettings, index, item, navigate }) {
-  const placement = getHomeArchivePlacement(item, index);
+  const layout = getArchiveLayout(item, index);
   const summary = item.category || item.subtitle || item.location || 'Archive';
   const area = item.areaSqm ? formatArea(item.areaSqm) : '';
 
   return (
-    <article className="public-work-item" style={{ gridColumn: placement.gridColumn, marginTop: placement.marginTop, zIndex: placement.zIndex }}>
+    <article
+      className="public-work-item"
+      style={{
+        left: `${layout.x}%`,
+        top: `${layout.y}%`,
+        width: `${layout.width}%`,
+        zIndex: layout.zIndex,
+      }}
+    >
       <button className="group block w-full text-left" type="button" onClick={() => navigate(`/portfolio/${encodeURIComponent(item.id)}`)}>
         <span className="block overflow-hidden bg-[#f1f1ee]">
           <img
@@ -204,7 +228,7 @@ function HomeArchiveItem({ editorSettings, index, item, navigate }) {
             className="w-full object-cover transition duration-[1200ms] ease-studio-out group-hover:scale-[1.012] group-hover:opacity-95"
             src={item.imageUrl}
             style={{
-              height: placement.imageHeight,
+              height: `${layout.height * 10}px`,
               objectPosition: getPortfolioImageObjectPosition(index),
             }}
             onError={(event) => {
@@ -219,8 +243,11 @@ function HomeArchiveItem({ editorSettings, index, item, navigate }) {
             textAlign: editorSettings.projectAlign,
           }}
         >
-          <span className="public-project-title">{item.title || 'Untitled Project'}</span>
-          <span className="public-project-meta text-[#777777]" style={{ opacity: editorSettings.projectMetaOpacity }}>
+          <span className="public-project-title" style={{ fontFamily: fontStacks[editorSettings.projectTitleFont] }}>{item.title || 'Untitled Project'}</span>
+          <span
+            className="public-project-meta text-[#777777]"
+            style={{ fontFamily: fontStacks[editorSettings.metadataFont], opacity: editorSettings.projectMetaOpacity }}
+          >
             {summary}
             {area && <span className="public-utility-meta ml-1 text-[#8a8a8a]">{area}</span>}
           </span>
@@ -232,7 +259,7 @@ function HomeArchiveItem({ editorSettings, index, item, navigate }) {
 
 function HomeArchive({ editorSettings, items, navigate }) {
   return (
-    <section className="public-work-grid">
+    <section className="public-archive-canvas" style={{ minHeight: getArchiveCanvasHeight(items) }}>
       {items.map((item, index) => (
         <HomeArchiveItem key={item.id} editorSettings={editorSettings} index={index} item={item} navigate={navigate} />
       ))}
@@ -282,8 +309,11 @@ function EditableArchiveItem({ editorSettings, index, item, layout, onLayer, onP
             textAlign: editorSettings.projectAlign,
           }}
         >
-          <span className="public-project-title">{item.title || 'Untitled Project'}</span>
-          <span className="public-project-meta text-[#777777]" style={{ opacity: editorSettings.projectMetaOpacity }}>
+          <span className="public-project-title" style={{ fontFamily: fontStacks[editorSettings.projectTitleFont] }}>{item.title || 'Untitled Project'}</span>
+          <span
+            className="public-project-meta text-[#777777]"
+            style={{ fontFamily: fontStacks[editorSettings.metadataFont], opacity: editorSettings.projectMetaOpacity }}
+          >
             {summary}
             {area && <span className="public-utility-meta ml-1 text-[#8a8a8a]">{area}</span>}
           </span>
@@ -306,7 +336,7 @@ function EditableArchiveItem({ editorSettings, index, item, layout, onLayer, onP
   );
 }
 
-function EditableHomeArchive({ draftLayouts, editorSettings, items, onCommitLayout, onDraftLayout }) {
+function EditableHomeArchive({ draftLayouts, editorSettings, items, onDraftLayout }) {
   const canvasRef = useRef(null);
   const activeInteraction = useRef(null);
 
@@ -332,8 +362,6 @@ function EditableHomeArchive({ draftLayouts, editorSettings, items, onCommitLayo
       const active = activeInteraction.current;
       if (!active) return;
       activeInteraction.current = null;
-      const latestLayout = active.latestLayout || draftLayouts[active.id] || active.initial;
-      onCommitLayout(active.id, latestLayout);
     };
 
     window.addEventListener('pointermove', handlePointerMove);
@@ -342,14 +370,14 @@ function EditableHomeArchive({ draftLayouts, editorSettings, items, onCommitLayo
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
     };
-  }, [draftLayouts, onCommitLayout, onDraftLayout]);
+  }, [onDraftLayout]);
 
   const handlePointerStart = (event, item, index, mode) => {
     event.preventDefault();
     event.stopPropagation();
     activeInteraction.current = {
       id: item.id,
-      initial: draftLayouts[item.id] || getPortfolioLayout(item, index),
+      initial: draftLayouts[item.id] || getArchiveLayout(item, index),
       mode,
       startX: event.clientX,
       startY: event.clientY,
@@ -358,16 +386,15 @@ function EditableHomeArchive({ draftLayouts, editorSettings, items, onCommitLayo
 
   const handleLayer = (item, nextLayer) => {
     const index = items.findIndex((candidate) => candidate.id === item.id);
-    const currentLayout = draftLayouts[item.id] || getPortfolioLayout(item, index);
+    const currentLayout = draftLayouts[item.id] || getArchiveLayout(item, index);
     const nextLayout = { ...currentLayout, zIndex: Math.min(Math.max(nextLayer, 1), 20) };
     onDraftLayout(item.id, nextLayout);
-    onCommitLayout(item.id, nextLayout);
   };
 
   return (
-    <section className="public-editor-canvas" ref={canvasRef}>
+    <section className="public-editor-canvas" ref={canvasRef} style={{ minHeight: getArchiveCanvasHeight(items, draftLayouts) }}>
       {items.map((item, index) => {
-        const layout = draftLayouts[item.id] || getPortfolioLayout(item, index);
+        const layout = draftLayouts[item.id] || getArchiveLayout(item, index);
         return (
           <EditableArchiveItem
             key={item.id}
@@ -436,13 +463,30 @@ function JournalArchive({ items, navigate }) {
   );
 }
 
-function PublicEditorControls({ editorSettings, onUpdateSettings }) {
+function PublicEditorControls({ editorSettings, gridVisible, onExit, onReset, onSave, onToggleGrid, onUpdateSettings }) {
   const alignments = ['left', 'center', 'right'];
+  const fonts = [
+    { label: 'grotesk', value: 'grotesk' },
+    { label: 'serif', value: 'serif' },
+    { label: 'mono', value: 'mono' },
+  ];
 
   return (
     <aside className="public-editor-controls" aria-label="Public visual editor controls">
+      <div className="public-editor-toolbar">
+        <button type="button" onClick={onSave}>save</button>
+        <button type="button" onClick={onReset}>reset</button>
+        <button type="button" onClick={onExit}>exit</button>
+        <button aria-pressed={gridVisible} type="button" onClick={onToggleGrid}>grid</button>
+      </div>
       <div>
         <p>masthead</p>
+        <label>
+          font
+          <select value={editorSettings.mastheadFont} onChange={(event) => onUpdateSettings({ mastheadFont: event.target.value })}>
+            {fonts.map((font) => <option key={font.value} value={font.value}>{font.label}</option>)}
+          </select>
+        </label>
         <label>
           y
           <input min="-80" max="120" type="range" value={editorSettings.titleOffsetY} onChange={(event) => onUpdateSettings({ titleOffsetY: Number(event.target.value) })} />
@@ -479,6 +523,18 @@ function PublicEditorControls({ editorSettings, onUpdateSettings }) {
       <div>
         <p>project text</p>
         <label>
+          title
+          <select value={editorSettings.projectTitleFont} onChange={(event) => onUpdateSettings({ projectTitleFont: event.target.value })}>
+            {fonts.map((font) => <option key={font.value} value={font.value}>{font.label}</option>)}
+          </select>
+        </label>
+        <label>
+          meta
+          <select value={editorSettings.metadataFont} onChange={(event) => onUpdateSettings({ metadataFont: event.target.value })}>
+            {fonts.map((font) => <option key={font.value} value={font.value}>{font.label}</option>)}
+          </select>
+        </label>
+        <label>
           size
           <input min="0.68" max="1.05" step="0.01" type="range" value={editorSettings.projectTitleSize} onChange={(event) => onUpdateSettings({ projectTitleSize: Number(event.target.value) })} />
         </label>
@@ -507,19 +563,25 @@ function PublicEditorControls({ editorSettings, onUpdateSettings }) {
   );
 }
 
-function PublicUtilityDock({ editMode, isEditorAvailable, navigate, onToggleEdit }) {
+function PublicUtilityDock({ editMode, isEditorAvailable, navigate, onLogin, onToggleEdit, user }) {
   return (
     <div className="public-utility-dock">
-      <button type="button" onClick={() => navigate('/os')}>os</button>
-      <button
-        aria-pressed={editMode}
-        disabled={!isEditorAvailable}
-        title={isEditorAvailable ? 'Edit public archive layout' : 'Edit mode is desktop only'}
-        type="button"
-        onClick={onToggleEdit}
-      >
-        edit
-      </button>
+      {!user ? (
+        <button type="button" onClick={onLogin}>login</button>
+      ) : (
+        <>
+          <button type="button" onClick={() => navigate('/os')}>os</button>
+          <button
+            aria-pressed={editMode}
+            disabled={!isEditorAvailable}
+            title={isEditorAvailable ? 'Edit public archive layout' : 'Edit mode is desktop only'}
+            type="button"
+            onClick={onToggleEdit}
+          >
+            edit
+          </button>
+        </>
+      )}
     </div>
   );
 }
@@ -527,12 +589,19 @@ function PublicUtilityDock({ editMode, isEditorAvailable, navigate, onToggleEdit
 export function PublicHomepage({ portfolioItems, navigate, updatePortfolioItem }) {
   const location = useLocation();
   const mastheadTransition = useMastheadTransition();
+  const { signIn, user } = useStudioAuth();
   const isEditorAvailable = useEditorAvailability();
-  const [editorSettings, updateEditorSettings] = usePublicEditorSettings();
+  const {
+    resetSettings,
+    saveSettings,
+    settings: editorSettings,
+    updateSettings: updateEditorSettings,
+  } = usePublicEditorSettings();
   const [editMode, setEditMode] = useState(false);
+  const [gridVisible, setGridVisible] = useState(true);
   const [draftLayouts, setDraftLayouts] = useState({});
   const archiveItems = useMemo(() => getItems(portfolioItems), [portfolioItems]);
-  const editableArchiveItems = useMemo(
+  const draftArchiveItems = useMemo(
     () => archiveItems.map((item) => ({ ...item, ...(draftLayouts[item.id] ? stringifyLayout(draftLayouts[item.id]) : {}) })),
     [archiveItems, draftLayouts],
   );
@@ -549,20 +618,34 @@ export function PublicHomepage({ portfolioItems, navigate, updatePortfolioItem }
     setDraftLayouts((layouts) => ({ ...layouts, [id]: layout }));
   };
 
-  const commitLayout = async (id, layout) => {
-    const updates = stringifyLayout(layout);
-    setDraftLayouts((layouts) => ({ ...layouts, [id]: layout }));
+  const saveEditorChanges = async () => {
+    saveSettings(editorSettings);
 
-    if (updatePortfolioItem) {
-      try {
-        await updatePortfolioItem(id, updates);
-      } catch {
-        setDraftLayouts((layouts) => ({ ...layouts, [id]: layout }));
-      }
+    if (!updatePortfolioItem) {
+      setDraftLayouts({});
+      return;
+    }
+
+    const entries = Object.entries(draftLayouts);
+    try {
+      await Promise.all(entries.map(([id, layout]) => updatePortfolioItem(id, stringifyLayout(layout))));
+      setDraftLayouts({});
+    } catch {
+      setDraftLayouts((layouts) => ({ ...layouts }));
     }
   };
 
+  const resetEditorChanges = () => {
+    setDraftLayouts({});
+    resetSettings();
+  };
+
   const toggleEditMode = () => {
+    if (!user) {
+      signIn();
+      return;
+    }
+
     if (!isArchiveRoute) {
       navigate('/');
       setEditMode(true);
@@ -572,9 +655,17 @@ export function PublicHomepage({ portfolioItems, navigate, updatePortfolioItem }
     setEditMode((value) => !value);
   };
 
+  const handleLogin = async () => {
+    try {
+      await signIn();
+    } catch {
+      navigate('/os');
+    }
+  };
+
   return (
     <div
-      className={`min-h-screen bg-white text-[#111111] selection:bg-black/10 ${editMode ? 'public-edit-mode' : ''}`}
+      className={`min-h-screen bg-white text-[#111111] selection:bg-black/10 ${editMode && gridVisible ? 'public-edit-mode' : ''}`}
       style={{ '--public-project-title-size': `${editorSettings.projectTitleSize}rem` }}
     >
       <PublicMasthead editorSettings={editorSettings} editMode={editMode} navigate={navigate} routePath={routePath} transition={mastheadTransition} />
@@ -588,24 +679,40 @@ export function PublicHomepage({ portfolioItems, navigate, updatePortfolioItem }
           <EditableHomeArchive
             draftLayouts={draftLayouts}
             editorSettings={editorSettings}
-            items={editableArchiveItems}
-            onCommitLayout={commitLayout}
+            items={draftArchiveItems}
             onDraftLayout={updateDraftLayout}
           />
         ) : (
-          <HomeArchive editorSettings={editorSettings} items={editableArchiveItems} navigate={navigate} />
+          <HomeArchive editorSettings={editorSettings} items={archiveItems} navigate={navigate} />
         )}
       </main>
 
       <footer className="border-t border-black/[0.08] px-5 py-10 md:px-8">
         <div className="public-editorial-nav flex flex-col gap-4 text-[#777777] md:flex-row md:items-center md:justify-between">
-          <span>be blank archive</span>
-          <span>public index</span>
+          <button className="text-left transition hover:text-[#111111]" type="button" onClick={() => navigate('/')}>be blank archive</button>
+          <button className="text-left transition hover:text-[#111111]" type="button" onClick={() => navigate('/work')}>public index</button>
         </div>
       </footer>
 
-      {editMode && isArchiveRoute && <PublicEditorControls editorSettings={editorSettings} onUpdateSettings={updateEditorSettings} />}
-      <PublicUtilityDock editMode={editMode && isArchiveRoute} isEditorAvailable={isEditorAvailable} navigate={navigate} onToggleEdit={toggleEditMode} />
+      {editMode && isArchiveRoute && (
+        <PublicEditorControls
+          editorSettings={editorSettings}
+          gridVisible={gridVisible}
+          onExit={() => setEditMode(false)}
+          onReset={resetEditorChanges}
+          onSave={saveEditorChanges}
+          onToggleGrid={() => setGridVisible((value) => !value)}
+          onUpdateSettings={updateEditorSettings}
+        />
+      )}
+      <PublicUtilityDock
+        editMode={editMode && isArchiveRoute}
+        isEditorAvailable={isEditorAvailable}
+        navigate={navigate}
+        onLogin={handleLogin}
+        onToggleEdit={toggleEditMode}
+        user={user}
+      />
     </div>
   );
 }
