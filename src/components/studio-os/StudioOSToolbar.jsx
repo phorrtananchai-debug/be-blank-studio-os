@@ -23,14 +23,14 @@ export function StudioOSToolbar({
   toast,
 }) {
   return (
-    <section className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between border-y border-black/[0.02] py-12">
+    <section className="flex flex-col rhythm-stack lg:flex-row lg:items-center lg:justify-between border-y border-black/[0.02] rhythm-section-pad">
       <div className="space-y-1">
         <p className="type-label text-studio-orange">Realtime Workspace</p>
         <p className="type-caption">
           Projects and assets are synced via Firestore &bull; Local backups remain active.
         </p>
       </div>
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="flex flex-wrap items-center rhythm-control-gap">
         <Badge tone={dataMode === 'firebase' ? 'safe' : 'medium'}>
           {dataMode === 'firebase' ? 'Encrypted Connection' : 'Sync Offline'}
         </Badge>

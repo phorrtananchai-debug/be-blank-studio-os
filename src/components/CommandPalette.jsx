@@ -112,7 +112,7 @@ export function CommandPalette({ commands, isOpen, onClose, onOpen }) {
     <div className="fixed inset-0 z-[200] flex items-start justify-center bg-studio-ink/20 px-4 py-20 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Command palette">
       <button className="absolute inset-0 cursor-default" type="button" aria-label="Close command palette" onClick={onClose} />
       <div className="relative z-10 w-full max-w-2xl overflow-hidden rounded-[28px] border border-black/[0.08] bg-white shadow-deep">
-        <div className="flex min-h-16 items-center gap-3 border-b border-black/[0.06] px-5">
+        <div className="flex min-h-16 items-center rhythm-control-gap border-b border-black/[0.06] px-5">
           <Search className="size-4 text-studio-muted" aria-hidden="true" />
           <input
             ref={inputRef}
@@ -133,7 +133,7 @@ export function CommandPalette({ commands, isOpen, onClose, onOpen }) {
             return (
               <button
                 key={command.id}
-                className={`flex min-h-14 w-full items-center justify-between gap-4 rounded-[18px] px-4 py-3 text-left transition-all duration-150 ${
+                className={`flex min-h-14 w-full items-center justify-between rhythm-stack-tight rounded-[18px] px-4 py-3 text-left transition-all duration-150 ${
                   isSelected ? 'bg-studio-stone text-studio-ink' : 'text-studio-muted hover:bg-studio-panelSoft hover:text-studio-ink'
                 } ${command.disabled ? 'cursor-not-allowed opacity-45' : ''}`}
                 disabled={command.disabled}

@@ -119,18 +119,18 @@ function formatSizeLabel(size) {
 function ModuleFrame({ children, isEditing, module, onMove, onResize, onToggleVisibility }) {
   const frameClass = module.id === 'dailyFlow'
     ? 'border-b border-black/[0.08] pb-12'
-    : 'rounded-2xl border border-black/[0.06] bg-white/65 p-6 shadow-studioSoft';
+    : 'rounded-2xl border border-black/[0.06] bg-white/65 rhythm-card shadow-studioSoft';
 
   return (
     <section className={`relative col-span-12 ${sizeClasses[module.size]} ${frameClass}`}>
       {isEditing && (
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-black/[0.05] pb-4">
-          <div className="flex items-center gap-2">
+        <div className="mb-5 flex flex-wrap items-center justify-between rhythm-control-gap border-b border-black/[0.05] pb-4">
+          <div className="flex items-center rhythm-control-gap">
             <GripVertical size={14} className="text-studio-muted" />
             <p className="type-label">{module.label}</p>
             <Badge tone="default">{formatSizeLabel(module.size)}</Badge>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center rhythm-control-gap">
             <button className="grid size-9 place-items-center rounded-full border border-black/[0.05] bg-white text-studio-muted transition hover:text-studio-ink" type="button" onClick={() => onMove(-1)} aria-label={`Move ${module.label} up`}>
               <ArrowUp size={14} />
             </button>
@@ -173,7 +173,7 @@ function EditorialModule({ contentItems, module, notes, portfolioItems, projects
     return (
       <div>
         <ModuleHeader icon={PanelTop} label="Metrics" title="Studio Pulse" />
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        <div className="mt-8 grid rhythm-grid sm:grid-cols-2">
           <Metric label="Active projects" value={activeProjects.length} />
           <Metric label="Open projects" value={openProjects} />
           <Metric label="Approved content" value={approvedContent} />
@@ -187,7 +187,7 @@ function EditorialModule({ contentItems, module, notes, portfolioItems, projects
     return (
       <div>
         <ModuleHeader icon={LayoutTemplate} label="Projects" title="Active Work" />
-        <div className="mt-8 space-y-4">
+        <div className="mt-8 grid rhythm-stack">
           {activeProjects.slice(0, 5).map((project) => (
             <ProjectRow key={project.id} project={project} />
           ))}
@@ -201,7 +201,7 @@ function EditorialModule({ contentItems, module, notes, portfolioItems, projects
     return (
       <div>
         <ModuleHeader icon={CalendarDays} label="Timeline" title="Upcoming Dates" />
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
+        <div className="mt-8 grid rhythm-grid md:grid-cols-2">
           {upcomingDates.map((item) => (
             <DateRow key={`${item.project.id}-${item.label}-${item.value}`} item={item} />
           ))}
@@ -215,7 +215,7 @@ function EditorialModule({ contentItems, module, notes, portfolioItems, projects
     return (
       <div>
         <ModuleHeader icon={PanelTop} label="Portfolio" title="Gallery Queue" />
-        <div className="mt-8 space-y-4">
+        <div className="mt-8 grid rhythm-stack">
           {portfolioItems.slice(0, 4).map((item) => (
             <div key={item.id} className="border-b border-black/[0.05] pb-4 last:border-b-0 last:pb-0">
               <p className="type-card-title">{item.category || 'Portfolio item'}</p>
@@ -247,7 +247,7 @@ function EditorialModule({ contentItems, module, notes, portfolioItems, projects
 
 function ModuleHeader({ icon: Icon, label, title }) {
   return (
-    <header className="flex items-start justify-between gap-4">
+    <header className="flex items-start justify-between rhythm-stack-tight">
       <div>
         <p className="type-label text-studio-orange">{label}</p>
         <h2 className="type-section-title mt-2">{title}</h2>
@@ -259,7 +259,7 @@ function ModuleHeader({ icon: Icon, label, title }) {
 
 function Metric({ label, value }) {
   return (
-    <div className="rounded-xl border border-black/[0.05] bg-white p-4">
+    <div className="rounded-xl border border-black/[0.05] bg-white rhythm-card-compact">
       <p className="type-label">{label}</p>
       <p className="type-page-title mt-4">{value}</p>
     </div>
@@ -270,8 +270,8 @@ function ProjectRow({ project }) {
   const timeline = calculateTimeline(project);
 
   return (
-    <article className="rounded-xl border border-black/[0.05] bg-white p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <article className="rounded-xl border border-black/[0.05] bg-white rhythm-card-compact">
+      <div className="flex flex-wrap items-start justify-between rhythm-control-gap">
         <div className="min-w-0">
           <p className="type-card-title truncate">{project.name || 'Untitled Project'}</p>
           <p className="type-caption mt-1">{project.client || project.location || 'Client TBD'}</p>
@@ -292,8 +292,8 @@ function DateRow({ item }) {
       : `${item.daysUntil}d`;
 
   return (
-    <article className="rounded-xl border border-black/[0.05] bg-white p-4">
-      <div className="flex items-start justify-between gap-4">
+    <article className="rounded-xl border border-black/[0.05] bg-white rhythm-card-compact">
+      <div className="flex items-start justify-between rhythm-stack-tight">
         <div className="min-w-0">
           <p className="type-card-title truncate">{item.project.name || 'Untitled Project'}</p>
           <p className="type-caption mt-1">{item.label} / {formatDate(item.value)}</p>
@@ -308,7 +308,7 @@ function DateRow({ item }) {
 
 function EmptyModule({ message }) {
   return (
-    <p className="type-body rounded-xl border border-dashed border-black/[0.08] bg-[#f9f9f7] p-5 text-center">
+    <p className="type-body rounded-xl border border-dashed border-black/[0.08] bg-[#f9f9f7] rhythm-card-compact text-center">
       {message}
     </p>
   );
@@ -343,8 +343,8 @@ export function EditorialLayoutDashboard({ contentItems, portfolioItems, project
   const resetLayout = () => setLayout(defaultLayout);
 
   return (
-    <main className="space-y-10 page-fade">
-      <header className="flex flex-col gap-6 border-b border-black/[0.08] pb-8 lg:flex-row lg:items-end lg:justify-between">
+    <main className="grid rhythm-section page-fade">
+      <header className="flex flex-col rhythm-stack border-b border-black/[0.08] pb-8 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="type-label text-studio-orange">Editorial Layout</p>
           <h1 className="type-page-title mt-2">Structured Studio Composition</h1>
@@ -352,7 +352,7 @@ export function EditorialLayoutDashboard({ contentItems, portfolioItems, project
             Arrange the daily workspace as measured editorial blocks. The public view stays clean; edit mode exposes order, width, and visibility controls.
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap rhythm-control-gap">
           {isEditing && (
             <Button variant="secondary" onClick={resetLayout}>
               Reset Layout
@@ -365,9 +365,9 @@ export function EditorialLayoutDashboard({ contentItems, portfolioItems, project
       </header>
 
       {isEditing && hiddenModules.length > 0 && (
-        <section className="rounded-2xl border border-black/[0.06] bg-[#f9f9f7] p-5">
+        <section className="rounded-2xl border border-black/[0.06] bg-[#f9f9f7] rhythm-card-compact">
           <p className="type-label">Hidden modules</p>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap rhythm-control-gap">
             {hiddenModules.map((module) => (
               <button
                 key={module.id}
@@ -383,7 +383,7 @@ export function EditorialLayoutDashboard({ contentItems, portfolioItems, project
         </section>
       )}
 
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-12 rhythm-grid">
         {visibleModules.map((module) => (
           <ModuleFrame
             key={module.id}
@@ -406,7 +406,7 @@ export function EditorialLayoutDashboard({ contentItems, portfolioItems, project
       </div>
 
       {isEditing && (
-        <footer className="flex flex-wrap items-center gap-3 border-t border-black/[0.05] pt-6 text-studio-muted">
+        <footer className="flex flex-wrap items-center rhythm-control-gap border-t border-black/[0.05] pt-6 text-studio-muted">
           <Eye size={14} />
           <p className="type-caption">
             Layout saves automatically to this browser. Modules snap to 4, 6, 8, or 12-column spans on desktop and stack on mobile.

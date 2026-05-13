@@ -230,9 +230,9 @@ export function DailyFlow({ projects = [] }) {
   const clearState = !summary.overdueDates.length && !summary.dueToday.length && !summary.missingNextActions.length;
 
   return (
-    <div className="space-y-16 page-fade">
+    <div className="grid rhythm-section-lg page-fade">
       <section className="border-b border-black/[0.08] pb-8">
-        <div className="flex flex-col gap-6 md:flex-row md:items-baseline md:justify-between">
+        <div className="flex flex-col rhythm-stack md:flex-row md:items-baseline md:justify-between">
           <div className="space-y-2">
             <div className="type-label flex items-center gap-2">
               <Icon size={12} strokeWidth={2.5} />
@@ -243,7 +243,7 @@ export function DailyFlow({ projects = [] }) {
             </h2>
           </div>
 
-          <div className="flex flex-wrap items-center gap-8">
+          <div className="flex flex-wrap items-center rhythm-stack">
             <SummaryMetric label="Needs Attention" value={summary.overdueDates.length + summary.dueToday.length + summary.missingNextActions.length} />
             <div className="hidden h-6 w-px bg-black/[0.08] sm:block" />
             <SummaryMetric label="Active Pulse" value={`${summary.activeProjects.length} Projects`} />
@@ -253,14 +253,14 @@ export function DailyFlow({ projects = [] }) {
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid rhythm-grid md:grid-cols-3">
         <DailySummaryCard icon={AlertCircle} label="Overdue" value={summary.overdueDates.length} tone="critical" />
         <DailySummaryCard icon={Clock} label="Due Today" value={summary.dueToday.length} tone="watch" />
         <DailySummaryCard icon={Target} label="Missing Next Action" value={summary.missingNextActions.length} tone="steady" />
       </section>
 
-      <div className="grid grid-cols-1 gap-16 lg:grid-cols-12">
-        <div className="space-y-16 lg:col-span-8">
+      <div className="grid grid-cols-1 rhythm-section-lg lg:grid-cols-12">
+        <div className="grid rhythm-section-lg lg:col-span-8">
           <section className="space-y-4">
             <header className="flex items-center justify-between">
               <h3 className="type-label">Primary Focus</h3>
@@ -279,9 +279,9 @@ export function DailyFlow({ projects = [] }) {
           </section>
 
           <section className="grid grid-cols-1 gap-20 md:grid-cols-2">
-            <div className="space-y-8">
+            <div className="grid rhythm-stack">
               <h3 className="type-label">Missing Next Action</h3>
-              <div className="space-y-6">
+              <div className="grid rhythm-stack">
                 {summary.missingNextActions.map((project) => (
                   <MissingActionRow key={project.id} project={project} />
                 ))}
@@ -289,9 +289,9 @@ export function DailyFlow({ projects = [] }) {
               </div>
             </div>
 
-            <div className="space-y-8">
+            <div className="grid rhythm-stack">
               <h3 className="type-label">Handover & Opening Watch</h3>
-              <div className="space-y-4">
+              <div className="grid rhythm-stack-tight">
                 {upcomingRiskProjects.map((item) => (
                   <AttentionRow key={`${item.project.id}-${item.label}`} daysUntil={item.daysUntil} label={item.label} project={item.project} />
                 ))}
@@ -305,7 +305,7 @@ export function DailyFlow({ projects = [] }) {
               <h3 className="type-label">Overdue & Upcoming Dates</h3>
               <CalendarDays size={14} className="text-studio-muted" />
             </header>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid rhythm-grid md:grid-cols-2">
               {summary.datedAttention.slice(0, 6).map((item) => (
                 <AttentionRow key={`${item.project.id}-${item.label}-${item.value}`} daysUntil={item.daysUntil} label={item.label} project={item.project} />
               ))}
@@ -333,8 +333,8 @@ export function DailyFlow({ projects = [] }) {
           </section>
         </div>
 
-        <aside className="space-y-12 lg:col-span-4">
-          <section className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-studio">
+        <aside className="grid rhythm-section lg:col-span-4">
+          <section className="rounded-2xl border border-black/[0.06] bg-white rhythm-card shadow-studio">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <StickyNote size={12} className="text-studio-ink" />
@@ -349,7 +349,7 @@ export function DailyFlow({ projects = [] }) {
             />
           </section>
 
-          <section className="space-y-6">
+          <section className="grid rhythm-stack">
             <h3 className="type-label">Active Tasks Summary</h3>
             <div className="grid gap-3">
               {taskSummary.nextActions.slice(0, 4).map((project) => (
@@ -359,7 +359,7 @@ export function DailyFlow({ projects = [] }) {
             </div>
           </section>
 
-          <section className="space-y-6">
+          <section className="grid rhythm-stack">
             <h3 className="type-label">Studio Confidence</h3>
             <div className="space-y-3">
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/[0.05]">
@@ -375,7 +375,7 @@ export function DailyFlow({ projects = [] }) {
             </div>
           </section>
 
-          <section className="space-y-3">
+          <section className="grid rhythm-stack-tight">
             <button className="group flex w-full items-center justify-between rounded-2xl border border-black/[0.06] bg-white p-5 transition-all hover:bg-black/[0.02] hover:shadow-sm">
               <span className="type-control">Review Journal</span>
               <ArrowUpRight size={14} className="text-studio-muted transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
@@ -408,7 +408,7 @@ function DailySummaryCard({ icon: Icon, label, tone, value }) {
       : 'bg-white text-studio-ink border-black/[0.05]';
 
   return (
-    <div className={`rounded-2xl border p-5 shadow-sm ${toneClass}`}>
+    <div className={`rounded-2xl border rhythm-card-compact shadow-sm ${toneClass}`}>
       <div className="flex items-center justify-between">
         <p className="type-control">{label}</p>
         <Icon size={14} strokeWidth={2.4} />

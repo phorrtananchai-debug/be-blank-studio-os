@@ -24,7 +24,7 @@ import {
 
 function EmptyMessage({ actionLabel, lines, onAction }) {
   return (
-    <div className="type-mobile-body rounded-[24px] border border-[rgba(33,33,33,0.08)] bg-white px-4 py-5 text-xs">
+    <div className="type-mobile-body rounded-[24px] border border-[rgba(33,33,33,0.08)] bg-white rhythm-mobile-card text-xs">
       {lines.map((line) => (
         <p key={line}>{line}</p>
       ))}
@@ -50,7 +50,7 @@ function ProjectRow({ onOpen, project }) {
 
   return (
     <button
-      className="flex min-h-[64px] w-full cursor-pointer items-center gap-3 rounded-[22px] border border-[rgba(33,33,33,0.08)] bg-white px-4 py-3 text-left transition duration-[120ms] ease-out active:scale-95 active:bg-[#DBDFE9]"
+      className="flex min-h-[64px] w-full cursor-pointer items-center rhythm-control-gap rounded-[22px] border border-[rgba(33,33,33,0.08)] bg-white px-4 py-3 text-left transition duration-[120ms] ease-out active:scale-95 active:bg-[#DBDFE9]"
       type="button"
       onClick={() => onOpen(project)}
     >
@@ -78,11 +78,11 @@ function InProgressRow({ projects, selectedDate, task }) {
   const StateIcon = state.Icon;
 
   return (
-    <div className="relative overflow-hidden rounded-[22px] border border-black/5 bg-white p-4 shadow-sm">
+    <div className="relative overflow-hidden rounded-[22px] border border-black/5 bg-white rhythm-mobile-card shadow-sm">
       <span className={`absolute bottom-4 left-0 top-4 w-1 rounded-r-full ${phase.fillClass}`} />
       <div className="pl-2">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2">
+        <div className="flex items-start justify-between rhythm-control-gap">
+          <div className="flex min-w-0 items-center rhythm-control-gap">
             <Briefcase className="size-4 shrink-0 text-[#777777]" aria-hidden="true" />
             <p className="line-clamp-1 text-sm font-semibold leading-snug text-[#212121]">{projectLabel}</p>
           </div>
@@ -162,7 +162,7 @@ export function MobileHome({ initialDate, onDeleteTask, onDoneTask, onDuplicateT
       : { label: 'Quick add', onClick: () => window.dispatchEvent(new CustomEvent('mobile-open-quick-add')), subtext: 'Create a task or review active projects.' };
 
   return (
-    <div className="page-fade pb-32">
+    <div className="page-fade rhythm-mobile-page">
       <section className="pt-4">
         <div className="flex items-end justify-between gap-4">
           <h2 className="type-mobile-display">today</h2>
@@ -174,7 +174,7 @@ export function MobileHome({ initialDate, onDeleteTask, onDoneTask, onDuplicateT
         <MobileCalendarStrip selectedDate={selectedDate} weekDays={weekDays} onSelectDate={setSelectedDate} />
       </section>
 
-      <button className="mt-10 w-full rounded-[28px] border border-black/5 bg-[#FFF0A3] p-6 text-left shadow-sm transition-all duration-300 active:scale-[0.98]" type="button" onClick={insightAction.onClick}>
+      <button className="rhythm-mobile-section w-full rounded-[28px] border border-black/5 bg-[#FFF0A3] p-6 text-left shadow-sm transition-all duration-300 active:scale-[0.98]" type="button" onClick={insightAction.onClick}>
         <p className="type-control text-[#212121]/60">Insight</p>
         <p className="mt-3 text-3xl font-medium leading-tight tracking-normal text-[#111111]">{insightMessage}</p>
         <span className="mt-6 flex items-center justify-between gap-4">
@@ -183,14 +183,14 @@ export function MobileHome({ initialDate, onDeleteTask, onDoneTask, onDuplicateT
         </span>
       </button>
 
-      <section className="mt-16">
+      <section className="rhythm-mobile-section">
         {!!inProgressTasks.length && (
           <section ref={inProgressRef} className="mb-12 scroll-mt-4">
             <div className="mb-4 flex items-center justify-between px-1">
               <h2 className="type-control text-studio-muted">IN PROGRESS</h2>
               <p className="type-control rounded-full bg-[#DBDFE9] px-2 py-0.5 text-[#212121]">{inProgressTasks.length}</p>
             </div>
-            <div className="space-y-4">
+            <div className="grid rhythm-mobile-stack">
               {inProgressTasks.map((task) => (
                 <InProgressRow key={task.id} projects={projects} selectedDate={selectedDate} task={task} />
               ))}
@@ -202,7 +202,7 @@ export function MobileHome({ initialDate, onDeleteTask, onDoneTask, onDuplicateT
           <h2 className="type-control text-studio-muted">Tasks Today</h2>
           <p className="type-control text-studio-muted/60">{activeTodayTasks.length} {formatTaskCount(activeTodayTasks.length)}</p>
         </div>
-        <div className="space-y-4">
+        <div className="grid rhythm-mobile-stack">
           {activeTodayTasks.map((task) => (
             <SharedTaskRow key={task.id} projects={projects} task={task} toneClass={getTaskTone(task)} onDelete={onDeleteTask} onDone={onDoneTask} onDuplicate={onDuplicateTask} onEdit={onEditTask} onMove={onMoveTask} onOpen={onOpenTask} />
           ))}
@@ -210,12 +210,12 @@ export function MobileHome({ initialDate, onDeleteTask, onDoneTask, onDuplicateT
         </div>
       </section>
 
-      <section className="mt-12">
+      <section className="rhythm-mobile-section">
         <div className="mb-4 flex justify-between items-center px-1">
           <h2 className="type-control text-studio-muted">Later</h2>
           <p className="type-control text-studio-muted/60">{laterTasks.length} queued</p>
         </div>
-        <div className="space-y-4">
+        <div className="grid rhythm-mobile-stack">
           {laterTasks.map((task) => (
             <SharedTaskRow key={task.id} projects={projects} task={task} toneClass={getTaskTone(task)} onDelete={onDeleteTask} onDone={onDoneTask} onDuplicate={onDuplicateTask} onEdit={onEditTask} onMove={onMoveTask} onOpen={onOpenTask} />
           ))}
@@ -229,7 +229,7 @@ export function MobileHome({ initialDate, onDeleteTask, onDoneTask, onDuplicateT
             <h2 className="type-mobile-meta">Done</h2>
             <p className="type-mobile-meta">{doneTasks.length} complete</p>
           </div>
-          <div className="space-y-3">
+          <div className="grid rhythm-stack-tight">
             {doneTasks.map((task) => (
               <SharedTaskRow key={task.id} projects={projects} task={task} toneClass={getTaskTone(task)} onDelete={onDeleteTask} onDone={onDoneTask} onDuplicate={onDuplicateTask} onEdit={onEditTask} onMove={onMoveTask} onOpen={onOpenTask} />
             ))}
@@ -243,7 +243,7 @@ export function MobileHome({ initialDate, onDeleteTask, onDoneTask, onDuplicateT
             <h2 className="type-mobile-meta">Needs attention</h2>
             <p className="type-control rounded-full bg-[#FFF0A3] px-2 py-1 text-[#212121]">{overdueTasks.length} overdue</p>
           </div>
-          <div className="space-y-3">
+          <div className="grid rhythm-stack-tight">
             {overdueTasks.map((task) => (
               <SharedTaskRow key={task.id} projects={projects} task={task} toneClass={getTaskTone(task)} onDelete={onDeleteTask} onDone={onDoneTask} onDuplicate={onDuplicateTask} onEdit={onEditTask} onMove={onMoveTask} onOpen={onOpenTask} />
             ))}
@@ -256,7 +256,7 @@ export function MobileHome({ initialDate, onDeleteTask, onDoneTask, onDuplicateT
           <h2 className="type-mobile-meta">PROJECTS</h2>
           <p className="type-mobile-meta">{activeProjects.length} ACTIVE</p>
         </div>
-        <div className="space-y-3">
+        <div className="grid rhythm-stack-tight">
           {activeProjects.slice(0, 5).map((project) => (
             <ProjectRow key={project.id} project={project} onOpen={onOpenProject} />
           ))}

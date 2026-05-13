@@ -118,7 +118,7 @@ export function MobileDashboard({ onSignOut, user }) {
         <section className="min-h-0 flex-1 overflow-y-auto px-4 pb-32 pt-5">
           {toast?.message && <StatusToast className="mb-5" message={toast.message} tone={toast.tone} />}
           {useDemoData && (
-            <div className="type-mobile-body mb-5 rounded-[18px] border border-[rgba(33,33,33,0.08)] bg-white/70 px-4 py-3 text-xs leading-5">
+            <div className="type-mobile-body mb-5 rounded-[18px] border border-[rgba(33,33,33,0.08)] bg-white/70 rhythm-mobile-card text-xs leading-5">
               <span className="font-semibold text-[#212121]">Preview workspace.</span> Demo projects and tasks are read-only until live mobile data is synced.
             </div>
           )}

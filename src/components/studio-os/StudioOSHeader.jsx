@@ -3,7 +3,7 @@ import { MetricCard } from '../MetricCard.jsx';
 
 export function StudioOSHeader({ activeProjects, contentApproved, nextHandover, onBackHome, portfolioCount }) {
   return (
-    <header className="grid gap-12 xl:grid-cols-[1fr_auto] xl:items-end border-b border-black/[0.08] pb-12">
+    <header className="grid rhythm-section xl:grid-cols-[1fr_auto] xl:items-end border-b border-black/[0.08] pb-12">
       <div className="space-y-10">
         <button
           className="type-control text-studio-muted transition hover:text-studio-ink"
@@ -13,7 +13,7 @@ export function StudioOSHeader({ activeProjects, contentApproved, nextHandover, 
           &larr; Studio Profile
         </button>
         <div className="space-y-4">
-          <div className="type-label flex items-center gap-3 text-studio-orange">
+          <div className="type-label flex items-center rhythm-control-gap text-studio-orange">
             <Sparkles size={14} strokeWidth={2} />
             Operating System
           </div>
@@ -25,7 +25,7 @@ export function StudioOSHeader({ activeProjects, contentApproved, nextHandover, 
           </p>
         </div>
       </div>
-      <div className="grid w-full grid-cols-2 gap-4 sm:grid-cols-4 xl:w-[700px]">
+      <div className="grid w-full grid-cols-2 rhythm-grid sm:grid-cols-4 xl:w-[700px]">
         <MetricCard label="Active Projects" value={activeProjects} />
         <MetricCard label="Approved posts" value={contentApproved} />
         <MetricCard label="Archive Items" value={portfolioCount} />

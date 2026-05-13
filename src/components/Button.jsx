@@ -6,7 +6,7 @@ export function Button({ children, variant = 'primary', ...props }) {
 
   return (
     <button
-      className={`type-control inline-flex h-11 shrink-0 items-center justify-center gap-3 whitespace-nowrap rounded-full border px-7 outline-none transition-all duration-300 ease-studio-out ${variants[variant]}`}
+      className={`type-control inline-flex h-11 shrink-0 items-center justify-center rhythm-control-gap whitespace-nowrap rounded-full border px-7 outline-none transition-all duration-300 ease-studio-out ${variants[variant]}`}
       type="button"
       {...props}
     >
