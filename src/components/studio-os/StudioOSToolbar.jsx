@@ -23,14 +23,14 @@ export function StudioOSToolbar({
   toast,
 }) {
   return (
-    <section className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between border-y border-black/[0.02] py-12">
+    <section className="flex flex-col rhythm-stack lg:flex-row lg:items-center lg:justify-between border-y border-black/[0.02] rhythm-section-pad">
       <div className="space-y-1">
-        <p className="text-[9px] font-bold uppercase  text-studio-orange">Realtime Workspace</p>
-        <p className="text-sm font-medium text-studio-muted">
+        <p className="type-label text-studio-orange">Realtime Workspace</p>
+        <p className="type-caption">
           Projects and assets are synced via Firestore &bull; Local backups remain active.
         </p>
       </div>
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="flex flex-wrap items-center rhythm-control-gap">
         <Badge tone={dataMode === 'firebase' ? 'safe' : 'medium'}>
           {dataMode === 'firebase' ? 'Encrypted Connection' : 'Sync Offline'}
         </Badge>
@@ -39,7 +39,7 @@ export function StudioOSToolbar({
             Disconnect
           </Button>
         )}
-        {(authMessage || projectsError) && <span className="text-[11px] font-bold uppercase  text-red-500">{authMessage || projectsError}</span>}
+        {(authMessage || projectsError) && <span className="type-control text-red-500">{authMessage || projectsError}</span>}
         {toast?.message && <StatusToast message={toast.message} tone={toast.tone} />}
         <input ref={importInputRef} accept="application/json" className="hidden" type="file" onChange={onImportBackup} />
         <Button variant="secondary" onClick={onOpenCommandPalette}>

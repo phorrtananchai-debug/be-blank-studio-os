@@ -2,10 +2,10 @@ import { ArrowLeft } from 'lucide-react';
 import { ArtworkSpace } from '../artwork/ArtworkSpace.jsx';
 import { BoardGallery } from '../artwork/BoardGallery.jsx';
 import { ContentPlanner } from '../dashboard/ContentPlanner.jsx';
-import { DailyFlow } from '../dashboard/DailyFlow.jsx';
 import { PortfolioManager } from '../dashboard/PortfolioManager.jsx';
 import { ProjectDashboard } from '../dashboard/ProjectDashboard.jsx';
 import { TimelineCalculator } from '../dashboard/TimelineCalculator.jsx';
+import { EditorialLayoutDashboard } from './EditorialLayoutDashboard.jsx';
 
 export function StudioOSWorkspaceContent({
   activeTab,
@@ -33,7 +33,13 @@ export function StudioOSWorkspaceContent({
   return (
     <div className="space-y-32 page-fade">
       <div key={activeTab} className="page-fade">
-        {activeTab === 'flow' && <DailyFlow projects={projects} />}
+        {activeTab === 'flow' && (
+          <EditorialLayoutDashboard
+            contentItems={contentItems}
+            portfolioItems={portfolioItems}
+            projects={projects}
+          />
+        )}
 
         {activeTab === 'projects' && (
           <ProjectDashboard
@@ -65,14 +71,14 @@ export function StudioOSWorkspaceContent({
                       <ArrowLeft size={18} />
                     </button>
                     <div>
-                      <h2 className="text-2xl font-bold tracking-tight text-studio-ink">
+                      <h2 className="type-page-title text-2xl">
                         {projects.find((project) => project.id === selectedArtworkProjectId)?.name}
                       </h2>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">Studio Space</p>
+                      <p className="type-label">Studio Space</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-studio-muted mr-2">Switch board</span>
+                    <span className="type-label mr-2">Switch board</span>
                     <select
                       value={selectedArtworkProjectId}
                       onChange={(event) => handleSelectArtwork(event.target.value)}

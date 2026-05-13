@@ -11,7 +11,7 @@ export function StudioOSNavigation({ activeTab, onTabChange }) {
           return (
             <button
               key={tab.id}
-              className={`flex h-9 items-center gap-2 rounded-lg px-4 text-[12px] font-bold transition-all ${
+              className={`type-control flex h-9 items-center gap-2 rounded-lg px-4 transition-all ${
                 isActive
                   ? 'bg-black text-white'
                   : tab.id === 'artwork'
