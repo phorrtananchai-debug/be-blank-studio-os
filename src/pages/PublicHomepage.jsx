@@ -151,7 +151,7 @@ function PublicMasthead({ editorSettings, editMode, navigate, routePath, transit
   return (
     <header
       className="fixed left-0 right-0 top-0 z-[120] px-5 py-4 backdrop-blur-md md:px-8"
-      style={{ backgroundColor: `rgba(255,255,255,${mastheadBackground})` }}
+      style={{ backgroundColor: `rgba(215,211,200,${mastheadBackground})` }}
     >
       <nav className="public-editorial-nav grid grid-cols-[1fr_auto_1fr] items-center gap-4 text-[#111111]" style={{ opacity: navOpacity }}>
         <a className="justify-self-start text-left transition hover:opacity-55" href="mailto:studio@beblanktobehindstudio.com">
@@ -665,7 +665,7 @@ export function PublicHomepage({ portfolioItems, navigate, updatePortfolioItem }
 
   return (
     <div
-      className={`min-h-screen bg-white text-[#111111] selection:bg-black/10 ${editMode && gridVisible ? 'public-edit-mode' : ''}`}
+      className={`min-h-screen bg-studio-paper text-[#111111] selection:bg-black/10 ${editMode && gridVisible ? 'public-edit-mode' : ''}`}
       style={{ '--public-project-title-size': `${editorSettings.projectTitleSize}rem` }}
     >
       <PublicMasthead editorSettings={editorSettings} editMode={editMode} navigate={navigate} routePath={routePath} transition={mastheadTransition} />

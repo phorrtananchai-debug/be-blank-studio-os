@@ -43,7 +43,7 @@ export function MobileProfileSheet({ onChangeImage, onClose, onRemoveImage, prof
           <button className="min-h-12 rounded-[18px] bg-[#212121] px-4 text-sm font-semibold text-white transition-all duration-150 active:scale-[0.98]" type="button" onClick={() => inputRef.current?.click()}>
             Change picture
           </button>
-          <button className="min-h-12 rounded-[18px] bg-[#F5F5FA] px-4 text-sm font-semibold text-[#212121] transition-all duration-150 active:scale-[0.98]" type="button" onClick={onRemoveImage}>
+          <button className="min-h-12 rounded-[18px] bg-studio-stone px-4 text-sm font-semibold text-[#212121] transition-all duration-150 active:scale-[0.98]" type="button" onClick={onRemoveImage}>
             Remove picture
           </button>
           <button className="min-h-12 rounded-[18px] border border-[rgba(33,33,33,0.08)] px-4 text-sm font-semibold text-[#777777] transition-all duration-150 active:scale-[0.98]" type="button" onClick={onClose}>

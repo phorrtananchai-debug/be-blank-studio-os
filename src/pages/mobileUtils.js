@@ -241,7 +241,7 @@ export function getStateInfo(state) {
     return { barClass: 'bg-[#DBDFE9] text-[#212121]', chipClass: 'bg-[#DBDFE9] text-[#212121]', label: 'IN PROGRESS', shortLabel: 'Active' };
   }
 
-  return { barClass: 'bg-[#F5F5FA] text-[#777777]', chipClass: 'bg-[#F5F5FA] text-[#777777]', label: 'PLANNED', shortLabel: 'Planned' };
+  return { barClass: 'bg-studio-stone text-[#777777]', chipClass: 'bg-studio-stone text-[#777777]', label: 'PLANNED', shortLabel: 'Planned' };
 }
 
 export function getRangeProgress(task, date) {

@@ -41,7 +41,7 @@ export function LoginPage({ errorMessage, onBack, onSignIn }) {
   };
 
   return (
-    <main className="min-h-screen bg-[#f5f5f5] px-5 text-[#111111]">
+    <main className="min-h-screen bg-studio-paper px-5 text-[#111111]">
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
         <div className="flex justify-start pt-6">
           <button
@@ -54,7 +54,7 @@ export function LoginPage({ errorMessage, onBack, onSignIn }) {
         </div>
 
         <section className="flex flex-1 flex-col items-center justify-center pb-24 text-center transition duration-300 ease-out">
-          <div className="mb-8 flex size-16 items-center justify-center rounded-full border border-black/[0.08] bg-[#f5f5f5]">
+          <div className="mb-8 flex size-16 items-center justify-center rounded-full border border-black/[0.08] bg-studio-stone">
             <span className="text-lg font-medium tracking-tight">BB</span>
           </div>
           <p className="whitespace-nowrap text-[15px] font-medium tracking-tight text-[#111111]">
@@ -67,8 +67,8 @@ export function LoginPage({ errorMessage, onBack, onSignIn }) {
 
         <div className="pb-7">
           <button
-            className={`flex h-14 w-full items-center justify-center gap-3 rounded-[18px] border border-black/[0.08] bg-[#ffffff] text-sm font-medium text-[#111111] transition duration-200 ease-out ${
-              isSigningIn ? 'scale-[0.98]' : 'hover:bg-[#fbfbfa] active:scale-[0.98]'
+            className={`flex h-14 w-full items-center justify-center gap-3 rounded-[18px] border border-black/[0.08] bg-studio-bone text-sm font-medium text-[#111111] transition duration-200 ease-out ${
+              isSigningIn ? 'scale-[0.98]' : 'hover:bg-studio-panel active:scale-[0.98]'
             }`}
             disabled={isSigningIn}
             type="button"

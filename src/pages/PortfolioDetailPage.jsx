@@ -7,7 +7,7 @@ export function PortfolioDetailPage({ item, navigate }) {
   const gallery = getGalleryImages(portfolioItem);
 
   return (
-    <div className="min-h-screen bg-white text-studio-ink">
+    <div className="min-h-screen bg-studio-paper text-studio-ink">
       <header className="flex items-center justify-between border-b border-black/[0.08] px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-studio-muted md:px-8">
         <button className="transition hover:text-studio-ink" type="button" onClick={() => navigate('/')}>
           projects

@@ -310,7 +310,7 @@ function getStateInfo(state) {
     return { barClass: 'bg-[#DBDFE9] text-[#212121]', chipClass: 'bg-[#DBDFE9] text-[#212121]', Icon: Clock, label: 'IN PROGRESS', shortLabel: 'Active' };
   }
 
-  return { barClass: 'bg-[#F5F5FA] text-[#777777]', chipClass: 'bg-[#F5F5FA] text-[#777777]', Icon: Clock, label: 'PLANNED', shortLabel: 'Planned' };
+  return { barClass: 'bg-studio-stone text-[#777777]', chipClass: 'bg-studio-stone text-[#777777]', Icon: Clock, label: 'PLANNED', shortLabel: 'Planned' };
 }
 
 function getPhaseInfo(item = {}, projects = []) {
@@ -501,7 +501,7 @@ export function MobileCalendar({ initialDate, onDeleteTask, onDoneTask, onDuplic
         {modeOptions.map((item) => (
           <button
             key={item}
-            className={`h-10 rounded-full text-sm font-medium transition duration-[120ms] ease-out active:scale-95 ${mode === item ? 'bg-[#212121] text-[#F5F5FA]' : 'text-[#777777]'}`}
+            className={`h-10 rounded-full text-sm font-medium transition duration-[120ms] ease-out active:scale-95 ${mode === item ? 'bg-[#212121] text-studio-bone' : 'text-[#777777]'}`}
             type="button"
             onClick={() => setMode(item)}
           >
@@ -622,7 +622,7 @@ export function MobileCalendar({ initialDate, onDeleteTask, onDoneTask, onDuplic
 
 function WeekStrip({ selectedDate, selectedLabel, setSelectedDate, tasks, today, weekDays }) {
   return (
-    <div className="sticky top-0 z-20 -mx-4 bg-[#F5F5FA]/85 px-4 py-3 backdrop-blur-xl">
+    <div className="sticky top-0 z-20 -mx-4 bg-studio-mobile-canvas/85 px-4 py-3 backdrop-blur-xl">
       <p className="mb-2 px-1 text-[11px] font-medium uppercase tracking-tight text-[#777777]">
         Selected: <span className="text-[#212121]">{selectedLabel}</span>
       </p>
@@ -748,7 +748,7 @@ function MonthWeekRow({ onOpenTask, onShowMore, projects, selectedDate, setSelec
       </div>
       {!!hiddenRangeCount && (
         <button
-          className="absolute bottom-1 left-1 z-20 min-h-5 rounded-full border border-black/5 bg-[#F5F5FA] px-2 py-0.5 text-[10px] font-medium text-[#777777] transition-all duration-150 active:scale-[0.98]"
+          className="absolute bottom-1 left-1 z-20 min-h-5 rounded-full border border-black/5 bg-studio-stone px-2 py-0.5 text-[10px] font-medium text-[#777777] transition-all duration-150 active:scale-[0.98]"
           type="button"
           onClick={() => onShowMore?.(overflowDate, hiddenTasks)}
         >
@@ -851,7 +851,7 @@ function OverflowSheet({ date, onClose, onOpenTask, projects, tasks }) {
             <h3 className="text-2xl font-semibold text-[#212121]">{label}</h3>
             <p className="mt-1 text-sm font-medium text-[#777777]">{tasks.length} {tasks.length === 1 ? 'item' : 'items'}</p>
           </div>
-          <button className="min-h-11 rounded-full bg-[#F5F5FA] px-4 text-sm font-semibold text-[#212121] transition-all duration-150 active:scale-[0.98]" type="button" onClick={onClose}>
+          <button className="min-h-11 rounded-full bg-studio-stone px-4 text-sm font-semibold text-[#212121] transition-all duration-150 active:scale-[0.98]" type="button" onClick={onClose}>
             Close
           </button>
         </div>
@@ -885,7 +885,7 @@ function OverflowTaskRow({ date, onOpenTask, projects, task }) {
 
   return (
     <button
-      className="w-full rounded-2xl border border-black/5 bg-white p-4 text-left shadow-sm transition-all duration-150 active:scale-[0.98] active:bg-[#F5F5FA]"
+      className="w-full rounded-2xl border border-black/5 bg-white p-4 text-left shadow-sm transition-all duration-150 active:scale-[0.98] active:bg-studio-stone"
       type="button"
       onClick={() => onOpenTask?.(task)}
     >
@@ -909,7 +909,7 @@ function GroupedTaskList({ onDeleteTask, onDoneTask, onDuplicateTask, onEditTask
 
   return (
     <div className="mt-8 transition-all duration-200">
-      <p className="sticky top-0 z-10 mb-1 bg-[#F5F5FA]/85 px-1 py-2 text-[11px] font-medium uppercase tracking-tight text-[#777777] backdrop-blur-xl">
+      <p className="sticky top-0 z-10 mb-1 bg-studio-mobile-canvas/85 px-1 py-2 text-[11px] font-medium uppercase tracking-tight text-[#777777] backdrop-blur-xl">
         Selected: <span className="text-[#212121]">{selectedLabel}</span>
       </p>
       {groups.length ? (
@@ -941,7 +941,7 @@ function TaskList({ isExpanded = false, onDeleteTask, onDoneTask, onDuplicateTas
 
   return (
     <div className="mt-4 transition-all duration-200">
-      <p className="sticky top-0 z-10 mb-1 bg-[#F5F5FA]/85 px-1 py-2 text-[11px] font-medium uppercase tracking-tight text-[#777777] backdrop-blur-xl">
+      <p className="sticky top-0 z-10 mb-1 bg-studio-mobile-canvas/85 px-1 py-2 text-[11px] font-medium uppercase tracking-tight text-[#777777] backdrop-blur-xl">
         {isExpanded ? 'All items on ' : 'Selected: '}<span className="text-[#212121]">{selectedLabel}</span>
       </p>
       {groups.length ? (
@@ -972,7 +972,7 @@ function MonthLegend() {
   const items = [
     ['Range', 'bg-[#DBDFE9]'],
     ['In Progress', 'bg-[#DBDFE9]'],
-    ['Planned', 'bg-[#F5F5FA] border border-black/10'],
+    ['Planned', 'bg-studio-stone border border-black/10'],
     ['Done', 'bg-[#CFDECA]'],
     ['Overdue', 'bg-[#FFF0A3]'],
     ['Selected', 'bg-[#212121]'],

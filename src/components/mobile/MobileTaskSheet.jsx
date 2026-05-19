@@ -12,7 +12,7 @@ export function MobileTaskSheet({ onClose, onDelete, onDone, onDuplicate, onEdit
   const dueDate = getTaskDate(task);
 
   return (
-    <div className="absolute inset-0 z-40 overflow-y-auto bg-[#F5F5FA] px-5 py-6">
+    <div className="absolute inset-0 z-40 overflow-y-auto bg-studio-mobile-canvas px-5 py-6">
       <button className="type-mobile-meta transition duration-[120ms] ease-out active:scale-95" type="button" onClick={onClose}>
         Close
       </button>
@@ -23,7 +23,7 @@ export function MobileTaskSheet({ onClose, onDelete, onDone, onDuplicate, onEdit
         {dueDate && <p className="type-mobile-body mt-8 text-[#212121]">{describeTaskDate(task)}</p>}
         <div className="mt-10 grid grid-cols-2 gap-3">
           <button
-            className="h-14 rounded-[18px] bg-[#212121] text-sm font-medium text-[#F5F5FA] transition duration-[120ms] ease-out active:scale-95"
+            className="h-14 rounded-[18px] bg-[#212121] text-sm font-medium text-studio-bone transition duration-[120ms] ease-out active:scale-95"
             type="button"
             onClick={() => onDone(task)}
           >
@@ -93,7 +93,7 @@ export function MobileQuickAdd({ onClose, onCreate, projects }) {
           <span className="type-mobile-meta">Quick add task</span>
           <textarea
             autoFocus
-            className="mt-3 min-h-36 w-full resize-none rounded-[24px] bg-[#F5F5FA] px-4 py-4 text-xl font-medium leading-8 text-[#212121] outline-none ring-0 transition duration-[120ms] ease-out placeholder:text-[#777777] disabled:opacity-60 focus:bg-white focus:ring-1 focus:ring-[#212121]"
+            className="mt-3 min-h-36 w-full resize-none rounded-[24px] bg-studio-stone px-4 py-4 text-xl font-medium leading-8 text-[#212121] outline-none ring-0 transition duration-[120ms] ease-out placeholder:text-[#777777] disabled:opacity-60 focus:bg-studio-bone focus:ring-1 focus:ring-[#212121]"
             disabled={isSaving}
             placeholder="Site visit Karun tomorrow 2pm"
             value={value}
@@ -114,7 +114,7 @@ export function MobileQuickAdd({ onClose, onCreate, projects }) {
           <button className="h-12 rounded-[18px] border border-[rgba(33,33,33,0.08)] text-sm font-medium transition duration-[120ms] ease-out disabled:opacity-50 active:scale-95" disabled={isSaving} type="button" onClick={onClose}>
             Cancel
           </button>
-          <button className="h-12 rounded-[18px] bg-[#212121] text-sm font-medium text-[#F5F5FA] transition duration-[120ms] ease-out disabled:opacity-50 active:scale-95" disabled={!value.trim() || isSaving} type="button" onClick={() => handleCreate(false)}>
+          <button className="h-12 rounded-[18px] bg-[#212121] text-sm font-medium text-studio-bone transition duration-[120ms] ease-out disabled:opacity-50 active:scale-95" disabled={!value.trim() || isSaving} type="button" onClick={() => handleCreate(false)}>
             {isSaving ? 'Saving...' : 'Save Task'}
           </button>
         </div>

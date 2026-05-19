@@ -8,7 +8,7 @@ const MobileDashboard = lazy(() => import('./MobileDashboard.jsx').then((module)
 function MobileLoadingFallback() {
   return (
     <LoadingState
-      backgroundClass="bg-[#f5f5f5]"
+      backgroundClass="bg-studio-mobile-canvas"
       eyebrow="Be blank to behind studio"
       message="Studio OS"
       messageClass="text-sm"
