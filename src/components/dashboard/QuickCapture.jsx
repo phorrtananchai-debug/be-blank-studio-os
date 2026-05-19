@@ -10,9 +10,9 @@ export function QuickCapture({ onOpenArtwork }) {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-12 right-12 z-[200] flex h-16 w-16 items-center justify-center rounded-full bg-studio-ink text-white shadow-deep transition-all duration-500 hover:scale-110 hover:shadow-glow active:scale-95"
+        className="fixed bottom-10 right-10 z-[200] flex h-11 w-11 items-center justify-center rounded-md border border-black/[0.12] bg-studio-bone/70 text-studio-ink backdrop-blur-sm transition-all duration-300 hover:bg-studio-bone active:scale-[0.98]"
       >
-        <Plus size={24} strokeWidth={2.5} />
+        <Plus size={18} strokeWidth={2} />
       </button>
     );
   }
@@ -24,17 +24,17 @@ export function QuickCapture({ onOpenArtwork }) {
         onClick={() => setIsOpen(false)}
       />
 
-      <div className="relative w-full max-w-xl overflow-hidden rounded-[40px] border border-white/40 bg-white/60 p-8 shadow-deep backdrop-blur-3xl animate-in fade-in zoom-in duration-500">
+      <div className="relative w-full max-w-xl overflow-hidden rounded-lg border border-black/[0.08] bg-studio-bone/85 p-8 backdrop-blur-xl animate-in fade-in zoom-in duration-500">
         <header className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="grid h-8 w-8 place-items-center rounded-full bg-studio-orange/10 text-studio-orange">
+            <div className="grid h-8 w-8 place-items-center border border-black/[0.07] text-studio-muted">
               <Sparkles size={14} strokeWidth={2} />
             </div>
             <h2 className="text-[11px] font-bold uppercase tracking-wider text-studio-ink">Quick Capture</h2>
           </div>
           <button
             onClick={() => setIsOpen(false)}
-            className="grid h-8 w-8 place-items-center rounded-full text-studio-muted transition hover:bg-black/5 hover:text-studio-ink"
+            className="grid h-8 w-8 place-items-center text-studio-muted transition hover:bg-black/5 hover:text-studio-ink"
           >
             <X size={16} strokeWidth={2} />
           </button>
@@ -54,10 +54,10 @@ export function QuickCapture({ onOpenArtwork }) {
               <button
                 key={mode.id}
                 onClick={() => setActiveMode(mode.id)}
-                className={`flex flex-1 flex-col items-center gap-2 rounded-2xl py-4 transition-all duration-300 ${
+                className={`flex flex-1 flex-col items-center gap-2 rounded-md border py-4 transition-all duration-300 ${
                   isActive
-                    ? 'bg-studio-ink text-white shadow-md'
-                    : 'bg-black/[0.03] text-studio-muted hover:bg-black/[0.06]'
+                    ? 'border-studio-ink bg-studio-ink text-white'
+                    : 'border-black/[0.06] bg-transparent text-studio-muted hover:bg-black/[0.035]'
                 }`}
               >
                 <Icon size={18} strokeWidth={2} />
@@ -85,13 +85,13 @@ export function QuickCapture({ onOpenArtwork }) {
                   onOpenArtwork?.();
                   setIsOpen(false);
                 }}
-                className="rounded-full bg-studio-ink px-6 py-2 text-xs font-bold uppercase tracking-widest text-white transition hover:scale-105"
+                className="rounded-md bg-studio-ink px-5 py-2 text-xs font-bold uppercase tracking-widest text-white transition hover:bg-studio-inkLight"
               >
                 Create Artwork Space
               </button>
             </div>
           ) : (
-            <div className="grid h-32 place-items-center rounded-3xl border-2 border-dashed border-black/5 bg-black/[0.01]">
+            <div className="grid h-32 place-items-center rounded-md border border-dashed border-black/[0.08] bg-studio-bone/30">
               <p className="text-[10px] font-bold uppercase  text-studio-muted/40 italic">
                 {activeMode === 'voice' ? 'Recording placeholder' : 'Camera stream placeholder'}
               </p>
@@ -107,7 +107,7 @@ export function QuickCapture({ onOpenArtwork }) {
               setContent('');
             }}
             disabled={!content && activeMode !== 'voice' && activeMode !== 'photo'}
-            className="group flex items-center gap-3 rounded-full bg-studio-ink px-8 py-4 text-[11px] font-bold uppercase  text-white shadow-glow transition-all duration-500 hover:scale-105 disabled:opacity-20 disabled:grayscale"
+            className="group flex items-center gap-3 rounded-md bg-studio-ink px-6 py-3 text-[11px] font-bold uppercase text-white transition-all duration-300 hover:bg-studio-inkLight disabled:opacity-20 disabled:grayscale"
           >
             <span>Save Entry</span>
             <Send size={14} className="transition-transform group-hover:translate-x-1" />

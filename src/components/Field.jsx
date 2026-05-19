@@ -8,7 +8,7 @@ export function Field({
   ...props
 }) {
   const className =
-    'type-field min-h-11 w-full rounded-lg border border-black/[0.05] bg-white px-4 py-3 text-[#111111] outline-none transition-all duration-700 ease-studio-out placeholder:text-[#777777]/30 focus:border-studio-accent/30 focus:bg-[#f9f9f7] focus:shadow-studioSoft';
+    'type-field min-h-11 w-full rounded-md border border-black/[0.07] bg-studio-bone/55 px-4 py-3 text-[#111111] outline-none transition-all duration-700 ease-studio-out placeholder:text-[#777777]/35 focus:border-studio-accent/30 focus:bg-studio-bone';
   const Input = multiline ? 'textarea' : 'input';
 
   return (

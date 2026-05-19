@@ -1,7 +1,7 @@
 export function SectionCard({ action, children, compact = false, eyebrow, title }) {
   return (
     <section
-      className={`os-dashboard-enter rounded-[32px] border border-black/[0.02] bg-white/40 backdrop-blur-xl shadow-studioSoft transition-all duration-1000 ease-studio-out hover:bg-white/60 hover:shadow-premium hover:scale-[1.002] ${
+      className={`os-dashboard-enter rounded-lg border border-black/[0.06] bg-studio-bone/42 backdrop-blur-sm transition-colors duration-700 ease-studio-out hover:bg-studio-bone/58 ${
         compact ? 'rhythm-card' : 'p-8 sm:p-12 lg:p-22'
       }`}
     >
