@@ -26,6 +26,9 @@ export function StudioOSWorkspaceContent({
   selectedArtworkProjectId,
   statusCounts,
   studioUser,
+  tasks,
+  onCompleteTask,
+  onUpdateTask,
   updateContent,
   updatePortfolio,
   updateProject,
@@ -37,6 +40,9 @@ export function StudioOSWorkspaceContent({
           <EditorialLayoutDashboard
             contentItems={contentItems}
             projects={projects}
+            tasks={tasks}
+            onCompleteTask={onCompleteTask}
+            onUpdateTask={onUpdateTask}
           />
         )}
 

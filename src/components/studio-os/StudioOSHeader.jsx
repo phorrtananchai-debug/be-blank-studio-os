@@ -1,5 +1,6 @@
 import { Sparkles } from 'lucide-react';
 import { MetricCard } from '../MetricCard.jsx';
+import { getOperationalTaskSummary, getPressureState } from '../../utils/operationalTasks.js';
 
 const dayInMs = 1000 * 60 * 60 * 24;
 
@@ -11,31 +12,26 @@ function getDaysUntil(value) {
   return Number.isNaN(date.getTime()) ? null : Math.ceil((date - today) / dayInMs);
 }
 
-function getOperationalMetrics(projects = [], contentItems = []) {
+function getOperationalMetrics(projects = [], contentItems = [], tasks = []) {
   const activeProjects = projects.filter((project) => project.status !== 'open');
-  const dates = activeProjects.flatMap((project) => [
-    getDaysUntil(project.designCompleteDate),
-    getDaysUntil(project.handoverDate),
-    getDaysUntil(project.openingDate),
-  ]).filter((value) => value !== null);
-  const overdue = dates.filter((days) => days < 0).length;
+  const taskSummary = getOperationalTaskSummary(tasks);
   const openingSoon = activeProjects.filter((project) => {
     const days = getDaysUntil(project.openingDate);
     return days !== null && days >= 0 && days <= 21;
   }).length;
-  const waitingApproval = activeProjects.filter((project) => /approval|approve|client|confirm|waiting|review/i.test([project.nextAction, project.blockers, project.notes].filter(Boolean).join(' '))).length
+  const waitingApproval = taskSummary.waiting.length
     + contentItems.filter((item) => ['idea', 'draft', 'review'].includes(String(item.status || '').toLowerCase())).length;
-  const blocked = activeProjects.filter((project) => String(project.blockers || '').trim()).length;
+  const blocked = taskSummary.blocked.length;
   const handoverRisk = activeProjects.filter((project) => {
-    const days = getDaysUntil(project.handoverDate);
-    return days !== null && days <= 14;
+    const pressure = getPressureState({ project, tasks });
+    return ['RISK', 'CRITICAL'].includes(pressure.state) && pressure.handoverDays !== null && pressure.handoverDays <= 14;
   }).length;
 
-  return { blocked, handoverRisk, openingSoon, overdue, waitingApproval };
+  return { blocked, handoverRisk, openingSoon, overdue: taskSummary.overdue.length, waitingApproval };
 }
 
-export function StudioOSHeader({ contentItems, onBackHome, projects }) {
-  const metrics = getOperationalMetrics(projects, contentItems);
+export function StudioOSHeader({ contentItems, onBackHome, projects, tasks }) {
+  const metrics = getOperationalMetrics(projects, contentItems, tasks);
 
   return (
     <header className="grid rhythm-section xl:grid-cols-[1fr_auto] xl:items-end border-b border-black/[0.08] pb-12">

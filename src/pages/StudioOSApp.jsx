@@ -9,6 +9,7 @@ import { StudioOSNavigation } from '../components/studio-os/StudioOSNavigation.j
 import { StudioOSToolbar } from '../components/studio-os/StudioOSToolbar.jsx';
 import { StudioOSWorkspaceContent } from '../components/studio-os/StudioOSWorkspaceContent.jsx';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
+import { useOperationalTasks } from '../hooks/useOperationalTasks.js';
 import { usePortfolioItems } from '../hooks/usePortfolioItems.js';
 import { useStudioAuth } from '../hooks/useStudioAuth.js';
 import { useStudioProjects } from '../hooks/useStudioProjects.js';
@@ -36,6 +37,7 @@ import {
   createProject,
   downloadJson,
 } from '../utils/dashboard.js';
+import { inferTaskDraft } from '../utils/operationalTasks.js';
 import { parseBackupJson, validateStudioBackup } from '../utils/backupValidation.js';
 
 export function StudioOSApp({ navigate, routePath }) {
@@ -86,6 +88,13 @@ export function StudioOSApp({ navigate, routePath }) {
   const { portfolioItems, setPortfolioItems } = usePortfolioItems({ enabled: Boolean(studioUser), seedWhenEmpty: true });
   const [copiedId, setCopiedId] = useState('');
   const { showToast, toast } = useToastMessage();
+  const {
+    completeTask,
+    createTask,
+    replaceLocalTasks,
+    tasks,
+    updateTask,
+  } = useOperationalTasks({ enabled: Boolean(studioUser) || !isFirebaseConfigured, onToast: showToast });
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   const [pendingBackup, setPendingBackup] = useState(null);
@@ -155,6 +164,11 @@ export function StudioOSApp({ navigate, routePath }) {
       ...items,
     ]);
     showToast('Note saved to Journal.');
+  };
+
+  const addQuickTask = async (text) => {
+    const savedTask = await createTask(inferTaskDraft(text, projects));
+    return Boolean(savedTask);
   };
 
   const deleteContent = (id) => {
@@ -228,6 +242,7 @@ export function StudioOSApp({ navigate, routePath }) {
         projects,
         contentItems,
         portfolioItems,
+        tasks,
       });
       showToast('Backup exported.');
     } catch (error) {
@@ -274,6 +289,9 @@ export function StudioOSApp({ navigate, routePath }) {
 
       setContentItems(backup.contentItems);
       setPortfolioItems(backup.portfolioItems);
+      if (backup.tasks?.length) {
+        replaceLocalTasks(backup.tasks);
+      }
       setPendingBackup(null);
       showToast(
         preview.projects && !studioUser
@@ -382,6 +400,7 @@ export function StudioOSApp({ navigate, routePath }) {
       <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-16 px-8 py-12 lg:px-12">
         <StudioOSHeader
           contentItems={contentItems}
+          tasks={tasks}
           projects={projects}
           onBackHome={() => navigate('/')}
         />
@@ -434,6 +453,9 @@ export function StudioOSApp({ navigate, routePath }) {
           updateContent={updateContent}
           updatePortfolio={updatePortfolio}
           updateProject={updateProject}
+          tasks={tasks}
+          onCompleteTask={completeTask}
+          onUpdateTask={updateTask}
         />
 
         <footer className="border-t border-black/[0.03] pt-16 pb-24 text-center">
@@ -445,6 +467,7 @@ export function StudioOSApp({ navigate, routePath }) {
       <QuickCapture
         onAddNote={addQuickNote}
         onAddProject={addProject}
+        onAddTask={addQuickTask}
         onOpenArtwork={() => handleTabChange('artwork')}
         onOpenProjects={() => navigate('/os/projects')}
         onToast={showToast}

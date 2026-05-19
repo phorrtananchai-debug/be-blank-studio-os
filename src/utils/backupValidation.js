@@ -19,6 +19,15 @@ const backupCollections = [
   },
 ];
 
+const optionalBackupCollections = [
+  {
+    key: 'tasks',
+    label: 'tasks',
+    sampleField: 'title',
+    untitledLabel: 'Untitled Task',
+  },
+];
+
 function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
@@ -84,7 +93,11 @@ export function validateStudioBackup(data) {
   }
 
   const errors = backupCollections.flatMap((collection) => validateCollection(data, collection));
-  const preview = backupCollections.reduce((nextPreview, collection) => ({
+  const collectionsForPreview = [
+    ...backupCollections,
+    ...optionalBackupCollections.filter((collection) => Array.isArray(data[collection.key])),
+  ];
+  const preview = collectionsForPreview.reduce((nextPreview, collection) => ({
     ...nextPreview,
     [collection.key]: Array.isArray(data[collection.key]) ? data[collection.key].length : 0,
     samples: {
@@ -103,6 +116,7 @@ export function validateStudioBackup(data) {
       contentItems: data.contentItems,
       portfolioItems: data.portfolioItems,
       projects: data.projects,
+      tasks: Array.isArray(data.tasks) ? data.tasks : [],
     },
     errors: [],
     preview,

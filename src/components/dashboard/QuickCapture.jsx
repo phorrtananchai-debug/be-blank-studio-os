@@ -1,20 +1,19 @@
 import { CalendarClock, ClipboardList, FileText, Image, NotebookPen, Plus, Send, Sparkles, X } from 'lucide-react';
 import { useState } from 'react';
 
-const supportedModes = new Set(['project', 'note']);
+const supportedModes = new Set(['project', 'note', 'task']);
 const stagedCopy = {
   deadline: 'Deadline capture is staged. Add the date inside a project timeline for now.',
   meeting: 'Meeting capture is staged. Keep the decision in a note for now.',
   reference: 'Reference capture is staged. Open Artwork Space to attach images to a board.',
-  task: 'Task capture is staged. Add the next action inside the project for now.',
 };
 
-export function QuickCapture({ onAddNote, onAddProject, onOpenArtwork, onOpenProjects, onToast }) {
+export function QuickCapture({ onAddNote, onAddProject, onAddTask, onOpenArtwork, onOpenProjects, onToast }) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeMode, setActiveMode] = useState('task');
   const [content, setContent] = useState('');
   const modes = [
-    { id: 'task', icon: ClipboardList, label: 'Task', placeholder: 'What needs to move today?', staged: 'coming soon' },
+    { id: 'task', icon: ClipboardList, label: 'Task', placeholder: 'What needs to move today? Add YYYY-MM-DD when there is a real due date.' },
     { id: 'project', icon: Plus, label: 'Project', placeholder: 'Create a project shell, then refine it in Projects.' },
     { id: 'note', icon: NotebookPen, label: 'Note', placeholder: 'Capture studio context. This saves to Journal as an idea.' },
     { id: 'meeting', icon: CalendarClock, label: 'Meeting', placeholder: 'Who, when, and what decision is needed?', staged: 'draft only' },
@@ -24,7 +23,7 @@ export function QuickCapture({ onAddNote, onAddProject, onOpenArtwork, onOpenPro
   const currentMode = modes.find((mode) => mode.id === activeMode) || modes[0];
   const isSupported = supportedModes.has(activeMode);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (activeMode === 'project') {
       onAddProject?.();
       onOpenProjects?.();
@@ -38,6 +37,19 @@ export function QuickCapture({ onAddNote, onAddProject, onOpenArtwork, onOpenPro
         return;
       }
       onAddNote?.(content.trim());
+      setIsOpen(false);
+      setContent('');
+      return;
+    }
+
+    if (activeMode === 'task') {
+      if (!content.trim()) {
+        return;
+      }
+      const savedTask = await onAddTask?.(content.trim());
+      if (savedTask === false || savedTask === null) {
+        return;
+      }
       setIsOpen(false);
       setContent('');
       return;
@@ -140,10 +152,10 @@ export function QuickCapture({ onAddNote, onAddProject, onOpenArtwork, onOpenPro
         <footer className="mt-10 flex justify-end">
           <button
             onClick={handleSave}
-            disabled={(activeMode === 'note' && !content.trim()) || (!isSupported && activeMode !== 'reference')}
+            disabled={(['note', 'task'].includes(activeMode) && !content.trim()) || (!isSupported && activeMode !== 'reference')}
             className="group flex items-center gap-3 rounded-full bg-studio-ink px-8 py-4 text-[11px] font-bold uppercase  text-white shadow-glow transition-all duration-500 hover:scale-105 disabled:opacity-20 disabled:grayscale"
           >
-            <span>{activeMode === 'project' ? 'Create Project' : activeMode === 'note' ? 'Save Note' : activeMode === 'reference' ? 'Open Board' : 'Coming Soon'}</span>
+            <span>{activeMode === 'project' ? 'Create Project' : activeMode === 'note' ? 'Save Note' : activeMode === 'task' ? 'Save Task' : activeMode === 'reference' ? 'Open Board' : 'Coming Soon'}</span>
             <Send size={14} className="transition-transform group-hover:translate-x-1" />
           </button>
         </footer>
