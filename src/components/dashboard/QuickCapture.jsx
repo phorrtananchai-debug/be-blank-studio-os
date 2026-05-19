@@ -1,10 +1,33 @@
-import { Mic, Camera, FileText, Plus, X, Sparkles, Send, Layers } from 'lucide-react';
+import { CalendarClock, ClipboardList, FileText, Image, NotebookPen, Plus, Send, Sparkles, X } from 'lucide-react';
 import { useState } from 'react';
 
-export function QuickCapture({ onOpenArtwork }) {
+export function QuickCapture({ onAddProject, onOpenArtwork, onOpenProjects }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeMode, setActiveMode] = useState('note'); // note, inspiration, voice, photo
+  const [activeMode, setActiveMode] = useState('task');
   const [content, setContent] = useState('');
+  const modes = [
+    { id: 'task', icon: ClipboardList, label: 'Task', placeholder: 'What needs to move today?' },
+    { id: 'project', icon: Plus, label: 'Project', placeholder: 'Create a project shell, then refine it in Projects.' },
+    { id: 'note', icon: NotebookPen, label: 'Note', placeholder: 'Capture studio context...' },
+    { id: 'meeting', icon: CalendarClock, label: 'Meeting', placeholder: 'Who, when, and what decision is needed?' },
+    { id: 'reference', icon: Image, label: 'Reference', placeholder: 'Add a reference note or open the artwork board.' },
+    { id: 'deadline', icon: FileText, label: 'Deadline', placeholder: 'Project, date, and consequence...' },
+  ];
+  const currentMode = modes.find((mode) => mode.id === activeMode) || modes[0];
+
+  const handleSave = () => {
+    if (activeMode === 'project') {
+      onAddProject?.();
+      onOpenProjects?.();
+    }
+
+    if (activeMode === 'reference') {
+      onOpenArtwork?.();
+    }
+
+    setIsOpen(false);
+    setContent('');
+  };
 
   if (!isOpen) {
     return (
@@ -41,13 +64,7 @@ export function QuickCapture({ onOpenArtwork }) {
         </header>
 
         <div className="mb-8 flex gap-2">
-          {[
-            { id: 'note', icon: FileText, label: 'Note' },
-            { id: 'inspiration', icon: Sparkles, label: 'Inspiration' },
-            { id: 'artwork', icon: Layers, label: 'Space' },
-            { id: 'voice', icon: Mic, label: 'Voice' },
-            { id: 'photo', icon: Camera, label: 'Photo' },
-          ].map((mode) => {
+          {modes.map((mode) => {
             const Icon = mode.icon;
             const isActive = activeMode === mode.id;
             return (
@@ -68,48 +85,36 @@ export function QuickCapture({ onOpenArtwork }) {
         </div>
 
         <div className="relative">
-          {activeMode === 'note' || activeMode === 'inspiration' ? (
+          {activeMode === 'project' || activeMode === 'reference' ? (
+            <div className="space-y-5 py-3">
+              <p className="text-lg font-medium text-studio-ink">
+                {currentMode.placeholder}
+              </p>
+              <p className="type-caption">
+                {activeMode === 'project'
+                  ? 'This creates a new operational project and opens the project queue.'
+                  : 'Reference captures continue inside Artwork Space so visual material stays attached to a board.'}
+              </p>
+            </div>
+          ) : (
             <textarea
               autoFocus
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder={activeMode === 'note' ? "Capture a fleeting thought..." : "What inspired you?"}
+              placeholder={currentMode.placeholder}
               className="w-full border-none bg-transparent p-0 text-xl font-medium leading-relaxed text-studio-ink placeholder:text-black/10 focus:ring-0"
               rows={4}
             />
-          ) : activeMode === 'artwork' ? (
-            <div className="space-y-6 py-4 text-center">
-              <p className="text-lg font-medium text-studio-ink">Start a new spatial board?</p>
-              <button
-                onClick={() => {
-                  onOpenArtwork?.();
-                  setIsOpen(false);
-                }}
-                className="rounded-full bg-studio-ink px-6 py-2 text-xs font-bold uppercase tracking-widest text-white transition hover:scale-105"
-              >
-                Create Artwork Space
-              </button>
-            </div>
-          ) : (
-            <div className="grid h-32 place-items-center rounded-3xl border-2 border-dashed border-black/5 bg-black/[0.01]">
-              <p className="text-[10px] font-bold uppercase  text-studio-muted/40 italic">
-                {activeMode === 'voice' ? 'Recording placeholder' : 'Camera stream placeholder'}
-              </p>
-            </div>
           )}
         </div>
 
         <footer className="mt-10 flex justify-end">
           <button
-            onClick={() => {
-              // In a real app, this would save the content
-              setIsOpen(false);
-              setContent('');
-            }}
-            disabled={!content && activeMode !== 'voice' && activeMode !== 'photo'}
+            onClick={handleSave}
+            disabled={!content && activeMode !== 'project' && activeMode !== 'reference'}
             className="group flex items-center gap-3 rounded-full bg-studio-ink px-8 py-4 text-[11px] font-bold uppercase  text-white shadow-glow transition-all duration-500 hover:scale-105 disabled:opacity-20 disabled:grayscale"
           >
-            <span>Save Entry</span>
+            <span>{activeMode === 'project' ? 'Create Project' : activeMode === 'reference' ? 'Open Board' : 'Save Command'}</span>
             <Send size={14} className="transition-transform group-hover:translate-x-1" />
           </button>
         </footer>

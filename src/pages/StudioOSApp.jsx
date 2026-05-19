@@ -35,7 +35,6 @@ import {
   createPortfolioItem,
   createProject,
   downloadJson,
-  formatDate,
 } from '../utils/dashboard.js';
 import { parseBackupJson, validateStudioBackup } from '../utils/backupValidation.js';
 
@@ -97,12 +96,6 @@ export function StudioOSApp({ navigate, routePath }) {
     : 'checking';
 
   const statusCounts = useMemo(() => countByStatus(projects, projectStatuses), [projects]);
-  const activeProjects = projects.filter((project) => project.status !== 'open').length;
-  const nextOpening = [...projects]
-    .filter((project) => project.openingDate)
-    .sort((a, b) => new Date(a.openingDate) - new Date(b.openingDate))[0];
-  const contentApproved = contentItems.filter((item) => item.status === 'approved').length;
-
   if (!studioUser && dataMode === 'firebase-auth') {
     return <LoginPage errorMessage={authMessage || projectsError} onBack={() => navigate('/')} onSignIn={handleFirebaseSignIn} />;
   }
@@ -374,10 +367,8 @@ export function StudioOSApp({ navigate, routePath }) {
     <div className="min-h-screen bg-studio-paper text-studio-ink selection:bg-studio-ink/10 selection:text-studio-ink">
       <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-16 px-8 py-12 lg:px-12">
         <StudioOSHeader
-          activeProjects={activeProjects}
-          contentApproved={contentApproved}
-          nextHandover={nextOpening ? formatDate(nextOpening.openingDate) : 'TBD'}
-          portfolioCount={portfolioItems.length}
+          contentItems={contentItems}
+          projects={projects}
           onBackHome={() => navigate('/')}
         />
 
@@ -437,7 +428,11 @@ export function StudioOSApp({ navigate, routePath }) {
           </p>
         </footer>
       </div>
-      <QuickCapture onOpenArtwork={() => handleTabChange('artwork')} />
+      <QuickCapture
+        onAddProject={addProject}
+        onOpenArtwork={() => handleTabChange('artwork')}
+        onOpenProjects={() => navigate('/os/projects')}
+      />
       <CommandPalette
         commands={commandPaletteCommands}
         isOpen={isCommandPaletteOpen}

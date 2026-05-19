@@ -2,30 +2,29 @@ import {
   ArrowDown,
   ArrowUp,
   CalendarDays,
+  CircleDashed,
   Eye,
   EyeOff,
   GripVertical,
-  LayoutTemplate,
   NotebookPen,
   PanelTop,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Badge } from '../Badge.jsx';
 import { Button } from '../Button.jsx';
-import { DailyFlow } from '../dashboard/DailyFlow.jsx';
 import { calculateTimeline, formatDate } from '../../utils/dashboard.js';
 
 const layoutStorageKey = 'beBlank.studioEditorialLayout.v1';
 const notesStorageKey = 'beBlank.studioEditorialNotes.v1';
 const moduleSizes = ['compact', 'standard', 'wide', 'full'];
+const dayInMs = 1000 * 60 * 60 * 24;
 
 const defaultLayout = [
-  { id: 'dailyFlow', label: 'Daily Flow', size: 'full', visible: true },
-  { id: 'metrics', label: 'Metrics', size: 'standard', visible: true },
-  { id: 'projects', label: 'Projects', size: 'standard', visible: true },
-  { id: 'timeline', label: 'Timeline', size: 'wide', visible: true },
-  { id: 'portfolio', label: 'Portfolio', size: 'compact', visible: true },
-  { id: 'notes', label: 'Notes', size: 'compact', visible: true },
+  { id: 'command', label: 'Command Center', size: 'full', visible: true },
+  { id: 'pressure', label: 'Pressure Map', size: 'standard', visible: true },
+  { id: 'timeline', label: 'Operational Timeline', size: 'standard', visible: true },
+  { id: 'projects', label: 'Active Work', size: 'wide', visible: true },
+  { id: 'notes', label: 'Desk Notes', size: 'compact', visible: true },
 ];
 
 const sizeClasses = {
@@ -78,9 +77,56 @@ function getActiveProjects(projects) {
   return projects.filter((project) => project.status !== 'open');
 }
 
-function getUpcomingDates(projects) {
+function parseDate(value) {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function startOfToday() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  return today;
+}
+
+function getDaysUntil(value, today = startOfToday()) {
+  const date = parseDate(value);
+  return date ? Math.ceil((date - today) / dayInMs) : null;
+}
+
+function getProjectPressure(project, today = startOfToday()) {
+  const timeline = calculateTimeline(project);
+  const status = String(project.status || '').toLowerCase();
+  const blockers = String(project.blockers || '').trim();
+  const nextAction = String(project.nextAction || '').trim();
+  const handoverDays = getDaysUntil(project.handoverDate, today);
+  const openingDays = getDaysUntil(project.openingDate, today);
+  const designDays = getDaysUntil(project.designCompleteDate, today);
+  const nearestDays = [handoverDays, openingDays, designDays].filter((value) => value !== null).sort((a, b) => a - b)[0] ?? null;
+  const blocked = Boolean(blockers);
+  const waiting = !nextAction || /approval|approve|client|confirm|waiting|review/i.test([nextAction, blockers, project.notes].filter(Boolean).join(' '));
+  const overdue = nearestDays !== null && nearestDays < 0 && status !== 'open';
+  const openingSoon = openingDays !== null && openingDays >= 0 && openingDays <= 21;
+  const handoverRisk = handoverDays !== null && handoverDays <= 14 && status !== 'open';
+  const score = (overdue ? 5 : 0) + (blocked ? 4 : 0) + (handoverRisk ? 3 : 0) + (openingSoon ? 2 : 0) + (waiting ? 1 : 0) + (timeline.deliveryPressure === 'critical' ? 3 : 0);
+
+  return {
+    blocked,
+    blockers,
+    handoverDays,
+    handoverRisk,
+    nearestDays,
+    openingDays,
+    openingSoon,
+    overdue,
+    score,
+    timeline,
+    waiting,
+  };
+}
+
+function getOperationalDates(projects) {
+  const today = startOfToday();
 
   return projects
     .flatMap((project) => [
@@ -90,14 +136,45 @@ function getUpcomingDates(projects) {
     ])
     .filter((item) => item.value)
     .map((item) => {
-      const date = new Date(`${item.value}T00:00:00`);
       return {
         ...item,
-        daysUntil: Math.ceil((date - today) / (1000 * 60 * 60 * 24)),
+        daysUntil: getDaysUntil(item.value, today),
       };
     })
-    .sort((left, right) => left.daysUntil - right.daysUntil)
-    .slice(0, 6);
+    .sort((left, right) => left.daysUntil - right.daysUntil);
+}
+
+function getOperationalSummary(projects, contentItems = []) {
+  const activeProjects = getActiveProjects(projects);
+  const projectSignals = activeProjects
+    .map((project) => ({ project, pressure: getProjectPressure(project) }))
+    .sort((left, right) => right.pressure.score - left.pressure.score);
+  const dates = getOperationalDates(activeProjects);
+  const waitingContent = contentItems.filter((item) => ['idea', 'draft', 'review'].includes(String(item.status || '').toLowerCase()));
+  const blocked = projectSignals.filter((item) => item.pressure.blocked);
+  const waiting = projectSignals.filter((item) => item.pressure.waiting);
+  const overdue = dates.filter((item) => item.daysUntil < 0);
+  const today = dates.filter((item) => item.daysUntil === 0);
+  const thisWeek = dates.filter((item) => item.daysUntil > 0 && item.daysUntil <= 7);
+  const openingSoon = dates.filter((item) => item.label === 'Opening' && item.daysUntil >= 0 && item.daysUntil <= 21);
+  const handoverRisk = projectSignals.filter((item) => item.pressure.handoverRisk);
+  const atRisk = projectSignals.filter((item) => item.pressure.score >= 4);
+
+  return {
+    activeProjects,
+    atRisk,
+    blocked,
+    dates,
+    handoverRisk,
+    openingSoon,
+    overdue,
+    projectSignals,
+    thisWeek,
+    today,
+    waiting,
+    waitingApproval: waiting.length + waitingContent.length,
+    waitingContent,
+  };
 }
 
 function moveItem(items, index, direction) {
@@ -117,9 +194,9 @@ function formatSizeLabel(size) {
 }
 
 function ModuleFrame({ children, isEditing, module, onMove, onResize, onToggleVisibility }) {
-  const frameClass = module.id === 'dailyFlow'
-    ? 'border-b border-black/[0.08] pb-12'
-    : 'rounded-2xl border border-black/[0.06] bg-white/65 rhythm-card shadow-studioSoft';
+  const frameClass = module.id === 'command'
+    ? 'border-b border-black/[0.08] pb-10'
+    : 'rounded-lg border border-black/[0.06] bg-studio-bone/45 rhythm-card';
 
   return (
     <section className={`relative col-span-12 ${sizeClasses[module.size]} ${frameClass}`}>
@@ -158,26 +235,25 @@ function ModuleFrame({ children, isEditing, module, onMove, onResize, onToggleVi
   );
 }
 
-function EditorialModule({ contentItems, module, notes, portfolioItems, projects, onNotesChange }) {
+function EditorialModule({ contentItems, module, notes, projects, onNotesChange }) {
   const activeProjects = getActiveProjects(projects);
-  const upcomingDates = getUpcomingDates(projects);
+  const summary = getOperationalSummary(projects, contentItems);
 
-  if (module.id === 'dailyFlow') {
-    return <DailyFlow projects={projects} />;
+  if (module.id === 'command') {
+    return <CommandCenter summary={summary} />;
   }
 
-  if (module.id === 'metrics') {
-    const approvedContent = contentItems.filter((item) => item.status === 'approved' || item.status === 'posted').length;
-    const openProjects = projects.filter((project) => project.status === 'open').length;
-
+  if (module.id === 'pressure') {
     return (
       <div>
-        <ModuleHeader icon={PanelTop} label="Metrics" title="Studio Pulse" />
-        <div className="mt-8 grid rhythm-grid sm:grid-cols-2">
-          <Metric label="Active projects" value={activeProjects.length} />
-          <Metric label="Open projects" value={openProjects} />
-          <Metric label="Approved content" value={approvedContent} />
-          <Metric label="Portfolio items" value={portfolioItems.length} />
+        <ModuleHeader icon={PanelTop} label="Pressure Map" title="Actionable Signals" />
+        <div className="mt-6 grid grid-cols-2 border-y border-black/[0.08]">
+          <Metric label="Overdue" value={summary.overdue.length} />
+          <Metric label="Opening soon" value={summary.openingSoon.length} />
+          <Metric label="Waiting approval" value={summary.waitingApproval} />
+          <Metric label="Blocked" value={summary.blocked.length} />
+          <Metric label="Handover risk" value={summary.handoverRisk.length} />
+          <Metric label="At risk" value={summary.atRisk.length} />
         </div>
       </div>
     );
@@ -186,10 +262,10 @@ function EditorialModule({ contentItems, module, notes, portfolioItems, projects
   if (module.id === 'projects') {
     return (
       <div>
-        <ModuleHeader icon={LayoutTemplate} label="Projects" title="Active Work" />
-        <div className="mt-8 grid rhythm-stack">
-          {activeProjects.slice(0, 5).map((project) => (
-            <ProjectRow key={project.id} project={project} />
+        <ModuleHeader icon={CircleDashed} label="Projects" title="Active Work Queue" />
+        <div className="mt-6 grid gap-0 border-y border-black/[0.08]">
+          {summary.projectSignals.slice(0, 7).map(({ project, pressure }) => (
+            <ProjectRow key={project.id} pressure={pressure} project={project} />
           ))}
           {!activeProjects.length && <EmptyModule message="No active projects are visible." />}
         </div>
@@ -200,29 +276,14 @@ function EditorialModule({ contentItems, module, notes, portfolioItems, projects
   if (module.id === 'timeline') {
     return (
       <div>
-        <ModuleHeader icon={CalendarDays} label="Timeline" title="Upcoming Dates" />
-        <div className="mt-8 grid rhythm-grid md:grid-cols-2">
-          {upcomingDates.map((item) => (
-            <DateRow key={`${item.project.id}-${item.label}-${item.value}`} item={item} />
-          ))}
-          {!upcomingDates.length && <EmptyModule message="No upcoming dates are set." />}
-        </div>
-      </div>
-    );
-  }
-
-  if (module.id === 'portfolio') {
-    return (
-      <div>
-        <ModuleHeader icon={PanelTop} label="Portfolio" title="Gallery Queue" />
-        <div className="mt-8 grid rhythm-stack">
-          {portfolioItems.slice(0, 4).map((item) => (
-            <div key={item.id} className="border-b border-black/[0.05] pb-4 last:border-b-0 last:pb-0">
-              <p className="type-card-title">{item.category || 'Portfolio item'}</p>
-              <p className="type-caption mt-1">{[item.location, item.year].filter(Boolean).join(' / ') || 'Gallery record'}</p>
-            </div>
-          ))}
-          {!portfolioItems.length && <EmptyModule message="No portfolio items are visible." />}
+        <ModuleHeader icon={CalendarDays} label="Timeline" title="Operational Timeline" />
+        <div className="mt-6 grid gap-6">
+          <TimelineGroup label="Today" items={summary.today} />
+          <TimelineGroup label="This week" items={summary.thisWeek} />
+          <TimelineGroup label="At risk" items={summary.atRisk.map(({ project, pressure }) => ({ project, label: pressure.blocked ? 'Blocked' : 'Risk', daysUntil: pressure.nearestDays, value: project.handoverDate || project.openingDate || project.designCompleteDate }))} />
+          <TimelineGroup label="Waiting" items={summary.waiting.map(({ project, pressure }) => ({ project, label: 'Waiting', daysUntil: pressure.nearestDays, value: project.handoverDate || project.openingDate || project.designCompleteDate }))} />
+          <TimelineGroup label="Opening soon" items={summary.openingSoon} />
+          {!summary.dates.length && <EmptyModule message="No operational dates are set." />}
         </div>
       </div>
     );
@@ -231,10 +292,10 @@ function EditorialModule({ contentItems, module, notes, portfolioItems, projects
   if (module.id === 'notes') {
     return (
       <div>
-        <ModuleHeader icon={NotebookPen} label="Notes" title="Editorial Notes" />
+        <ModuleHeader icon={NotebookPen} label="Notes" title="Desk Notes" />
         <textarea
-          className="type-body mt-8 min-h-56 w-full resize-y rounded-xl border border-black/[0.05] bg-[#f9f9f7] p-4 text-studio-ink outline-none transition focus:border-studio-ink/20 focus:bg-white"
-          placeholder="Keep layout intent, handover reminders, or morning composition notes here..."
+          className="type-body mt-6 min-h-56 w-full resize-y rounded-md border border-black/[0.07] bg-studio-bone/35 p-4 text-studio-ink outline-none transition focus:border-studio-ink/20 focus:bg-studio-bone/55"
+          placeholder="Capture today-only context: calls, approvals, site friction, handover reminders..."
           value={notes}
           onChange={(event) => onNotesChange(event.target.value)}
         />
@@ -245,11 +306,51 @@ function EditorialModule({ contentItems, module, notes, portfolioItems, projects
   return null;
 }
 
+function CommandCenter({ summary }) {
+  const [firstRisk] = summary.atRisk;
+  const lead = firstRisk?.project;
+  const leadPressure = firstRisk?.pressure;
+  const nextAction = lead?.nextAction || leadPressure?.blockers || 'No urgent project is currently leading the desk.';
+
+  return (
+    <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
+      <div>
+        <p className="type-label text-studio-muted">Desktop Command Center</p>
+        <h1 className="type-page-title mt-2 max-w-3xl">
+          {lead ? lead.name : 'Studio desk is clear'}
+        </h1>
+        <p className="type-body mt-4 max-w-3xl text-studio-ink">
+          {nextAction}
+        </p>
+        <div className="mt-8 grid gap-0 border-y border-black/[0.08] sm:grid-cols-5">
+          <Signal label="Overdue" value={summary.overdue.length} urgent={summary.overdue.length > 0} />
+          <Signal label="Opening soon" value={summary.openingSoon.length} />
+          <Signal label="Waiting" value={summary.waitingApproval} />
+          <Signal label="Blocked" value={summary.blocked.length} urgent={summary.blocked.length > 0} />
+          <Signal label="Handover risk" value={summary.handoverRisk.length} />
+        </div>
+      </div>
+      <div className="border-l border-black/[0.08] pl-6">
+        <p className="type-label text-studio-muted">Next operational move</p>
+        <div className="mt-4 grid gap-4">
+          {summary.blocked.slice(0, 3).map(({ project, pressure }) => (
+            <ActionLine key={project.id} label="Unblock" project={project} value={pressure.blockers} />
+          ))}
+          {!summary.blocked.length && summary.waiting.slice(0, 3).map(({ project }) => (
+            <ActionLine key={project.id} label="Confirm" project={project} value={project.nextAction || 'Client decision needed'} />
+          ))}
+          {!summary.blocked.length && !summary.waiting.length && <EmptyModule message="No blocked or waiting items are visible." />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ModuleHeader({ icon: Icon, label, title }) {
   return (
     <header className="flex items-start justify-between rhythm-stack-tight">
       <div>
-        <p className="type-label text-studio-orange">{label}</p>
+        <p className="type-label text-studio-muted">{label}</p>
         <h2 className="type-section-title mt-2">{title}</h2>
       </div>
       <Icon size={16} className="text-studio-muted" />
@@ -259,27 +360,47 @@ function ModuleHeader({ icon: Icon, label, title }) {
 
 function Metric({ label, value }) {
   return (
-    <div className="rounded-xl border border-black/[0.05] bg-white rhythm-card-compact">
+    <div className="border-b border-r border-black/[0.08] px-4 py-5">
       <p className="type-label">{label}</p>
-      <p className="type-page-title mt-4">{value}</p>
+      <p className="type-section-title mt-3">{value}</p>
     </div>
   );
 }
 
-function ProjectRow({ project }) {
-  const timeline = calculateTimeline(project);
-
+function ProjectRow({ pressure, project }) {
   return (
-    <article className="rounded-xl border border-black/[0.05] bg-white rhythm-card-compact">
+    <article className="grid gap-4 border-b border-black/[0.06] px-1 py-5 last:border-b-0 md:grid-cols-[1fr_10rem]">
       <div className="flex flex-wrap items-start justify-between rhythm-control-gap">
         <div className="min-w-0">
           <p className="type-card-title truncate">{project.name || 'Untitled Project'}</p>
           <p className="type-caption mt-1">{project.client || project.location || 'Client TBD'}</p>
         </div>
-        <Badge tone={timeline.deliveryPressure}>{timeline.deliveryPressure}</Badge>
+        <Badge tone={pressure.blocked ? 'critical' : pressure.timeline.deliveryPressure}>{pressure.blocked ? 'blocked' : pressure.timeline.deliveryPressure}</Badge>
       </div>
-      <p className="type-body mt-4 text-studio-ink">{project.nextAction || 'Next action not set.'}</p>
+      <p className="type-body text-studio-ink md:col-start-1">{project.nextAction || pressure.blockers || 'Next action not set.'}</p>
+      <p className="type-control text-studio-muted md:col-start-2 md:row-start-1 md:text-right">
+        {pressure.openingDays !== null ? `Opening ${formatDaysLabel(pressure.openingDays)}` : pressure.handoverDays !== null ? `Handover ${formatDaysLabel(pressure.handoverDays)}` : 'No date'}
+      </p>
     </article>
+  );
+}
+
+function Signal({ label, urgent = false, value }) {
+  return (
+    <div className="border-b border-r border-black/[0.08] px-4 py-4">
+      <p className="type-label">{label}</p>
+      <p className={`type-section-title mt-2 ${urgent ? 'text-red-800' : 'text-studio-ink'}`}>{value}</p>
+    </div>
+  );
+}
+
+function ActionLine({ label, project, value }) {
+  return (
+    <div className="border-b border-black/[0.06] pb-4">
+      <p className="type-label">{label}</p>
+      <p className="type-card-title mt-2">{project.name || 'Untitled Project'}</p>
+      <p className="type-caption mt-1">{value}</p>
+    </div>
   );
 }
 
@@ -292,13 +413,13 @@ function DateRow({ item }) {
       : `${item.daysUntil}d`;
 
   return (
-    <article className="rounded-xl border border-black/[0.05] bg-white rhythm-card-compact">
+    <article className="border-b border-black/[0.06] py-3 last:border-b-0">
       <div className="flex items-start justify-between rhythm-stack-tight">
         <div className="min-w-0">
           <p className="type-card-title truncate">{item.project.name || 'Untitled Project'}</p>
           <p className="type-caption mt-1">{item.label} / {formatDate(item.value)}</p>
         </div>
-        <span className={`type-control shrink-0 rounded-full px-3 py-1 ${isOverdue ? 'bg-red-50 text-red-700' : 'bg-[#f9f9f7] text-studio-muted'}`}>
+        <span className={`type-control shrink-0 border-l border-black/[0.08] pl-3 ${isOverdue ? 'text-red-700' : 'text-studio-muted'}`}>
           {label}
         </span>
       </div>
@@ -306,15 +427,32 @@ function DateRow({ item }) {
   );
 }
 
+function TimelineGroup({ items, label }) {
+  return (
+    <section>
+      <div className="mb-2 flex items-center gap-2">
+        <p className="type-label">{label}</p>
+        <span className="h-px flex-1 bg-black/[0.06]" />
+        <span className="type-control text-studio-muted">{items.length}</span>
+      </div>
+      <div>
+        {items.slice(0, 4).map((item) => (
+          <DateRow key={`${label}-${item.project.id}-${item.label}-${item.value || item.daysUntil}`} item={item} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function EmptyModule({ message }) {
   return (
-    <p className="type-body rounded-xl border border-dashed border-black/[0.08] bg-[#f9f9f7] rhythm-card-compact text-center">
+    <p className="type-body border border-dashed border-black/[0.08] bg-studio-bone/35 rhythm-card-compact text-center">
       {message}
     </p>
   );
 }
 
-export function EditorialLayoutDashboard({ contentItems, portfolioItems, projects }) {
+export function EditorialLayoutDashboard({ contentItems, projects }) {
   const [isEditing, setIsEditing] = useState(false);
   const [layout, setLayout] = useState(readSavedLayout);
   const [notes, setNotes] = useState(readSavedNotes);
@@ -346,10 +484,10 @@ export function EditorialLayoutDashboard({ contentItems, portfolioItems, project
     <main className="grid rhythm-section page-fade">
       <header className="flex flex-col rhythm-stack border-b border-black/[0.08] pb-8 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="type-label text-studio-orange">Editorial Layout</p>
-          <h1 className="type-page-title mt-2">Structured Studio Composition</h1>
+          <p className="type-label text-studio-muted">Desktop Operations</p>
+          <h1 className="type-page-title mt-2">Studio Command Surface</h1>
           <p className="type-body mt-3 max-w-2xl">
-            Arrange the daily workspace as measured editorial blocks. The public view stays clean; edit mode exposes order, width, and visibility controls.
+            Scan today, risk, waiting decisions, and handover pressure before opening deeper project tools.
           </p>
         </div>
         <div className="flex flex-wrap rhythm-control-gap">
@@ -365,13 +503,13 @@ export function EditorialLayoutDashboard({ contentItems, portfolioItems, project
       </header>
 
       {isEditing && hiddenModules.length > 0 && (
-        <section className="rounded-2xl border border-black/[0.06] bg-[#f9f9f7] rhythm-card-compact">
+        <section className="rounded-lg border border-black/[0.06] bg-studio-bone/40 rhythm-card-compact">
           <p className="type-label">Hidden modules</p>
           <div className="mt-4 flex flex-wrap rhythm-control-gap">
             {hiddenModules.map((module) => (
               <button
                 key={module.id}
-                className="type-control inline-flex min-h-9 items-center gap-2 rounded-full border border-black/[0.05] bg-white px-4 text-studio-muted transition hover:text-studio-ink"
+                className="type-control inline-flex min-h-9 items-center gap-2 rounded-md border border-black/[0.05] bg-studio-bone/55 px-4 text-studio-muted transition hover:text-studio-ink"
                 type="button"
                 onClick={() => updateModule(module.id, { visible: true })}
               >
@@ -397,7 +535,6 @@ export function EditorialLayoutDashboard({ contentItems, portfolioItems, project
               contentItems={contentItems}
               module={module}
               notes={notes}
-              portfolioItems={portfolioItems}
               projects={projects}
               onNotesChange={setNotes}
             />

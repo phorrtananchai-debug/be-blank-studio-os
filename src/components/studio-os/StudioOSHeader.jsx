@@ -1,7 +1,42 @@
 import { Sparkles } from 'lucide-react';
 import { MetricCard } from '../MetricCard.jsx';
 
-export function StudioOSHeader({ activeProjects, contentApproved, nextHandover, onBackHome, portfolioCount }) {
+const dayInMs = 1000 * 60 * 60 * 24;
+
+function getDaysUntil(value) {
+  if (!value) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : Math.ceil((date - today) / dayInMs);
+}
+
+function getOperationalMetrics(projects = [], contentItems = []) {
+  const activeProjects = projects.filter((project) => project.status !== 'open');
+  const dates = activeProjects.flatMap((project) => [
+    getDaysUntil(project.designCompleteDate),
+    getDaysUntil(project.handoverDate),
+    getDaysUntil(project.openingDate),
+  ]).filter((value) => value !== null);
+  const overdue = dates.filter((days) => days < 0).length;
+  const openingSoon = activeProjects.filter((project) => {
+    const days = getDaysUntil(project.openingDate);
+    return days !== null && days >= 0 && days <= 21;
+  }).length;
+  const waitingApproval = activeProjects.filter((project) => /approval|approve|client|confirm|waiting|review/i.test([project.nextAction, project.blockers, project.notes].filter(Boolean).join(' '))).length
+    + contentItems.filter((item) => ['idea', 'draft', 'review'].includes(String(item.status || '').toLowerCase())).length;
+  const blocked = activeProjects.filter((project) => String(project.blockers || '').trim()).length;
+  const handoverRisk = activeProjects.filter((project) => {
+    const days = getDaysUntil(project.handoverDate);
+    return days !== null && days <= 14;
+  }).length;
+
+  return { blocked, handoverRisk, openingSoon, overdue, waitingApproval };
+}
+
+export function StudioOSHeader({ contentItems, onBackHome, projects }) {
+  const metrics = getOperationalMetrics(projects, contentItems);
+
   return (
     <header className="grid rhythm-section xl:grid-cols-[1fr_auto] xl:items-end border-b border-black/[0.08] pb-12">
       <div className="space-y-10">
@@ -25,11 +60,12 @@ export function StudioOSHeader({ activeProjects, contentApproved, nextHandover, 
           </p>
         </div>
       </div>
-      <div className="grid w-full grid-cols-2 rhythm-grid sm:grid-cols-4 xl:w-[700px]">
-        <MetricCard label="Active Projects" value={activeProjects} />
-        <MetricCard label="Approved posts" value={contentApproved} />
-        <MetricCard label="Archive Items" value={portfolioCount} />
-        <MetricCard label="Next Handover" value={nextHandover} />
+      <div className="grid w-full grid-cols-2 rhythm-grid sm:grid-cols-5 xl:w-[760px]">
+        <MetricCard label="Overdue" value={metrics.overdue} />
+        <MetricCard label="Opening soon" value={metrics.openingSoon} />
+        <MetricCard label="Waiting approval" value={metrics.waitingApproval} />
+        <MetricCard label="Blocked" value={metrics.blocked} />
+        <MetricCard label="Handover risk" value={metrics.handoverRisk} />
       </div>
     </header>
   );

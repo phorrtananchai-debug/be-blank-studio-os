@@ -36,7 +36,6 @@ export function StudioOSWorkspaceContent({
         {activeTab === 'flow' && (
           <EditorialLayoutDashboard
             contentItems={contentItems}
-            portfolioItems={portfolioItems}
             projects={projects}
           />
         )}
