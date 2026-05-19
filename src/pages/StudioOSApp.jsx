@@ -143,6 +143,20 @@ export function StudioOSApp({ navigate, routePath }) {
     showToast('Journal item created.');
   };
 
+  const addQuickNote = (text) => {
+    const [firstLine] = text.split('\n').map((line) => line.trim()).filter(Boolean);
+    setContentItems((items) => [
+      {
+        ...createContentItem(),
+        title: firstLine?.slice(0, 80) || 'Quick studio note',
+        captionEN: text,
+        platform: 'Studio',
+      },
+      ...items,
+    ]);
+    showToast('Note saved to Journal.');
+  };
+
   const deleteContent = (id) => {
     setContentItems((items) => items.filter((item) => item.id !== id));
     showToast('Journal item deleted.');
@@ -429,9 +443,11 @@ export function StudioOSApp({ navigate, routePath }) {
         </footer>
       </div>
       <QuickCapture
+        onAddNote={addQuickNote}
         onAddProject={addProject}
         onOpenArtwork={() => handleTabChange('artwork')}
         onOpenProjects={() => navigate('/os/projects')}
+        onToast={showToast}
       />
       <CommandPalette
         commands={commandPaletteCommands}
