@@ -7,18 +7,15 @@ export function AtmosphereCard({
 }) {
   return (
     <div
-      className="absolute group bg-white/40 backdrop-blur-xl border border-white/50 shadow-studio rounded-2xl p-6 min-w-[240px] cursor-default overflow-hidden"
+      className="absolute group min-w-[240px] cursor-default overflow-hidden rounded-md border border-black/[0.07] bg-studio-bone/55 p-6 backdrop-blur-sm"
       style={{
         left: element.x,
         top: element.y,
         zIndex: element.zIndex
       }}
     >
-      {/* Visual background glow */}
-      <div className="absolute -right-8 -top-8 size-24 bg-studio-orange/10 blur-3xl rounded-full" />
-
       <div
-        className="absolute top-3 left-3 p-1.5 bg-white/50 rounded-md opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity"
+        className="absolute left-3 top-3 cursor-grab rounded-sm border border-black/[0.06] bg-studio-bone/70 p-1.5 opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
         onMouseDown={(e) => onDragStart(e, element)}
       >
         <GripVertical size={12} className="text-studio-muted" />
@@ -26,13 +23,13 @@ export function AtmosphereCard({
 
       <button
         onClick={() => onDelete(element.id)}
-        className="absolute top-3 right-3 p-1.5 bg-white/50 rounded-md opacity-0 group-hover:opacity-100 hover:text-red-500 transition-opacity"
+        className="absolute right-3 top-3 rounded-sm border border-black/[0.06] bg-studio-bone/70 p-1.5 opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
       >
         <X size={12} />
       </button>
 
       <div className="space-y-4">
-        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-studio-orange">
+        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-studio-muted">
           <Wind size={12} strokeWidth={2.5} />
           Atmospheric Context
         </div>
@@ -46,9 +43,9 @@ export function AtmosphereCard({
           </p>
         </div>
 
-        <div className="flex gap-1.5 flex-wrap">
+        <div className="flex flex-wrap gap-1.5 border-t border-black/[0.06] pt-3">
           {(element.tags || ['natural-light', 'raw-texture', 'calm']).map(tag => (
-            <span key={tag} className="px-2 py-0.5 bg-black/[0.03] rounded-full text-[9px] font-bold uppercase tracking-wider text-studio-muted/70">
+            <span key={tag} className="border-l border-black/[0.08] pl-2 text-[9px] font-bold uppercase tracking-wider text-studio-muted/70">
               {tag}
             </span>
           ))}
