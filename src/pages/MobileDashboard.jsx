@@ -101,7 +101,7 @@ export function MobileDashboard({ onSignOut, user }) {
   }[activeTab];
 
   return (
-    <main className="relative mx-auto flex h-[100dvh] min-h-screen w-full max-w-[430px] flex-col overflow-hidden bg-[#F5F5FA] text-[#212121]">
+    <main className="relative mx-auto flex h-[100dvh] min-h-screen w-full max-w-[430px] flex-col overflow-hidden bg-studio-mobile-canvas text-[#212121]">
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <header className="flex h-16 w-full shrink-0 items-center justify-between bg-transparent px-4">
           <button className="grid size-10 place-items-center rounded-full bg-white transition duration-[120ms] ease-out active:scale-95" type="button">

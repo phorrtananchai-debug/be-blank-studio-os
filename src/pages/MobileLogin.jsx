@@ -47,7 +47,7 @@ export function MobileLogin({ errorMessage, onPreviewDashboard, onSignIn }) {
   };
 
   return (
-    <main className="min-h-[100dvh] w-full overflow-hidden bg-[#f5f5f5] text-[#111111]">
+    <main className="min-h-[100dvh] w-full overflow-hidden bg-studio-mobile-canvas text-[#111111]">
       <div className="flex min-h-[100dvh] w-full flex-col justify-between px-5 py-6">
         <div aria-hidden="true" />
         <section className="flex flex-col items-center justify-center text-center">
@@ -66,8 +66,8 @@ export function MobileLogin({ errorMessage, onPreviewDashboard, onSignIn }) {
 
         <div className="w-full">
           <button
-            className={`flex h-14 w-full items-center justify-center gap-3 rounded-[18px] border border-black/[0.08] bg-[#ffffff] text-sm font-medium text-[#111111] transition duration-200 ease-out ${
-              isSigningIn ? 'scale-[0.98]' : 'hover:bg-[#fbfbfa] active:scale-[0.98]'
+            className={`flex h-14 w-full items-center justify-center gap-3 rounded-[18px] border border-black/[0.08] bg-studio-bone text-sm font-medium text-[#111111] transition duration-200 ease-out ${
+              isSigningIn ? 'scale-[0.98]' : 'hover:bg-studio-panel active:scale-[0.98]'
             }`}
             disabled={isSigningIn}
             type="button"

@@ -297,7 +297,7 @@ export function getStateInfo(state) {
     return { chipClass: 'bg-[#DBDFE9] text-[#212121]', Icon: Clock, label: 'IN PROGRESS' };
   }
 
-  return { chipClass: 'bg-[#F5F5FA] text-[#777777]', Icon: Clock, label: 'PLANNED' };
+  return { chipClass: 'bg-studio-stone text-[#777777]', Icon: Clock, label: 'PLANNED' };
 }
 
 export function taskOccursOnDateForState(task, date) {

@@ -10,11 +10,12 @@ export default {
       },
       colors: {
         studio: {
-          canvas: '#f8f9fa',
-          bone: '#ffffff',
-          stone: '#f1f3f5',
-          panel: '#ffffff',
-          panelSoft: '#f8f9fa',
+          paper: '#D7D3C8',
+          canvas: '#D7D3C8',
+          bone: '#E9E5DB',
+          stone: '#DED9CD',
+          panel: '#E9E5DB',
+          panelSoft: '#DED9CD',
           line: 'rgba(0,0,0,0.06)',
           accent: '#212529',
           accentMuted: '#495057',
@@ -24,7 +25,7 @@ export default {
           inkLight: '#343a40',
           muted: '#868e96',
           mobile: {
-            canvas: '#F5F5FA',
+            canvas: '#D7D3C8',
             ink: '#212121',
             muted: '#777777',
             line: 'rgba(33,33,33,0.08)',

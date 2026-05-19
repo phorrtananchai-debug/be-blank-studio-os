@@ -70,7 +70,7 @@ function getStatusClass(status) {
     return 'bg-[#FFF0A3] text-[#212121]';
   }
 
-  return 'bg-[#F5F5FA] text-[#777777]';
+  return 'bg-studio-stone text-[#777777]';
 }
 
 function getStatusIcon(status) {
@@ -172,7 +172,7 @@ function ProjectCard({ onSelect, project, tasks }) {
 
   return (
     <button
-      className="w-full rounded-[26px] border border-black/5 bg-white p-4 text-left shadow-sm transition duration-[120ms] ease-out active:scale-[0.98] active:bg-[#F5F5FA]"
+      className="w-full rounded-[26px] border border-black/5 bg-white p-4 text-left shadow-sm transition duration-[120ms] ease-out active:scale-[0.98] active:bg-studio-stone"
       type="button"
       onClick={() => onSelect(project.id)}
     >
