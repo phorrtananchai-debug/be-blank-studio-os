@@ -1,11 +1,11 @@
-import { Sparkles, Wind, Zap, Moon, Sun } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, CircleDashed, ClipboardList, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
 const energies = [
-  { id: 'calm', icon: Wind, label: 'Calm & Precise' },
-  { id: 'steady', icon: Sun, label: 'Steady Progress' },
-  { id: 'high', icon: Zap, label: 'High Velocity' },
-  { id: 'rest', icon: Moon, label: 'Quiet / Reflection' },
+  { id: 'calm', icon: CheckCircle2, label: 'On Track' },
+  { id: 'steady', icon: CircleDashed, label: 'In Progress' },
+  { id: 'high', icon: AlertTriangle, label: 'At Risk' },
+  { id: 'rest', icon: ClipboardList, label: 'Awaiting Input' },
 ];
 
 export function NarrativePanel({ project, onUpdate }) {
@@ -23,10 +23,10 @@ export function NarrativePanel({ project, onUpdate }) {
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-studio-orange">
             <Sparkles size={14} strokeWidth={2} />
-            Project Narrative
+            Project Intelligence
           </div>
           <p className="text-3xl font-bold tracking-tight text-studio-ink">
-            {project.name || 'Atmospheric Essence'}
+            {project.name || 'Operational Profile'}
           </p>
         </div>
         <button
@@ -38,38 +38,38 @@ export function NarrativePanel({ project, onUpdate }) {
       </header>
 
       <div className="grid gap-16 lg:grid-cols-2">
-        {/* Left Column: Mood & Descriptors */}
+        {/* Left Column: Objective & Tags */}
         <div className="space-y-12">
           <div className="space-y-3">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-studio-muted/60">The Mood</label>
+            <label className="text-[11px] font-bold uppercase tracking-wider text-studio-muted/60">Project Objective</label>
             {isEditing ? (
               <textarea
                 value={project.mood || ''}
                 onChange={(e) => handleUpdate('mood', e.target.value)}
-                placeholder="Describe the emotional quality of the space..."
+                placeholder="Define delivery strategy, approvals, procurement, contractor coordination..."
                 className="w-full border-none bg-transparent p-0 text-xl font-medium leading-relaxed text-studio-ink placeholder:text-black/10 focus:ring-0"
                 rows={3}
               />
             ) : (
               <p className="text-xl font-medium leading-relaxed text-studio-ink/80">
-                {project.mood || 'A quiet arrival. Filtered light through heavy stone. The scent of rain on concrete.'}
+                {project.mood || 'delivery strategy, approvals, procurement, contractor coordination'}
               </p>
             )}
           </div>
 
           <div className="space-y-3">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-studio-muted/60">Atmospheric Descriptors</label>
+            <label className="text-[11px] font-bold uppercase tracking-wider text-studio-muted/60">Operational Tags</label>
             <div className="flex flex-wrap gap-x-6 gap-y-3">
               {isEditing ? (
                 <input
                   type="text"
                   value={project.atmosphericDescriptors || ''}
                   onChange={(e) => handleUpdate('atmosphericDescriptors', e.target.value)}
-                  placeholder="e.g. Tactile, Monolithic, Diffused"
+                  placeholder="approvals, procurement, blockers, dependencies"
                   className="w-full border-b border-black/10 bg-transparent py-1.5 text-sm font-semibold focus:border-studio-orange focus:ring-0"
                 />
               ) : (
-                (project.atmosphericDescriptors || 'Minimalist, Warm, Architectural, Raw').split(',').map((tag, i) => (
+                (project.atmosphericDescriptors || 'approvals, procurement, handover readiness, timeline risk').split(',').map((tag, i) => (
                   <span key={i} className="text-[11px] font-bold uppercase tracking-wide text-studio-muted">
                     {tag.trim()}
                   </span>
@@ -79,10 +79,10 @@ export function NarrativePanel({ project, onUpdate }) {
           </div>
         </div>
 
-        {/* Right Column: Energy & Focus */}
+        {/* Right Column: Delivery & Priority */}
         <div className="space-y-12">
           <div className="space-y-4">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-studio-muted/60">Timeline Energy</label>
+            <label className="text-[11px] font-bold uppercase tracking-wider text-studio-muted/60">Delivery Status</label>
             <div className="grid grid-cols-2 gap-3">
               {energies.map((energy) => {
                 const Icon = energy.icon;
@@ -106,18 +106,18 @@ export function NarrativePanel({ project, onUpdate }) {
           </div>
 
           <div className="space-y-4">
-            <label className="text-[10px] font-bold uppercase  text-studio-muted/60">Current Focus</label>
+            <label className="text-[10px] font-bold uppercase  text-studio-muted/60">Current Priority</label>
             {isEditing ? (
               <input
                 type="text"
                 value={project.currentFocus || ''}
                 onChange={(e) => handleUpdate('currentFocus', e.target.value)}
-                placeholder="The single most important thing today..."
+                placeholder="Current priority, approval, dependency, or blocker..."
                 className="w-full border-none bg-transparent p-0 text-xl font-medium tracking-tight text-studio-ink placeholder:text-black/10 focus:ring-0"
               />
             ) : (
               <p className="text-xl font-medium tracking-tight text-studio-ink">
-                {project.currentFocus || 'Refining the entry sequence joinery details.'}
+                {project.currentFocus || 'handover readiness and contractor coordination'}
               </p>
             )}
           </div>
@@ -127,7 +127,7 @@ export function NarrativePanel({ project, onUpdate }) {
       <footer className="mt-20 border-t border-black/[0.03] pt-10">
         <div className="flex items-center gap-12">
           <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-studio-muted/40">Inspiration Count</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-studio-muted/40">Open Operational Tasks</span>
             <div className="flex items-center gap-3">
               <span className="text-2xl font-bold text-studio-ink">{project.inspirationCount || 0}</span>
               <div className="flex -space-x-1.5">
@@ -146,9 +146,9 @@ export function NarrativePanel({ project, onUpdate }) {
           <div className="h-10 w-px bg-black/[0.03]" />
 
           <div className="space-y-1">
-            <span className="text-[9px] font-bold uppercase  text-studio-muted/40">Phase Notes</span>
+            <span className="text-[9px] font-bold uppercase  text-studio-muted/40">Delivery Constraints</span>
             <p className="text-xs font-medium italic text-studio-muted">
-              {project.phaseNotes || 'No specific notes for this phase yet.'}
+              {project.phaseNotes || 'No delivery constraints recorded yet.'}
             </p>
           </div>
         </div>

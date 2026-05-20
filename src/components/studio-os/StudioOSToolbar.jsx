@@ -1,5 +1,6 @@
 import {
   Command as CommandIcon,
+  ClipboardCopy,
   FileJson,
   LayoutDashboard,
   Upload,
@@ -13,10 +14,16 @@ export function StudioOSToolbar({
   dataMode,
   importInputRef,
   isFirebaseConfigured,
+  onCopyIntelligenceJson,
+  onCopyIntelligencePrompt,
   onDisconnect,
   onExportBackup,
-  onImportBackup,
+  onExportIntelligenceJson,
+  onExportIntelligenceSummary,
+  onImportFile,
   onOpenCommandPalette,
+  onRequestAnalysisImport,
+  onRequestBackupImport,
   onToggleDebug,
   projectsError,
   studioUser,
@@ -41,18 +48,38 @@ export function StudioOSToolbar({
         )}
         {(authMessage || projectsError) && <span className="type-control text-red-500">{authMessage || projectsError}</span>}
         {toast?.message && <StatusToast message={toast.message} tone={toast.tone} />}
-        <input ref={importInputRef} accept="application/json" className="hidden" type="file" onChange={onImportBackup} />
+        <input ref={importInputRef} accept="application/json" className="hidden" type="file" onChange={onImportFile} />
         <Button variant="secondary" onClick={onOpenCommandPalette}>
           <CommandIcon size={14} strokeWidth={2.5} />
           Commands
         </Button>
-        <Button variant="secondary" onClick={() => importInputRef.current?.click()}>
+        <Button variant="secondary" onClick={onCopyIntelligencePrompt}>
+          <ClipboardCopy size={14} strokeWidth={2.5} />
+          AI Prompt
+        </Button>
+        <Button variant="secondary" onClick={onCopyIntelligenceJson}>
+          <ClipboardCopy size={14} strokeWidth={2.5} />
+          Copy JSON
+        </Button>
+        <Button variant="secondary" onClick={onExportIntelligenceSummary}>
+          <FileJson size={14} strokeWidth={2.5} />
+          Summary Text
+        </Button>
+        <Button variant="secondary" onClick={onRequestAnalysisImport}>
+          <Upload size={14} strokeWidth={2.5} />
+          Import Analysis
+        </Button>
+        <Button variant="secondary" onClick={onRequestBackupImport}>
           <Upload size={14} strokeWidth={2.5} />
           Import
         </Button>
-        <Button onClick={onExportBackup}>
+        <Button variant="secondary" onClick={onExportBackup}>
           <FileJson size={14} strokeWidth={2.5} />
           Export
+        </Button>
+        <Button aria-label="Download Intelligence JSON" onClick={onExportIntelligenceJson}>
+          <FileJson size={14} strokeWidth={2.5} />
+          Export Intelligence JSON
         </Button>
         <button
           onClick={onToggleDebug}

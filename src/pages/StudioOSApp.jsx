@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { CommandPalette } from '../components/CommandPalette.jsx';
 import { LoginPage } from '../components/LoginPage.jsx';
 import { QuickCapture } from '../components/dashboard/QuickCapture.jsx';
+import { StudioOSAnalysisPreview } from '../components/studio-os/StudioOSAnalysisPreview.jsx';
 import { StudioOSDebugPanel } from '../components/studio-os/StudioOSDebugPanel.jsx';
 import { StudioOSHeader } from '../components/studio-os/StudioOSHeader.jsx';
 import { StudioOSImportPreview } from '../components/studio-os/StudioOSImportPreview.jsx';
@@ -42,6 +43,14 @@ import {
 import { getAutoPortfolioLayout, stringifyLayout } from '../utils/layout.js';
 import { inferTaskDraft } from '../utils/operationalTasks.js';
 import { parseBackupJson, validateStudioBackup } from '../utils/backupValidation.js';
+import {
+  buildAiAnalysisPrompt,
+  buildStudioIntelligenceExport,
+  buildStudioIntelligenceSummary,
+  createAnalysisNote,
+  createAnalysisTask,
+  parseStudioAnalysisJson,
+} from '../utils/studioIntelligence.js';
 
 export function StudioOSApp({ navigate, routePath }) {
   const {
@@ -100,9 +109,11 @@ export function StudioOSApp({ navigate, routePath }) {
   } = useOperationalTasks({ enabled: Boolean(studioUser) || !isFirebaseConfigured, onToast: showToast });
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
+  const [pendingAnalysis, setPendingAnalysis] = useState(null);
   const [pendingBackup, setPendingBackup] = useState(null);
   const [lastAddedPortfolioId, setLastAddedPortfolioId] = useState('');
   const importInputRef = useRef(null);
+  const importModeRef = useRef('backup');
 
   const dataMode = isFirebaseConfigured
     ? (studioUser ? 'firebase' : 'firebase-auth')
@@ -285,6 +296,59 @@ export function StudioOSApp({ navigate, routePath }) {
     }
   };
 
+  const getIntelligenceJson = () => buildStudioIntelligenceExport({
+    contentItems,
+    portfolioItems,
+    projects,
+    tasks,
+  });
+
+  const exportIntelligenceJson = () => {
+    try {
+      downloadJson('be-blank-studio-intelligence.json', getIntelligenceJson());
+      showToast('Intelligence JSON exported.');
+    } catch (error) {
+      console.error(error);
+      showToast('Intelligence export failed.', 'error');
+    }
+  };
+
+  const downloadText = (filename, text) => {
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const copyTextToClipboard = async (text, successMessage) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast(successMessage);
+    } catch (error) {
+      console.error(error);
+      showToast('Clipboard copy failed.', 'error');
+    }
+  };
+
+  const copyIntelligenceJson = () => copyTextToClipboard(
+    JSON.stringify(getIntelligenceJson(), null, 2),
+    'Intelligence JSON copied.',
+  );
+
+  const exportIntelligenceSummary = () => {
+    const summaryText = buildStudioIntelligenceSummary(getIntelligenceJson());
+    downloadText('be-blank-studio-intelligence-summary.txt', summaryText);
+    showToast('Intelligence summary exported.');
+  };
+
+  const copyIntelligencePrompt = () => copyTextToClipboard(
+    buildAiAnalysisPrompt(),
+    'AI analysis prompt copied.',
+  );
+
   const copyCaption = async (item) => {
     const text = `${item.captionTH}\n\n${item.captionEN}`.trim();
     try {
@@ -343,6 +407,45 @@ export function StudioOSApp({ navigate, routePath }) {
     }
   };
 
+  const importAnalysis = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const { analysis, errors, preview } = parseStudioAnalysisJson(await file.text());
+      if (errors.length) {
+        throw new Error(errors[0]);
+      }
+
+      setPendingAnalysis({ analysis, fileName: file.name, preview });
+      showToast('AI analysis ready to review.', 'info');
+    } catch (error) {
+      setPendingAnalysis(null);
+      showToast(error.message || 'Import failed. Use valid AI analysis JSON.', 'error');
+    } finally {
+      event.target.value = '';
+    }
+  };
+
+  const importJsonFile = (event) => {
+    if (importModeRef.current === 'analysis') {
+      importAnalysis(event);
+    } else {
+      importBackup(event);
+    }
+    importModeRef.current = 'backup';
+  };
+
+  const requestBackupImport = () => {
+    importModeRef.current = 'backup';
+    importInputRef.current?.click();
+  };
+
+  const requestAnalysisImport = () => {
+    importModeRef.current = 'analysis';
+    importInputRef.current?.click();
+  };
+
   const confirmImportBackup = async () => {
     if (!pendingBackup) return;
 
@@ -374,6 +477,65 @@ export function StudioOSApp({ navigate, routePath }) {
   const cancelImportBackup = () => {
     setPendingBackup(null);
     showToast('Backup import cancelled.', 'info');
+  };
+
+  const findAnalysisProject = (update) => {
+    const byId = projects.find((project) => project.id === update.projectId);
+    if (byId) return byId;
+    const name = String(update.projectName || '').trim().toLowerCase();
+    return projects.find((project) => name && String(project.name || '').trim().toLowerCase() === name);
+  };
+
+  const confirmImportAnalysis = async () => {
+    if (!pendingAnalysis) return;
+
+    const { analysis } = pendingAnalysis;
+
+    try {
+      await Promise.all(analysis.projectUpdates.map(async (projectUpdate) => {
+        const project = findAnalysisProject(projectUpdate);
+        if (!project) return;
+
+        const updates = {};
+        if (projectUpdate.currentPriority) updates.currentFocus = projectUpdate.currentPriority;
+        if (projectUpdate.deliveryConstraints) updates.phaseNotes = projectUpdate.deliveryConstraints;
+        if (projectUpdate.status) updates.status = projectUpdate.status;
+        if (projectUpdate.pressureState) updates.intelligencePressureState = projectUpdate.pressureState;
+        if (Array.isArray(projectUpdate.risks)) updates.intelligenceRisks = projectUpdate.risks;
+        if (Array.isArray(projectUpdate.recommendedNextActions)) {
+          updates.nextAction = projectUpdate.recommendedNextActions.join('\n');
+        }
+
+        if (Object.keys(updates).length) {
+          await updateProject(project.id, updates);
+        }
+
+        if (Array.isArray(projectUpdate.suggestedTasks)) {
+          await Promise.all(projectUpdate.suggestedTasks.map((task) => createTask(createAnalysisTask(task, project.id))));
+        }
+      }));
+
+      await Promise.all((analysis.newTasks || []).map((task) => createTask(createAnalysisTask(task))));
+
+      const analysisNotes = (analysis.notes || []).map(createAnalysisNote);
+      if (analysis.summary) {
+        analysisNotes.unshift(createAnalysisNote({ title: 'AI analysis summary', body: analysis.summary }));
+      }
+      if (analysisNotes.length) {
+        setContentItems((items) => [...analysisNotes, ...items]);
+      }
+
+      setPendingAnalysis(null);
+      showToast('AI analysis applied.');
+    } catch (error) {
+      console.error(error);
+      showToast('AI analysis apply failed. Existing data was preserved where possible.', 'error');
+    }
+  };
+
+  const cancelImportAnalysis = () => {
+    setPendingAnalysis(null);
+    showToast('AI analysis import cancelled.', 'info');
   };
 
   const toggleDebugPanel = () => {
@@ -479,10 +641,16 @@ export function StudioOSApp({ navigate, routePath }) {
           projectsError={projectsError}
           studioUser={studioUser}
           toast={toast}
+          onCopyIntelligenceJson={copyIntelligenceJson}
+          onCopyIntelligencePrompt={copyIntelligencePrompt}
           onDisconnect={handleFirebaseSignOut}
           onExportBackup={exportBackup}
-          onImportBackup={importBackup}
+          onExportIntelligenceJson={exportIntelligenceJson}
+          onExportIntelligenceSummary={exportIntelligenceSummary}
+          onImportFile={importJsonFile}
           onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+          onRequestAnalysisImport={requestAnalysisImport}
+          onRequestBackupImport={requestBackupImport}
           onToggleDebug={toggleDebugPanel}
         />
 
@@ -525,6 +693,12 @@ export function StudioOSApp({ navigate, routePath }) {
           tasks={tasks}
           onCompleteTask={completeTask}
           onUpdateTask={updateTask}
+        />
+
+        <StudioOSAnalysisPreview
+          pendingAnalysis={pendingAnalysis}
+          onCancel={cancelImportAnalysis}
+          onConfirm={confirmImportAnalysis}
         />
 
         <footer className="border-t border-black/[0.03] pt-16 pb-24 text-center">

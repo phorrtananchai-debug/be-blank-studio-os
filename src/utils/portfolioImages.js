@@ -20,6 +20,11 @@ function normalizeImageRecord(image, fallbackAlt = '') {
   };
 }
 
+// Current public previews are client-side meta updates. True Facebook crawler previews
+// need static, SSR, or edge-rendered project metadata later. The image metadata shape
+// already allows thumbnail/medium/full URLs; generating resized assets remains a
+// future storage pipeline rather than a Firestore responsibility.
+
 export function getCoverImage(item) {
   return normalizeImageRecord(item.coverImage, item.title) || normalizeImageRecord(item.imageUrl, item.title);
 }
