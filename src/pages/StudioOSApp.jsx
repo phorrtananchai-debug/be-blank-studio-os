@@ -9,6 +9,7 @@ import { StudioOSNavigation } from '../components/studio-os/StudioOSNavigation.j
 import { StudioOSToolbar } from '../components/studio-os/StudioOSToolbar.jsx';
 import { StudioOSWorkspaceContent } from '../components/studio-os/StudioOSWorkspaceContent.jsx';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
+import { useOperationalTasks } from '../hooks/useOperationalTasks.js';
 import { usePortfolioItems } from '../hooks/usePortfolioItems.js';
 import { useStudioAuth } from '../hooks/useStudioAuth.js';
 import { useStudioProjects } from '../hooks/useStudioProjects.js';
@@ -35,8 +36,8 @@ import {
   createPortfolioItem,
   createProject,
   downloadJson,
-  formatDate,
 } from '../utils/dashboard.js';
+import { inferTaskDraft } from '../utils/operationalTasks.js';
 import { parseBackupJson, validateStudioBackup } from '../utils/backupValidation.js';
 
 export function StudioOSApp({ navigate, routePath }) {
@@ -87,6 +88,13 @@ export function StudioOSApp({ navigate, routePath }) {
   const { portfolioItems, setPortfolioItems } = usePortfolioItems({ enabled: Boolean(studioUser), seedWhenEmpty: true });
   const [copiedId, setCopiedId] = useState('');
   const { showToast, toast } = useToastMessage();
+  const {
+    completeTask,
+    createTask,
+    replaceLocalTasks,
+    tasks,
+    updateTask,
+  } = useOperationalTasks({ enabled: Boolean(studioUser) || !isFirebaseConfigured, onToast: showToast });
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   const [pendingBackup, setPendingBackup] = useState(null);
@@ -97,12 +105,6 @@ export function StudioOSApp({ navigate, routePath }) {
     : 'checking';
 
   const statusCounts = useMemo(() => countByStatus(projects, projectStatuses), [projects]);
-  const activeProjects = projects.filter((project) => project.status !== 'open').length;
-  const nextOpening = [...projects]
-    .filter((project) => project.openingDate)
-    .sort((a, b) => new Date(a.openingDate) - new Date(b.openingDate))[0];
-  const contentApproved = contentItems.filter((item) => item.status === 'approved').length;
-
   if (!studioUser && dataMode === 'firebase-auth') {
     return <LoginPage errorMessage={authMessage || projectsError} onBack={() => navigate('/')} onSignIn={handleFirebaseSignIn} />;
   }
@@ -148,6 +150,25 @@ export function StudioOSApp({ navigate, routePath }) {
   const addContent = () => {
     setContentItems((items) => [createContentItem(), ...items]);
     showToast('Journal item created.');
+  };
+
+  const addQuickNote = (text) => {
+    const [firstLine] = text.split('\n').map((line) => line.trim()).filter(Boolean);
+    setContentItems((items) => [
+      {
+        ...createContentItem(),
+        title: firstLine?.slice(0, 80) || 'Quick studio note',
+        captionEN: text,
+        platform: 'Studio',
+      },
+      ...items,
+    ]);
+    showToast('Note saved to Journal.');
+  };
+
+  const addQuickTask = async (text) => {
+    const savedTask = await createTask(inferTaskDraft(text, projects));
+    return Boolean(savedTask);
   };
 
   const deleteContent = (id) => {
@@ -221,6 +242,7 @@ export function StudioOSApp({ navigate, routePath }) {
         projects,
         contentItems,
         portfolioItems,
+        tasks,
       });
       showToast('Backup exported.');
     } catch (error) {
@@ -267,6 +289,9 @@ export function StudioOSApp({ navigate, routePath }) {
 
       setContentItems(backup.contentItems);
       setPortfolioItems(backup.portfolioItems);
+      if (backup.tasks?.length) {
+        replaceLocalTasks(backup.tasks);
+      }
       setPendingBackup(null);
       showToast(
         preview.projects && !studioUser
@@ -374,10 +399,9 @@ export function StudioOSApp({ navigate, routePath }) {
     <div className="min-h-screen bg-studio-paper text-studio-ink selection:bg-studio-ink/10 selection:text-studio-ink">
       <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-16 px-8 py-12 lg:px-12">
         <StudioOSHeader
-          activeProjects={activeProjects}
-          contentApproved={contentApproved}
-          nextHandover={nextOpening ? formatDate(nextOpening.openingDate) : 'TBD'}
-          portfolioCount={portfolioItems.length}
+          contentItems={contentItems}
+          tasks={tasks}
+          projects={projects}
           onBackHome={() => navigate('/')}
         />
 
@@ -429,6 +453,9 @@ export function StudioOSApp({ navigate, routePath }) {
           updateContent={updateContent}
           updatePortfolio={updatePortfolio}
           updateProject={updateProject}
+          tasks={tasks}
+          onCompleteTask={completeTask}
+          onUpdateTask={updateTask}
         />
 
         <footer className="border-t border-black/[0.03] pt-16 pb-24 text-center">
@@ -437,7 +464,14 @@ export function StudioOSApp({ navigate, routePath }) {
           </p>
         </footer>
       </div>
-      <QuickCapture onOpenArtwork={() => handleTabChange('artwork')} />
+      <QuickCapture
+        onAddNote={addQuickNote}
+        onAddProject={addProject}
+        onAddTask={addQuickTask}
+        onOpenArtwork={() => handleTabChange('artwork')}
+        onOpenProjects={() => navigate('/os/projects')}
+        onToast={showToast}
+      />
       <CommandPalette
         commands={commandPaletteCommands}
         isOpen={isCommandPaletteOpen}

@@ -1,10 +1,67 @@
-import { Mic, Camera, FileText, Plus, X, Sparkles, Send, Layers } from 'lucide-react';
+import { CalendarClock, ClipboardList, FileText, Image, NotebookPen, Plus, Send, Sparkles, X } from 'lucide-react';
 import { useState } from 'react';
 
-export function QuickCapture({ onOpenArtwork }) {
+const supportedModes = new Set(['project', 'note', 'task']);
+const stagedCopy = {
+  deadline: 'Deadline capture is staged. Add the date inside a project timeline for now.',
+  meeting: 'Meeting capture is staged. Keep the decision in a note for now.',
+  reference: 'Reference capture is staged. Open Artwork Space to attach images to a board.',
+};
+
+export function QuickCapture({ onAddNote, onAddProject, onAddTask, onOpenArtwork, onOpenProjects, onToast }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeMode, setActiveMode] = useState('note'); // note, inspiration, voice, photo
+  const [activeMode, setActiveMode] = useState('task');
   const [content, setContent] = useState('');
+  const modes = [
+    { id: 'task', icon: ClipboardList, label: 'Task', placeholder: 'What needs to move today? Add YYYY-MM-DD when there is a real due date.' },
+    { id: 'project', icon: Plus, label: 'Project', placeholder: 'Create a project shell, then refine it in Projects.' },
+    { id: 'note', icon: NotebookPen, label: 'Note', placeholder: 'Capture studio context. This saves to Journal as an idea.' },
+    { id: 'meeting', icon: CalendarClock, label: 'Meeting', placeholder: 'Who, when, and what decision is needed?', staged: 'draft only' },
+    { id: 'reference', icon: Image, label: 'Reference', placeholder: 'Add a reference note or open the artwork board.', staged: 'open board' },
+    { id: 'deadline', icon: FileText, label: 'Deadline', placeholder: 'Project, date, and consequence...', staged: 'coming soon' },
+  ];
+  const currentMode = modes.find((mode) => mode.id === activeMode) || modes[0];
+  const isSupported = supportedModes.has(activeMode);
+
+  const handleSave = async () => {
+    if (activeMode === 'project') {
+      onAddProject?.();
+      onOpenProjects?.();
+      setIsOpen(false);
+      setContent('');
+      return;
+    }
+
+    if (activeMode === 'note') {
+      if (!content.trim()) {
+        return;
+      }
+      onAddNote?.(content.trim());
+      setIsOpen(false);
+      setContent('');
+      return;
+    }
+
+    if (activeMode === 'task') {
+      if (!content.trim()) {
+        return;
+      }
+      const savedTask = await onAddTask?.(content.trim());
+      if (savedTask === false || savedTask === null) {
+        return;
+      }
+      setIsOpen(false);
+      setContent('');
+      return;
+    }
+
+    onToast?.(stagedCopy[activeMode] || 'This quick action is staged and has not been saved yet.', 'info');
+    if (activeMode === 'reference') {
+      onOpenArtwork?.();
+      setIsOpen(false);
+      setContent('');
+    }
+  };
 
   if (!isOpen) {
     return (
@@ -41,13 +98,7 @@ export function QuickCapture({ onOpenArtwork }) {
         </header>
 
         <div className="mb-8 flex gap-2">
-          {[
-            { id: 'note', icon: FileText, label: 'Note' },
-            { id: 'inspiration', icon: Sparkles, label: 'Inspiration' },
-            { id: 'artwork', icon: Layers, label: 'Space' },
-            { id: 'voice', icon: Mic, label: 'Voice' },
-            { id: 'photo', icon: Camera, label: 'Photo' },
-          ].map((mode) => {
+          {modes.map((mode) => {
             const Icon = mode.icon;
             const isActive = activeMode === mode.id;
             return (
@@ -62,54 +113,49 @@ export function QuickCapture({ onOpenArtwork }) {
               >
                 <Icon size={18} strokeWidth={2} />
                 <span className="text-[10px] font-bold uppercase tracking-wider">{mode.label}</span>
+                {mode.staged && <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">{mode.staged}</span>}
               </button>
             );
           })}
         </div>
 
         <div className="relative">
-          {activeMode === 'note' || activeMode === 'inspiration' ? (
-            <textarea
-              autoFocus
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder={activeMode === 'note' ? "Capture a fleeting thought..." : "What inspired you?"}
-              className="w-full border-none bg-transparent p-0 text-xl font-medium leading-relaxed text-studio-ink placeholder:text-black/10 focus:ring-0"
-              rows={4}
-            />
-          ) : activeMode === 'artwork' ? (
-            <div className="space-y-6 py-4 text-center">
-              <p className="text-lg font-medium text-studio-ink">Start a new spatial board?</p>
-              <button
-                onClick={() => {
-                  onOpenArtwork?.();
-                  setIsOpen(false);
-                }}
-                className="rounded-md bg-studio-ink px-5 py-2 text-xs font-bold uppercase tracking-widest text-white transition hover:bg-studio-inkLight"
-              >
-                Create Artwork Space
-              </button>
+          {activeMode === 'project' ? (
+            <div className="space-y-5 py-3">
+              <p className="text-lg font-medium text-studio-ink">
+                {currentMode.placeholder}
+              </p>
+              <p className="type-caption">
+                This creates a new operational project and opens the project queue.
+              </p>
             </div>
           ) : (
-            <div className="grid h-32 place-items-center rounded-md border border-dashed border-black/[0.08] bg-studio-bone/30">
-              <p className="text-[10px] font-bold uppercase  text-studio-muted/40 italic">
-                {activeMode === 'voice' ? 'Recording placeholder' : 'Camera stream placeholder'}
-              </p>
+            <div className="space-y-4">
+              {!isSupported && (
+                <p className="type-caption border-l border-black/[0.12] pl-3 text-studio-muted">
+                  {stagedCopy[activeMode]} Nothing will be saved from this mode yet.
+                </p>
+              )}
+              <textarea
+                autoFocus
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                disabled={!isSupported}
+                placeholder={isSupported ? currentMode.placeholder : 'Capture disabled until this workflow has real persistence.'}
+                className="w-full border-none bg-transparent p-0 text-xl font-medium leading-relaxed text-studio-ink placeholder:text-black/10 focus:ring-0 disabled:cursor-not-allowed disabled:opacity-45"
+                rows={4}
+              />
             </div>
           )}
         </div>
 
         <footer className="mt-10 flex justify-end">
           <button
-            onClick={() => {
-              // In a real app, this would save the content
-              setIsOpen(false);
-              setContent('');
-            }}
-            disabled={!content && activeMode !== 'voice' && activeMode !== 'photo'}
+            onClick={handleSave}
+            disabled={(['note', 'task'].includes(activeMode) && !content.trim()) || (!isSupported && activeMode !== 'reference')}
             className="group flex items-center gap-3 rounded-md bg-studio-ink px-6 py-3 text-[11px] font-bold uppercase text-white transition-all duration-300 hover:bg-studio-inkLight disabled:opacity-20 disabled:grayscale"
           >
-            <span>Save Entry</span>
+            <span>{activeMode === 'project' ? 'Create Project' : activeMode === 'note' ? 'Save Note' : activeMode === 'task' ? 'Save Task' : activeMode === 'reference' ? 'Open Board' : 'Coming Soon'}</span>
             <Send size={14} className="transition-transform group-hover:translate-x-1" />
           </button>
         </footer>

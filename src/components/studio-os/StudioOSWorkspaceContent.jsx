@@ -26,6 +26,9 @@ export function StudioOSWorkspaceContent({
   selectedArtworkProjectId,
   statusCounts,
   studioUser,
+  tasks,
+  onCompleteTask,
+  onUpdateTask,
   updateContent,
   updatePortfolio,
   updateProject,
@@ -36,8 +39,10 @@ export function StudioOSWorkspaceContent({
         {activeTab === 'flow' && (
           <EditorialLayoutDashboard
             contentItems={contentItems}
-            portfolioItems={portfolioItems}
             projects={projects}
+            tasks={tasks}
+            onCompleteTask={onCompleteTask}
+            onUpdateTask={onUpdateTask}
           />
         )}
 
