@@ -101,6 +101,22 @@ function getDaysUntil(value, today = startOfToday()) {
   return date ? Math.ceil((date - today) / dayInMs) : null;
 }
 
+function formatDaysLabel(daysUntil) {
+  if (daysUntil === null) {
+    return 'No date';
+  }
+
+  if (daysUntil < 0) {
+    return `${Math.abs(daysUntil)}d overdue`;
+  }
+
+  if (daysUntil === 0) {
+    return 'Today';
+  }
+
+  return `${daysUntil}d left`;
+}
+
 function getProjectPressure(project, tasks = [], today = startOfToday()) {
   const timeline = calculateTimeline(project);
   const status = String(project.status || '').toLowerCase();
