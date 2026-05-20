@@ -45,6 +45,44 @@ export function getPortfolioLayout(item, index) {
   };
 }
 
+export function hasExplicitPortfolioLayout(item) {
+  return ['x', 'y', 'width', 'height'].every((key) => item[key] !== undefined && item[key] !== '');
+}
+
+export function getAutoPortfolioLayout(existingItems = []) {
+  const layouts = existingItems.map((item, index) => getPortfolioLayout(item, index));
+  const lastLayout = layouts.sort((left, right) => (left.y + left.height) - (right.y + right.height)).at(-1);
+  const index = existingItems.length;
+  const isLeft = index % 2 === 0;
+  const verticalBase = lastLayout ? lastLayout.y + lastLayout.height + 18 : 8;
+  const rhythmOffset = index % 4 === 1 ? 10 : index % 4 === 2 ? 4 : 0;
+  const width = isLeft ? 24 : 20;
+  const height = isLeft ? 34 : 28;
+
+  return {
+    x: isLeft ? 8 + (index % 3) * 5 : 63 - (index % 3) * 4,
+    y: Math.max(8, verticalBase + rhythmOffset),
+    width,
+    height,
+    zIndex: clampNumber((lastLayout?.zIndex || 2) + 1, 1, 20),
+  };
+}
+
+export function getNormalizedPortfolioLayouts(items = []) {
+  return items.reduce((layouts, item, index) => {
+    if (hasExplicitPortfolioLayout(item)) {
+      return { ...layouts, [item.id]: getPortfolioLayout(item, index) };
+    }
+
+    const previousItems = items.slice(0, index).map((previousItem, previousIndex) => ({
+      ...previousItem,
+      ...(layouts[previousItem.id] ? stringifyLayout(layouts[previousItem.id]) : {}),
+    }));
+
+    return { ...layouts, [item.id]: getAutoPortfolioLayout(previousItems) };
+  }, {});
+}
+
 export function getNextInteractionLayout(mode, initial, dxPercent, dyPercent) {
   if (mode === 'resize-se') {
     return {

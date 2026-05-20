@@ -447,6 +447,21 @@
     cursor: move;
   }
 
+  .public-edit-item.is-highlighted .public-edit-frame {
+    outline-color: rgba(240, 74, 35, 0.72);
+  }
+
+  .public-edit-item.is-highlighted::after {
+    content: '';
+    position: absolute;
+    right: -0.45rem;
+    top: -0.45rem;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 9999px;
+    background: var(--signal-orange);
+  }
+
   .public-edit-layer-tools {
     position: absolute;
     left: 0;

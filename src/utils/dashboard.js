@@ -183,7 +183,7 @@ export function createContentItem() {
   };
 }
 
-export function createPortfolioItem() {
+export function createPortfolioItem(overrides = {}) {
   return {
     id: createId('portfolio'),
     title: 'Untitled Project',
@@ -199,11 +199,14 @@ export function createPortfolioItem() {
     concept: '',
     credits: '',
     tags: '',
-    x: '8',
-    y: '80',
-    width: '30',
-    height: '340',
-    zIndex: '1',
+    x: '',
+    y: '',
+    width: '',
+    height: '',
+    zIndex: '',
+    galleryImages: [],
+    coverImage: null,
+    ...overrides,
   };
 }
 
