@@ -16,10 +16,13 @@ export function StudioOSToolbar({
   isFirebaseConfigured,
   onCopyIntelligenceJson,
   onCopyIntelligencePrompt,
+  onCopyWeeklyReview,
   onDisconnect,
   onExportBackup,
   onExportIntelligenceJson,
   onExportIntelligenceSummary,
+  onExportWeeklyReviewBriefing,
+  onExportWeeklyReviewJson,
   onImportFile,
   onOpenCommandPalette,
   onRequestAnalysisImport,
@@ -56,6 +59,18 @@ export function StudioOSToolbar({
         <Button variant="secondary" onClick={onCopyIntelligencePrompt}>
           <ClipboardCopy size={14} strokeWidth={2.5} />
           AI Prompt
+        </Button>
+        <Button variant="secondary" onClick={onCopyWeeklyReview}>
+          <ClipboardCopy size={14} strokeWidth={2.5} />
+          Copy Weekly Review
+        </Button>
+        <Button variant="secondary" onClick={onExportWeeklyReviewBriefing}>
+          <FileJson size={14} strokeWidth={2.5} />
+          Briefing Text
+        </Button>
+        <Button variant="secondary" onClick={onExportWeeklyReviewJson}>
+          <FileJson size={14} strokeWidth={2.5} />
+          Weekly JSON
         </Button>
         <Button variant="secondary" onClick={onCopyIntelligenceJson}>
           <ClipboardCopy size={14} strokeWidth={2.5} />

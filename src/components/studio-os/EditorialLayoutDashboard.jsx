@@ -3,6 +3,7 @@ import {
   ArrowUp,
   CalendarDays,
   Check,
+  ClipboardList,
   CircleDashed,
   Eye,
   EyeOff,
@@ -23,6 +24,7 @@ import {
   getTaskSignalTone,
   normalizeTaskStatus,
 } from '../../utils/operationalTasks.js';
+import { buildWeeklyStudioReview } from '../../utils/weeklyReview.js';
 
 const layoutStorageKey = 'beBlank.studioEditorialLayout.v1';
 const notesStorageKey = 'beBlank.studioEditorialNotes.v1';
@@ -31,6 +33,7 @@ const dayInMs = 1000 * 60 * 60 * 24;
 
 const defaultLayout = [
   { id: 'command', label: 'Command Center', size: 'full', visible: true },
+  { id: 'review', label: 'Weekly Review', size: 'full', visible: true },
   { id: 'pressure', label: 'Pressure Map', size: 'standard', visible: true },
   { id: 'timeline', label: 'Operational Timeline', size: 'standard', visible: true },
   { id: 'projects', label: 'Active Work', size: 'wide', visible: true },
@@ -325,6 +328,7 @@ function ModuleFrame({ children, isEditing, module, onMove, onResize, onToggleVi
 function EditorialModule({ contentItems, module, notes, projects, tasks, onCompleteTask, onNotesChange, onUpdateTask }) {
   const activeProjects = getActiveProjects(projects);
   const summary = getOperationalSummary(projects, contentItems, tasks);
+  const weeklyReview = buildWeeklyStudioReview({ projects, tasks });
 
   if (module.id === 'command') {
     return <CommandCenter projects={projects} summary={summary} onCompleteTask={onCompleteTask} />;
@@ -376,6 +380,10 @@ function EditorialModule({ contentItems, module, notes, projects, tasks, onCompl
     );
   }
 
+  if (module.id === 'review') {
+    return <WeeklyReviewPanel review={weeklyReview} />;
+  }
+
   if (module.id === 'notes') {
     return (
       <div>
@@ -391,6 +399,93 @@ function EditorialModule({ contentItems, module, notes, projects, tasks, onCompl
   }
 
   return null;
+}
+
+function ReviewList({ emptyText, items, renderItem, title }) {
+  return (
+    <section>
+      <div className="mb-2 flex items-center gap-2">
+        <p className="type-label text-studio-muted">{title}</p>
+        <span className="h-px flex-1 bg-black/[0.06]" />
+        <span className="type-control text-studio-muted">{items.length}</span>
+      </div>
+      <div className="grid gap-0 border-y border-black/[0.06]">
+        {items.length ? items.slice(0, 4).map(renderItem) : <p className="type-caption py-3 text-studio-muted">{emptyText}</p>}
+      </div>
+    </section>
+  );
+}
+
+function WeeklyReviewPanel({ review }) {
+  return (
+    <div>
+      <ModuleHeader icon={ClipboardList} label={review.weekRange.label} title="Weekly Operations Review" />
+      <div className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid gap-5">
+          <ReviewList
+            title="This Week's Risks"
+            items={review.projectsAtRisk}
+            emptyText="No project is currently marked at risk."
+            renderItem={(project) => (
+              <article key={project.id} className="studio-accent-left border-b border-black/[0.05] py-3 pl-3 last:border-b-0" data-tone={project.pressureState === 'CRITICAL' ? 'critical' : 'risk'}>
+                <p className="type-card-title">{project.name}</p>
+                <p className="type-caption mt-1">{project.pressureState}{project.reason ? ` / ${project.reason}` : ''}</p>
+              </article>
+            )}
+          />
+          <ReviewList
+            title="Blocked / Waiting"
+            items={[...review.blockedItems, ...review.waitingApprovals]}
+            emptyText="No blocked or waiting items detected."
+            renderItem={(item) => (
+              <article key={`${item.id}-${item.status}`} className="studio-accent-left border-b border-black/[0.05] py-3 pl-3 last:border-b-0" data-tone={item.status === 'BLOCKED' ? 'blocked' : 'waiting'}>
+                <p className="type-card-title">{item.title}</p>
+                <p className="type-caption mt-1">{item.projectName} / {item.blockedBy || item.waitingFor || 'No owner noted'}</p>
+              </article>
+            )}
+          />
+        </div>
+
+        <div className="grid gap-5">
+          <ReviewList
+            title="Critical Milestones"
+            items={[...review.overdueMilestones, ...review.criticalDeadlines]}
+            emptyText="No overdue or near-term critical milestones."
+            renderItem={(milestone) => (
+              <article key={`${milestone.projectId}-${milestone.id}`} className="studio-accent-left border-b border-black/[0.05] py-3 pl-3 last:border-b-0" data-tone={milestone.daysUntil < 0 ? 'overdue' : milestone.riskLevel.toLowerCase()}>
+                <p className="type-card-title">{milestone.label}</p>
+                <p className="type-caption mt-1">{milestone.projectName} / {milestone.daysUntil < 0 ? `${Math.abs(milestone.daysUntil)}d overdue` : `${milestone.daysUntil}d left`}</p>
+              </article>
+            )}
+          />
+          <ReviewList
+            title="Pressure Changes"
+            items={review.pressureChanges}
+            emptyText="No intelligence history changes detected yet."
+            renderItem={(change) => (
+              <article key={`${change.projectId}-${change.direction}`} className="border-b border-black/[0.05] py-3 last:border-b-0">
+                <p className="type-body text-studio-ink">{change.summary}</p>
+              </article>
+            )}
+          />
+        </div>
+      </div>
+      <div className="mt-5 grid gap-5 border-t border-black/[0.06] pt-5 lg:grid-cols-2">
+        <ReviewList
+          title="Recommended Focus"
+          items={review.recommendedFocus}
+          emptyText="Maintain current delivery rhythm."
+          renderItem={(focus) => <p key={focus} className="type-body border-b border-black/[0.05] py-3 text-studio-ink last:border-b-0">{focus}</p>}
+        />
+        <ReviewList
+          title="Operational Highlights"
+          items={review.operationalHighlights}
+          emptyText="No highlights generated from current data."
+          renderItem={(highlight) => <p key={highlight} className="type-body border-b border-black/[0.05] py-3 text-studio-ink last:border-b-0">{highlight}</p>}
+        />
+      </div>
+    </div>
+  );
 }
 
 function CommandCenter({ projects, summary, onCompleteTask }) {

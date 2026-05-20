@@ -53,6 +53,10 @@ import {
   parseStudioAnalysisJson,
 } from '../utils/studioIntelligence.js';
 import { mergeCriticalPathUpdates } from '../utils/criticalPath.js';
+import {
+  buildWeeklyReviewBriefing,
+  buildWeeklyStudioReview,
+} from '../utils/weeklyReview.js';
 
 export function StudioOSApp({ navigate, routePath }) {
   const {
@@ -309,6 +313,8 @@ export function StudioOSApp({ navigate, routePath }) {
     tasks,
   });
 
+  const getWeeklyReview = () => buildWeeklyStudioReview({ projects, tasks });
+
   const exportIntelligenceJson = () => {
     try {
       downloadJson('be-blank-studio-intelligence.json', getIntelligenceJson());
@@ -316,6 +322,16 @@ export function StudioOSApp({ navigate, routePath }) {
     } catch (error) {
       console.error(error);
       showToast('Intelligence export failed.', 'error');
+    }
+  };
+
+  const exportWeeklyReviewJson = () => {
+    try {
+      downloadJson('be-blank-weekly-studio-review.json', getWeeklyReview());
+      showToast('Weekly review JSON exported.');
+    } catch (error) {
+      console.error(error);
+      showToast('Weekly review export failed.', 'error');
     }
   };
 
@@ -343,6 +359,17 @@ export function StudioOSApp({ navigate, routePath }) {
     JSON.stringify(getIntelligenceJson(), null, 2),
     'Intelligence JSON copied.',
   );
+
+  const copyWeeklyReview = () => copyTextToClipboard(
+    JSON.stringify(getWeeklyReview(), null, 2),
+    'Weekly review copied.',
+  );
+
+  const exportWeeklyReviewBriefing = () => {
+    const briefingText = buildWeeklyReviewBriefing(getWeeklyReview());
+    downloadText('be-blank-weekly-studio-briefing.txt', briefingText);
+    showToast('Weekly briefing exported.');
+  };
 
   const exportIntelligenceSummary = () => {
     const summaryText = buildStudioIntelligenceSummary(getIntelligenceJson());
@@ -683,10 +710,13 @@ export function StudioOSApp({ navigate, routePath }) {
           toast={toast}
           onCopyIntelligenceJson={copyIntelligenceJson}
           onCopyIntelligencePrompt={copyIntelligencePrompt}
+          onCopyWeeklyReview={copyWeeklyReview}
           onDisconnect={handleFirebaseSignOut}
           onExportBackup={exportBackup}
           onExportIntelligenceJson={exportIntelligenceJson}
           onExportIntelligenceSummary={exportIntelligenceSummary}
+          onExportWeeklyReviewBriefing={exportWeeklyReviewBriefing}
+          onExportWeeklyReviewJson={exportWeeklyReviewJson}
           onImportFile={importJsonFile}
           onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
           onRequestAnalysisImport={requestAnalysisImport}
