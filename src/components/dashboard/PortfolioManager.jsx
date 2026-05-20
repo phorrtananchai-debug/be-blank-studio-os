@@ -15,7 +15,7 @@ import { useMemo, useState } from 'react';
 import { Button } from '../Button.jsx';
 import { Field } from '../Field.jsx';
 import { SectionCard } from '../SectionCard.jsx';
-import { createImageRecordDefaults, getImageFocusStyle } from '../../utils/portfolioImages.js';
+import { createImageRecordDefaults, getImageFocusStyle, resolvePortfolioImageUrl } from '../../utils/portfolioImages.js';
 
 function normalizeImageRecord(image, fallbackAlt = '') {
   if (!image) return null;
@@ -23,7 +23,7 @@ function normalizeImageRecord(image, fallbackAlt = '') {
     return createImageRecordDefaults({ alt: fallbackAlt, caption: '', fullUrl: image, mediumUrl: image, thumbnailUrl: image, url: image });
   }
 
-  const url = image.url || image.fullUrl || image.mediumUrl || image.thumbnailUrl || '';
+  const url = resolvePortfolioImageUrl(image);
   if (!url) return null;
 
   return createImageRecordDefaults({
@@ -119,7 +119,7 @@ function FocusPicker({ image, label, onChange }) {
           alt={image?.alt || label}
           className="aspect-[16/10] w-full"
           loading="lazy"
-          src={image?.mediumUrl || image?.thumbnailUrl || image?.url}
+          src={resolvePortfolioImageUrl(image, ['mediumUrl', 'thumbnailUrl', 'url', 'imageUrl', 'fullUrl'])}
           style={getImageFocusStyle(image)}
         />
         <span
@@ -170,7 +170,7 @@ function CoverPreview({ coverImage, isUploading, item, onFocusChange, onPreview,
                 alt={coverImage.alt || item.title}
                 className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.015]"
                 loading="lazy"
-                src={coverImage.mediumUrl || coverImage.thumbnailUrl || coverImage.url}
+                src={resolvePortfolioImageUrl(coverImage, ['mediumUrl', 'thumbnailUrl', 'url', 'imageUrl', 'fullUrl'])}
                 style={getImageFocusStyle(coverImage)}
               />
             </button>
@@ -236,7 +236,7 @@ function GalleryImageCard({
           alt={image.alt || `Gallery image ${index + 1}`}
           className={`w-full object-cover transition duration-500 group-hover:scale-[1.02] ${orientation === 'portrait' ? 'aspect-[4/5]' : 'aspect-[4/3]'}`}
           loading="lazy"
-          src={image.thumbnailUrl || image.mediumUrl || image.url}
+          src={resolvePortfolioImageUrl(image, ['thumbnailUrl', 'mediumUrl', 'url', 'imageUrl', 'fullUrl'])}
           style={getImageFocusStyle(image)}
           onLoad={(event) => onImageLoad(index, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)}
         />
@@ -313,9 +313,10 @@ function GalleryManager({ galleryImages, isUploading, item, onPreview, onUpdate,
     commitGallery(galleryImages.filter((_, imageIndex) => imageIndex !== index));
   };
   const setCover = (image) => {
+    const url = resolvePortfolioImageUrl(image);
     onUpdate(item.id, {
       coverImage: { ...image, relationship: 'cover' },
-      imageUrl: image.fullUrl || image.url,
+      imageUrl: url,
     });
   };
   const recordDimensions = (index, width, height) => {
@@ -393,6 +394,7 @@ function GalleryManager({ galleryImages, isUploading, item, onPreview, onUpdate,
 
 function MediaPreviewModal({ image, onClose }) {
   if (!image) return null;
+  const imageUrl = resolvePortfolioImageUrl(image);
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black p-6">
@@ -404,11 +406,20 @@ function MediaPreviewModal({ image, onClose }) {
       >
         <X size={18} />
       </button>
-      <img
-        alt={image.alt || image.caption || 'Portfolio media preview'}
-        className="max-h-[88vh] max-w-[92vw] object-contain"
-        src={image.fullUrl || image.mediumUrl || image.url}
-      />
+      {imageUrl ? (
+        <img
+          alt={image.alt || image.caption || 'Portfolio media preview'}
+          className="max-h-[88vh] max-w-[92vw] object-contain"
+          src={imageUrl}
+        />
+      ) : (
+        <div className="grid min-h-56 min-w-80 place-items-center rounded-md border border-white/15 text-center text-white/60">
+          <div>
+            <Image className="mx-auto text-white/35" size={36} strokeWidth={1} />
+            <p className="type-caption mt-3 text-white/60">No valid image URL found.</p>
+          </div>
+        </div>
+      )}
       {(image.caption || image.alt) && (
         <p className="type-caption absolute bottom-5 left-1/2 max-w-xl -translate-x-1/2 text-center text-white/70">
           {image.caption || image.alt}

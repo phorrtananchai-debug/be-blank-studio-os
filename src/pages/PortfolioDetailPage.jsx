@@ -1,6 +1,6 @@
 import { initialPortfolioItems } from '../data/seed.js';
 import { ProjectFact } from '../utils/portfolio.jsx';
-import { getCoverImage, getGalleryImageObjects, getImageFocusStyle } from '../utils/portfolioImages.js';
+import { getCoverImage, getGalleryImageObjects, getImageFocusStyle, resolvePortfolioImageUrl } from '../utils/portfolioImages.js';
 import { useEffect, useMemo, useState } from 'react';
 
 function upsertMeta(selector, attributes) {
@@ -47,7 +47,7 @@ function Lightbox({ images, initialIndex, onClose }) {
         </>
       )}
       <figure className="grid h-screen place-items-center px-8 py-16">
-        <img alt={image.alt || ''} className="max-h-full max-w-full object-contain" src={image.fullUrl || image.url} />
+        <img alt={image.alt || ''} className="max-h-full max-w-full object-contain" src={resolvePortfolioImageUrl(image)} />
         {image.caption && <figcaption className="absolute bottom-5 max-w-xl text-center text-xs font-medium text-white/60">{image.caption}</figcaption>}
       </figure>
     </div>
@@ -63,7 +63,7 @@ export function PortfolioDetailPage({ item, navigate }) {
     const combined = [...coverImage, ...gallery];
     const seen = new Set();
     return combined.filter((image) => {
-      const url = image.fullUrl || image.url;
+      const url = resolvePortfolioImageUrl(image);
       if (!url || seen.has(url)) return false;
       seen.add(url);
       return true;
@@ -76,7 +76,7 @@ export function PortfolioDetailPage({ item, navigate }) {
     const title = `${portfolioItem.title || 'Project'} | Be Blank to Behind Studio`;
     const description = portfolioItem.subtitle || portfolioItem.description || portfolioItem.location || 'Be Blank to Behind Studio project archive.';
     const url = window.location.href;
-    const image = cover?.mediumUrl || cover?.fullUrl || cover?.url || '';
+    const image = resolvePortfolioImageUrl(cover, ['mediumUrl', 'fullUrl', 'url', 'imageUrl', 'thumbnailUrl']);
     document.title = title;
     upsertMeta('meta[property="og:title"]', { property: 'og:title', content: title });
     upsertMeta('meta[property="og:description"]', { property: 'og:description', content: description });
@@ -137,7 +137,7 @@ export function PortfolioDetailPage({ item, navigate }) {
 
         <section className="px-5 md:px-8">
           <button className="block w-full text-left" type="button" onClick={() => setLightboxIndex(0)}>
-            <img alt={portfolioItem.title} className="w-full rounded-xl object-cover shadow-studio" loading="eager" src={cover?.mediumUrl || portfolioItem.imageUrl} style={getImageFocusStyle(cover)} />
+            <img alt={portfolioItem.title} className="w-full rounded-xl object-cover shadow-studio" loading="eager" src={resolvePortfolioImageUrl(cover, ['mediumUrl', 'fullUrl', 'url', 'imageUrl', 'thumbnailUrl']) || portfolioItem.imageUrl} style={getImageFocusStyle(cover)} />
           </button>
         </section>
 
@@ -154,8 +154,8 @@ export function PortfolioDetailPage({ item, navigate }) {
 
         <section className="grid gap-8 px-5 pb-24 md:grid-cols-2 md:px-8">
           {gallery.map((image, index) => (
-            <button key={`${image.fullUrl || image.url}-${index}`} className="text-left" type="button" onClick={() => setLightboxIndex(allImages.findIndex((candidate) => (candidate.fullUrl || candidate.url) === (image.fullUrl || image.url)))}>
-              <img alt={image.alt || portfolioItem.title} className="aspect-[4/3] w-full rounded-xl object-cover shadow-studioSoft" loading="lazy" sizes="(max-width: 768px) 100vw, 50vw" src={image.mediumUrl || image.url} style={getImageFocusStyle(image)} />
+            <button key={`${resolvePortfolioImageUrl(image)}-${index}`} className="text-left" type="button" onClick={() => setLightboxIndex(allImages.findIndex((candidate) => resolvePortfolioImageUrl(candidate) === resolvePortfolioImageUrl(image)))}>
+              <img alt={image.alt || portfolioItem.title} className="aspect-[4/3] w-full rounded-xl object-cover shadow-studioSoft" loading="lazy" sizes="(max-width: 768px) 100vw, 50vw" src={resolvePortfolioImageUrl(image, ['mediumUrl', 'url', 'imageUrl', 'thumbnailUrl', 'fullUrl'])} style={getImageFocusStyle(image)} />
             </button>
           ))}
         </section>

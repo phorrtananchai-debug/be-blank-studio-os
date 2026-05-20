@@ -9,7 +9,7 @@ import {
   hasExplicitPortfolioLayout,
   stringifyLayout,
 } from '../utils/layout.js';
-import { getCoverImage, getImageFocusStyle } from '../utils/portfolioImages.js';
+import { getCoverImage, getImageFocusStyle, resolvePortfolioImageUrl } from '../utils/portfolioImages.js';
 
 const defaultEditorSettings = {
   titleOffsetY: 0,
@@ -227,7 +227,7 @@ function HomeArchiveItem({ editorSettings, index, item, navigate }) {
             className="w-full object-cover transition duration-[1200ms] ease-studio-out group-hover:scale-[1.012] group-hover:opacity-95"
             loading="lazy"
             sizes="(max-width: 768px) 92vw, 34vw"
-            src={cover?.mediumUrl || item.imageUrl}
+            src={resolvePortfolioImageUrl(cover, ['mediumUrl', 'url', 'imageUrl', 'thumbnailUrl', 'fullUrl']) || item.imageUrl}
             style={{
               height: `${layout.height * 10}px`,
               ...getImageFocusStyle(cover),
@@ -295,7 +295,7 @@ function EditableArchiveItem({ editorSettings, highlighted, index, item, layout,
             className="w-full object-cover"
             loading="lazy"
             sizes="(max-width: 768px) 92vw, 34vw"
-            src={cover?.mediumUrl || item.imageUrl}
+            src={resolvePortfolioImageUrl(cover, ['mediumUrl', 'url', 'imageUrl', 'thumbnailUrl', 'fullUrl']) || item.imageUrl}
             style={{
               height: `${layout.height * 10}px`,
               ...getImageFocusStyle(cover),

@@ -4,7 +4,7 @@ function normalizeImageRecord(image, fallbackAlt = '') {
     return createImageRecordDefaults({ alt: fallbackAlt, caption: '', fullUrl: image, mediumUrl: image, thumbnailUrl: image, url: image });
   }
 
-  const url = image.url || image.fullUrl || image.mediumUrl || image.thumbnailUrl || '';
+  const url = resolvePortfolioImageUrl(image);
   if (!url) return null;
 
   return createImageRecordDefaults({
@@ -28,6 +28,15 @@ function normalizeImageRecord(image, fallbackAlt = '') {
     url,
     width: image.width || null,
   });
+}
+
+export function resolvePortfolioImageUrl(image, preferred = ['fullUrl', 'mediumUrl', 'url', 'imageUrl', 'thumbnailUrl']) {
+  if (!image) return '';
+  if (typeof image === 'string') return image.trim();
+
+  return preferred
+    .map((key) => image[key])
+    .find((value) => typeof value === 'string' && value.trim()) || '';
 }
 
 export function createImageRecordDefaults(image = {}) {
@@ -75,5 +84,5 @@ export function getGalleryImageObjects(item) {
 }
 
 export function getGalleryImages(item) {
-  return getGalleryImageObjects(item).map((image) => image.fullUrl || image.url).filter(Boolean);
+  return getGalleryImageObjects(item).map((image) => resolvePortfolioImageUrl(image)).filter(Boolean);
 }
