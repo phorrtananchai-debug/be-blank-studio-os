@@ -24,6 +24,7 @@ import {
 } from '../../utils/dashboard.js';
 import { KeyDate, FinanceStat } from './ProjectFinancials.jsx';
 import { NarrativePanel } from './NarrativePanel.jsx';
+import { CriticalPathPanel } from './CriticalPathPanel.jsx';
 import { ArtworkSpace } from '../artwork/ArtworkSpace.jsx';
 import { EmptyState } from '../EmptyState.jsx';
 import { PresentationOverlay } from './PresentationOverlay.jsx';
@@ -274,6 +275,7 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
                 />
               </div>
             </SectionCard>
+            <CriticalPathPanel project={project} onUpdate={onUpdate} />
           </div>
         )}
 
