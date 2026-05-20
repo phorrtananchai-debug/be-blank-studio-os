@@ -5,12 +5,11 @@ import { useStudioAuth } from '../hooks/useStudioAuth.js';
 import {
   getNextInteractionLayout,
   getNormalizedPortfolioLayouts,
-  getPortfolioImageObjectPosition,
   getPortfolioLayout,
   hasExplicitPortfolioLayout,
   stringifyLayout,
 } from '../utils/layout.js';
-import { getCoverImage } from '../utils/portfolioImages.js';
+import { getCoverImage, getImageFocusStyle } from '../utils/portfolioImages.js';
 
 const defaultEditorSettings = {
   titleOffsetY: 0,
@@ -222,7 +221,7 @@ function HomeArchiveItem({ editorSettings, index, item, navigate }) {
       }}
     >
       <button className="group block w-full text-left" type="button" onClick={() => navigate(`/portfolio/${encodeURIComponent(item.id)}`)}>
-        <span className="block overflow-hidden bg-[#f1f1ee]">
+        <span className="relative block overflow-hidden bg-[#f1f1ee]">
           <img
             alt={item.title}
             className="w-full object-cover transition duration-[1200ms] ease-studio-out group-hover:scale-[1.012] group-hover:opacity-95"
@@ -231,7 +230,7 @@ function HomeArchiveItem({ editorSettings, index, item, navigate }) {
             src={cover?.mediumUrl || item.imageUrl}
             style={{
               height: `${layout.height * 10}px`,
-              objectPosition: getPortfolioImageObjectPosition(index),
+              ...getImageFocusStyle(cover),
             }}
             onError={(event) => {
               event.currentTarget.style.display = 'none';
@@ -299,11 +298,18 @@ function EditableArchiveItem({ editorSettings, highlighted, index, item, layout,
             src={cover?.mediumUrl || item.imageUrl}
             style={{
               height: `${layout.height * 10}px`,
-              objectPosition: getPortfolioImageObjectPosition(index),
+              ...getImageFocusStyle(cover),
             }}
             draggable={false}
             onError={(event) => {
               event.currentTarget.style.display = 'none';
+            }}
+          />
+          <span
+            className={`pointer-events-none absolute size-2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white bg-studio-orange transition ${highlighted ? 'opacity-70' : 'opacity-0 group-hover:opacity-70'}`}
+            style={{
+              left: `${cover?.focusX ?? 50}%`,
+              top: `${cover?.focusY ?? 50}%`,
             }}
           />
         </span>

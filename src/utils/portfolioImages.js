@@ -1,22 +1,53 @@
 function normalizeImageRecord(image, fallbackAlt = '') {
   if (!image) return null;
   if (typeof image === 'string') {
-    return { alt: fallbackAlt, caption: '', fullUrl: image, mediumUrl: image, thumbnailUrl: image, url: image };
+    return createImageRecordDefaults({ alt: fallbackAlt, caption: '', fullUrl: image, mediumUrl: image, thumbnailUrl: image, url: image });
   }
 
   const url = image.url || image.fullUrl || image.mediumUrl || image.thumbnailUrl || '';
   if (!url) return null;
 
-  return {
+  return createImageRecordDefaults({
     alt: image.alt || fallbackAlt,
+    aspectIntent: image.aspectIntent,
+    blurhash: image.blurhash || '',
     caption: image.caption || '',
+    cropMode: image.cropMode,
+    cropNotes: image.cropNotes || '',
+    focusX: image.focusX,
+    focusY: image.focusY,
     fullUrl: image.fullUrl || url,
+    height: image.height || null,
     mediumUrl: image.mediumUrl || image.fullUrl || url,
     order: image.order,
+    orientation: image.orientation || '',
     path: image.path || image.fullPath || '',
+    placeholder: image.placeholder || '',
     relationship: image.relationship || '',
     thumbnailUrl: image.thumbnailUrl || image.mediumUrl || image.fullUrl || url,
     url,
+    width: image.width || null,
+  });
+}
+
+export function createImageRecordDefaults(image = {}) {
+  return {
+    ...image,
+    aspectIntent: ['auto', 'portrait', 'landscape', 'square', 'wide'].includes(image.aspectIntent) ? image.aspectIntent : 'auto',
+    cropMode: ['cover', 'contain', 'natural'].includes(image.cropMode) ? image.cropMode : 'cover',
+    cropNotes: image.cropNotes || '',
+    focusX: Number.isFinite(Number(image.focusX)) ? Math.min(100, Math.max(0, Number(image.focusX))) : 50,
+    focusY: Number.isFinite(Number(image.focusY)) ? Math.min(100, Math.max(0, Number(image.focusY))) : 50,
+  };
+}
+
+export function getImageFocusStyle(image, { fallbackFit = 'cover' } = {}) {
+  const normalized = createImageRecordDefaults(image || {});
+  const fit = normalized.cropMode === 'natural' ? 'contain' : normalized.cropMode || fallbackFit;
+
+  return {
+    objectFit: fit,
+    objectPosition: `${normalized.focusX}% ${normalized.focusY}%`,
   };
 }
 

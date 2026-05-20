@@ -1,6 +1,6 @@
 import { initialPortfolioItems } from '../data/seed.js';
 import { ProjectFact } from '../utils/portfolio.jsx';
-import { getCoverImage, getGalleryImageObjects } from '../utils/portfolioImages.js';
+import { getCoverImage, getGalleryImageObjects, getImageFocusStyle } from '../utils/portfolioImages.js';
 import { useEffect, useMemo, useState } from 'react';
 
 function upsertMeta(selector, attributes) {
@@ -137,7 +137,7 @@ export function PortfolioDetailPage({ item, navigate }) {
 
         <section className="px-5 md:px-8">
           <button className="block w-full text-left" type="button" onClick={() => setLightboxIndex(0)}>
-            <img alt={portfolioItem.title} className="w-full rounded-xl object-cover shadow-studio" loading="eager" src={cover?.mediumUrl || portfolioItem.imageUrl} />
+            <img alt={portfolioItem.title} className="w-full rounded-xl object-cover shadow-studio" loading="eager" src={cover?.mediumUrl || portfolioItem.imageUrl} style={getImageFocusStyle(cover)} />
           </button>
         </section>
 
@@ -155,7 +155,7 @@ export function PortfolioDetailPage({ item, navigate }) {
         <section className="grid gap-8 px-5 pb-24 md:grid-cols-2 md:px-8">
           {gallery.map((image, index) => (
             <button key={`${image.fullUrl || image.url}-${index}`} className="text-left" type="button" onClick={() => setLightboxIndex(allImages.findIndex((candidate) => (candidate.fullUrl || candidate.url) === (image.fullUrl || image.url)))}>
-              <img alt={image.alt || portfolioItem.title} className="aspect-[4/3] w-full rounded-xl object-cover shadow-studioSoft" loading="lazy" sizes="(max-width: 768px) 100vw, 50vw" src={image.mediumUrl || image.url} />
+              <img alt={image.alt || portfolioItem.title} className="aspect-[4/3] w-full rounded-xl object-cover shadow-studioSoft" loading="lazy" sizes="(max-width: 768px) 100vw, 50vw" src={image.mediumUrl || image.url} style={getImageFocusStyle(image)} />
             </button>
           ))}
         </section>
