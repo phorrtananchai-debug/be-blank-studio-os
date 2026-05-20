@@ -396,7 +396,7 @@ export function StudioOSApp({ navigate, routePath }) {
   ];
 
   return (
-    <div className="min-h-screen bg-studio-paper text-studio-ink selection:bg-studio-ink/10 selection:text-studio-ink">
+    <div className="studio-os-shell min-h-screen bg-studio-paper text-studio-ink selection:bg-studio-ink/10 selection:text-studio-ink">
       <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-16 px-8 py-12 lg:px-12">
         <StudioOSHeader
           contentItems={contentItems}

@@ -1,5 +1,6 @@
 export function Field({
   label,
+  inputClassName = '',
   multiline = false,
   onChange,
   type = 'text',
@@ -15,7 +16,7 @@ export function Field({
     <label className={`block ${wrapperClassName}`}>
       <span className="type-control mb-2 block text-studio-muted/60">{label}</span>
       <Input
-        className={`${className} ${multiline ? 'min-h-28 resize-y leading-relaxed' : ''}`}
+        className={`${className} ${multiline ? 'min-h-28 resize-y leading-relaxed' : ''} ${inputClassName}`}
         type={multiline ? undefined : type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
