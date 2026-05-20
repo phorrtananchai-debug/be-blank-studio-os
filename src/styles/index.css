@@ -49,6 +49,11 @@
     --paper-surface: #E9E5DB;
     --paper-surface-soft: #DED9CD;
     --paper-line: rgba(33, 33, 33, 0.08);
+    --signal-orange: #F04A23;
+    --signal-rust: #9F3E2D;
+    --signal-ochre: #8C6A24;
+    --signal-olive: #5D6B44;
+    --signal-neutral: rgba(33, 33, 33, 0.42);
   }
 
   body {
@@ -181,6 +186,63 @@
     font-size: var(--type-label);
     line-height: var(--leading-label);
     letter-spacing: var(--tracking-calm);
+  }
+
+  .studio-os-shell .type-label,
+  .studio-os-shell .type-control {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-weight: 700;
+  }
+
+  .studio-os-shell .type-caption {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-weight: 500;
+  }
+
+  .studio-signal-dot {
+    display: inline-block;
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 9999px;
+    background: var(--signal-neutral);
+  }
+
+  .studio-signal-dot[data-tone='critical'],
+  .studio-signal-dot[data-tone='risk'],
+  .studio-signal-dot[data-tone='overdue'],
+  .studio-signal-dot[data-tone='blocked'] {
+    background: var(--signal-orange);
+  }
+
+  .studio-signal-dot[data-tone='waiting'],
+  .studio-signal-dot[data-tone='watch'] {
+    background: var(--signal-ochre);
+  }
+
+  .studio-signal-dot[data-tone='safe'],
+  .studio-signal-dot[data-tone='done'] {
+    background: var(--signal-olive);
+  }
+
+  .studio-accent-left {
+    border-left: 2px solid var(--signal-neutral);
+  }
+
+  .studio-accent-left[data-tone='critical'],
+  .studio-accent-left[data-tone='risk'],
+  .studio-accent-left[data-tone='overdue'],
+  .studio-accent-left[data-tone='blocked'] {
+    border-left-color: var(--signal-orange);
+  }
+
+  .studio-accent-left[data-tone='waiting'],
+  .studio-accent-left[data-tone='watch'] {
+    border-left-color: var(--signal-ochre);
+  }
+
+  .studio-accent-left[data-tone='safe'],
+  .studio-accent-left[data-tone='done'] {
+    border-left-color: var(--signal-olive);
   }
 
   .public-editorial-nav {

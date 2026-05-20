@@ -30,6 +30,20 @@ import { PresentationOverlay } from './PresentationOverlay.jsx';
 
 const drawingStatuses = ['draft', 'review', 'approved', 'issued'];
 
+function EditorialEntry({ children, emptyText, tone = 'neutral' }) {
+  const hasContent = String(children || '').trim();
+
+  return (
+    <div className="studio-accent-left min-h-28 rounded-md border border-black/[0.06] bg-studio-bone/30 p-5" data-tone={tone}>
+      {hasContent ? (
+        <p className="type-body whitespace-pre-wrap text-studio-ink">{children}</p>
+      ) : (
+        <p className="type-caption italic text-studio-muted/60">{emptyText}</p>
+      )}
+    </div>
+  );
+}
+
 export function ProjectWorkspace({ project, onBack, onDelete, onUpdate, user }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [isPresenting, setIsPresenting] = useState(false);
@@ -150,9 +164,9 @@ export function ProjectWorkspace({ project, onBack, onDelete, onUpdate, user }) 
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex h-10 items-center gap-2 rounded-lg px-4 text-[12px] font-bold whitespace-nowrap transition-all ${
+              className={`flex h-10 items-center gap-2 rounded-lg px-4 font-mono text-[11px] font-bold uppercase whitespace-nowrap transition-all ${
                 isActive
-                  ? 'bg-studio-ink text-white shadow-studioSoft'
+                  ? 'border-l-2 border-studio-orange bg-studio-ink text-white shadow-studioSoft'
                   : `text-studio-muted hover:bg-black/[0.04] hover:text-studio-ink ${tab.color || ''}`
               }`}
             >
@@ -283,25 +297,41 @@ export function ProjectWorkspace({ project, onBack, onDelete, onUpdate, user }) 
 
         {activeTab === 'notes' && (
           <div className="grid gap-8 lg:grid-cols-12">
-            <div className="lg:col-span-4 space-y-8">
-              <SectionCard title="Strategic Notes" eyebrow="Internal Narrative">
-                 <Field
-                  label="Project Notes"
-                  multiline
-                  value={project.notes || ''}
-                  onChange={(value) => onUpdate({ notes: value })}
-                />
-                <Field
-                  label="Critical Blockers"
-                  multiline
-                  value={project.blockers || ''}
-                  onChange={(value) => onUpdate({ blockers: value })}
-                />
+            <div className="space-y-8 lg:col-span-5">
+              <SectionCard title="Project Notes" eyebrow="Internal Narrative">
+                <div className="grid gap-5">
+                  <Field
+                    inputClassName="min-h-56"
+                    label="Write / Edit"
+                    multiline
+                    placeholder="Narrative context, client preference, material direction, decisions to remember..."
+                    value={project.notes || ''}
+                    onChange={(value) => onUpdate({ notes: value })}
+                  />
+                  <EditorialEntry emptyText="No project notes saved yet.">{project.notes || ''}</EditorialEntry>
+                </div>
+              </SectionCard>
+
+              <SectionCard title="Critical Blockers" eyebrow="Operational Friction">
+                <div className="grid gap-5">
+                  <Field
+                    inputClassName="min-h-40"
+                    label="Write / Edit"
+                    multiline
+                    placeholder="What is blocked, who owns the answer, and what unlocks the next move?"
+                    value={project.blockers || ''}
+                    onChange={(value) => onUpdate({ blockers: value })}
+                  />
+                  <EditorialEntry emptyText="No critical blockers recorded." tone="blocked">{project.blockers || ''}</EditorialEntry>
+                </div>
               </SectionCard>
             </div>
-            <div className="lg:col-span-8 space-y-8">
+            <div className="space-y-8 lg:col-span-7">
               <div className="flex items-center justify-between border-b border-black/[0.05] pb-4">
-                <h3 className="text-[11px] font-bold uppercase tracking-widest text-studio-muted">Site Logs & Field Reports</h3>
+                <div>
+                  <p className="type-label text-studio-muted">Field Record</p>
+                  <h3 className="type-section-title mt-2">Site Logs</h3>
+                </div>
                 <Button variant="secondary" onClick={addSiteLog}>
                   <Plus size={14} />
                   New Entry
@@ -311,30 +341,52 @@ export function ProjectWorkspace({ project, onBack, onDelete, onUpdate, user }) 
                 {siteLogs.length === 0 ? (
                   <EmptyState message="No site logs captured yet." />
                 ) : (
-                  siteLogs.map((log) => (
-                    <div key={log.id} className="rounded-xl border border-black/[0.08] bg-white p-6 shadow-studioSoft space-y-6">
-                      <div className="flex justify-between items-center">
-                        <Field
-                          label="Visit Date"
-                          type="date"
-                          value={log.date || ''}
-                          wrapperClassName="w-48"
-                          onChange={(value) => onUpdate({ siteLogs: siteLogs.map(l => l.id === log.id ? {...l, date: value} : l) })}
-                        />
+                  siteLogs.map((log, index) => (
+                    <article key={log.id} className="studio-accent-left rounded-lg border border-black/[0.07] bg-studio-bone/35 p-6" data-tone={log.issues ? 'blocked' : 'neutral'}>
+                      <div className="flex items-start justify-between gap-4 border-b border-black/[0.05] pb-5">
+                        <div>
+                          <p className="type-label flex items-center gap-2 text-studio-muted">
+                            <span className="studio-signal-dot" data-tone={log.issues ? 'blocked' : 'neutral'} />
+                            Entry {siteLogs.length - index}
+                          </p>
+                          <p className="type-card-title mt-2">{log.date || 'Undated visit'}</p>
+                        </div>
                         <button
-                           onClick={() => onUpdate({ siteLogs: siteLogs.filter(l => l.id !== log.id) })}
-                           className="text-studio-muted hover:text-red-500 transition-colors"
+                          onClick={() => onUpdate({ siteLogs: siteLogs.filter(l => l.id !== log.id) })}
+                          className="text-studio-muted transition-colors hover:text-studio-rust"
                         >
                           <Trash2 size={16} />
                         </button>
                       </div>
-                      <Field
-                        label="Observations"
-                        multiline
-                        value={log.notes || ''}
-                        onChange={(value) => onUpdate({ siteLogs: siteLogs.map(l => l.id === log.id ? {...l, notes: value} : l) })}
-                      />
-                    </div>
+
+                      <div className="mt-6 grid gap-6">
+                        <EditorialEntry emptyText="No field observations saved yet.">{log.notes || ''}</EditorialEntry>
+                        {log.issues && <EditorialEntry emptyText="" tone="blocked">{log.issues}</EditorialEntry>}
+                        <Field
+                          label="Visit Date"
+                          type="date"
+                          value={log.date || ''}
+                          wrapperClassName="max-w-48"
+                          onChange={(value) => onUpdate({ siteLogs: siteLogs.map(l => l.id === log.id ? {...l, date: value} : l) })}
+                        />
+                        <div className="grid gap-5 lg:grid-cols-2">
+                          <Field
+                            inputClassName="min-h-40"
+                            label="Observations"
+                            multiline
+                            value={log.notes || ''}
+                            onChange={(value) => onUpdate({ siteLogs: siteLogs.map(l => l.id === log.id ? {...l, notes: value} : l) })}
+                          />
+                          <Field
+                            inputClassName="min-h-40"
+                            label="Issues / blockers"
+                            multiline
+                            value={log.issues || ''}
+                            onChange={(value) => onUpdate({ siteLogs: siteLogs.map(l => l.id === log.id ? {...l, issues: value} : l) })}
+                          />
+                        </div>
+                      </div>
+                    </article>
                   ))
                 )}
               </div>

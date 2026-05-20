@@ -117,6 +117,14 @@ function formatDaysLabel(daysUntil) {
   return `${daysUntil}d left`;
 }
 
+function getSignalTone(value) {
+  const text = String(value || '').toLowerCase();
+  if (['critical', 'risk', 'overdue', 'blocked', 'high'].includes(text)) return 'critical';
+  if (['waiting', 'watch', 'tight'].includes(text)) return 'waiting';
+  if (['safe', 'done', 'open'].includes(text)) return 'safe';
+  return 'neutral';
+}
+
 function getProjectPressure(project, tasks = [], today = startOfToday()) {
   const timeline = calculateTimeline(project);
   const status = String(project.status || '').toLowerCase();
@@ -283,12 +291,12 @@ function EditorialModule({ contentItems, module, notes, projects, tasks, onCompl
       <div>
         <ModuleHeader icon={PanelTop} label="Pressure Map" title="Actionable Signals" />
         <div className="mt-6 grid grid-cols-2 border-y border-black/[0.08]">
-          <Metric label="Overdue" value={summary.taskSummary.overdue.length} />
+          <Metric label="Overdue" tone="overdue" value={summary.taskSummary.overdue.length} />
           <Metric label="Opening soon" value={summary.openingSoon.length} />
-          <Metric label="Waiting approval" value={summary.waitingApproval} />
-          <Metric label="Blocked" value={summary.taskSummary.blocked.length} />
-          <Metric label="Handover risk" value={summary.handoverRisk.length} />
-          <Metric label="At risk" value={summary.atRisk.length} />
+          <Metric label="Waiting approval" tone="waiting" value={summary.waitingApproval} />
+          <Metric label="Blocked" tone="blocked" value={summary.taskSummary.blocked.length} />
+          <Metric label="Handover risk" tone="risk" value={summary.handoverRisk.length} />
+          <Metric label="At risk" tone="risk" value={summary.atRisk.length} />
         </div>
       </div>
     );
@@ -358,11 +366,11 @@ function CommandCenter({ projects, summary, onCompleteTask }) {
           {nextAction}
         </p>
         <div className="mt-8 grid gap-0 border-y border-black/[0.08] sm:grid-cols-5">
-          <Signal label="Overdue" value={summary.taskSummary.overdue.length} urgent={summary.taskSummary.overdue.length > 0} />
+          <Signal label="Overdue" tone="overdue" value={summary.taskSummary.overdue.length} urgent={summary.taskSummary.overdue.length > 0} />
           <Signal label="Opening soon" value={summary.openingSoon.length} />
-          <Signal label="Waiting" value={summary.waitingApproval} />
-          <Signal label="Blocked" value={summary.taskSummary.blocked.length} urgent={summary.taskSummary.blocked.length > 0} />
-          <Signal label="Handover risk" value={summary.handoverRisk.length} />
+          <Signal label="Waiting" tone="waiting" value={summary.waitingApproval} />
+          <Signal label="Blocked" tone="blocked" value={summary.taskSummary.blocked.length} urgent={summary.taskSummary.blocked.length > 0} />
+          <Signal label="Handover risk" tone="risk" value={summary.handoverRisk.length} />
         </div>
       </div>
       <div className="border-l border-black/[0.08] pl-6">
@@ -396,10 +404,10 @@ function ModuleHeader({ icon: Icon, label, title }) {
   );
 }
 
-function Metric({ label, value }) {
+function Metric({ label, tone = 'neutral', value }) {
   return (
-    <div className="border-b border-r border-black/[0.08] px-4 py-5">
-      <p className="type-label">{label}</p>
+    <div className="studio-accent-left border-b border-r border-black/[0.08] px-4 py-5" data-tone={value > 0 ? tone : 'neutral'}>
+      <p className="type-label flex items-center gap-2"><span className="studio-signal-dot" data-tone={value > 0 ? tone : 'neutral'} />{label}</p>
       <p className="type-section-title mt-3">{value}</p>
     </div>
   );
@@ -407,9 +415,10 @@ function Metric({ label, value }) {
 
 function ProjectRow({ pressure, project }) {
   const nextTask = pressure.taskSignals.nextAction;
-  const badgeTone = pressure.state === 'CRITICAL' ? 'critical' : pressure.state === 'RISK' ? 'tight' : pressure.state === 'WATCH' ? 'default' : 'safe';
+  const badgeTone = pressure.state === 'CRITICAL' ? 'critical' : pressure.state === 'RISK' ? 'risk' : pressure.state === 'WATCH' ? 'watch' : 'safe';
+  const accentTone = getSignalTone(badgeTone);
   return (
-    <article className="grid gap-4 border-b border-black/[0.06] px-1 py-5 last:border-b-0 md:grid-cols-[1fr_10rem]">
+    <article className="studio-accent-left grid gap-4 border-b border-black/[0.06] px-4 py-5 last:border-b-0 md:grid-cols-[1fr_10rem]" data-tone={accentTone}>
       <div className="flex flex-wrap items-start justify-between rhythm-control-gap">
         <div className="min-w-0">
           <p className="type-card-title truncate">{project.name || 'Untitled Project'}</p>
@@ -425,20 +434,21 @@ function ProjectRow({ pressure, project }) {
   );
 }
 
-function Signal({ label, urgent = false, value }) {
+function Signal({ label, tone = 'neutral', urgent = false, value }) {
   return (
     <div className="border-b border-r border-black/[0.08] px-4 py-4">
-      <p className="type-label">{label}</p>
-      <p className={`type-section-title mt-2 ${urgent ? 'text-red-800' : 'text-studio-ink'}`}>{value}</p>
+      <p className="type-label flex items-center gap-2"><span className="studio-signal-dot" data-tone={value > 0 ? tone : 'neutral'} />{label}</p>
+      <p className={`type-section-title mt-2 ${urgent ? 'text-studio-rust' : 'text-studio-ink'}`}>{value}</p>
     </div>
   );
 }
 
 function ActionLine({ label, project, task, value, onCompleteTask }) {
+  const tone = label === 'Unblock' ? 'blocked' : label === 'Confirm' ? 'waiting' : 'neutral';
   return (
-    <div className="grid gap-3 border-b border-black/[0.06] pb-4 sm:grid-cols-[1fr_auto] sm:items-start">
+    <div className="studio-accent-left grid gap-3 border-b border-black/[0.06] pb-4 pl-4 sm:grid-cols-[1fr_auto] sm:items-start" data-tone={tone}>
       <div>
-        <p className="type-label">{label}</p>
+        <p className="type-label flex items-center gap-2"><span className="studio-signal-dot" data-tone={tone} />{label}</p>
         <p className="type-card-title mt-2">{task?.title || project?.name || 'Untitled task'}</p>
         <p className="type-caption mt-1">{project?.name || 'Unassigned'}{value ? ` / ${value}` : ''}</p>
       </div>
@@ -459,6 +469,7 @@ function ActionLine({ label, project, task, value, onCompleteTask }) {
 function DateRow({ item, projects }) {
   const isOverdue = item.daysUntil !== null && item.daysUntil < 0;
   const project = item.project || projects.find((projectItem) => projectItem.id === item.task?.projectId);
+  const tone = isOverdue ? 'overdue' : getSignalTone(item.label);
   const label = isOverdue
     ? `${Math.abs(item.daysUntil)}d overdue`
     : item.daysUntil === 0
@@ -468,13 +479,13 @@ function DateRow({ item, projects }) {
         : `${item.daysUntil}d`;
 
   return (
-    <article className="border-b border-black/[0.06] py-3 last:border-b-0">
+    <article className="studio-accent-left border-b border-black/[0.06] py-3 pl-4 last:border-b-0" data-tone={tone}>
       <div className="flex items-start justify-between rhythm-stack-tight">
         <div className="min-w-0">
           <p className="type-card-title truncate">{item.task?.title || project?.name || 'Untitled Project'}</p>
           <p className="type-caption mt-1">{item.task ? (project?.name || 'Unassigned') : item.label} / {item.value ? formatDate(item.value) : 'No date'}</p>
         </div>
-        <span className={`type-control shrink-0 border-l border-black/[0.08] pl-3 ${isOverdue ? 'text-red-700' : 'text-studio-muted'}`}>
+        <span className={`type-control shrink-0 border-l border-black/[0.08] pl-3 ${isOverdue ? 'text-studio-rust' : 'text-studio-muted'}`}>
           {label}
         </span>
       </div>
