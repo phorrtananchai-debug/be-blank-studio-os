@@ -63,18 +63,18 @@ function getDateTone(daysUntil) {
 
 function getToneClass(tone) {
   if (tone === 'critical') {
-    return 'border-red-700/20 bg-red-50 text-red-800';
+    return 'border-red-900/20 bg-studio-bone/65 text-red-800';
   }
 
   if (tone === 'urgent') {
-    return 'border-amber-700/20 bg-amber-50 text-amber-800';
+    return 'border-black/[0.12] bg-studio-bone/65 text-studio-ink';
   }
 
   if (tone === 'watch') {
-    return 'border-[#FFF0A3] bg-[#FFF8CD] text-[#212121]';
+    return 'border-black/[0.1] bg-studio-bone/55 text-[#212121]';
   }
 
-  return 'border-black/[0.05] bg-white text-studio-ink';
+  return 'border-black/[0.07] bg-transparent text-studio-ink';
 }
 
 function formatDaysLabel(daysUntil) {
@@ -164,7 +164,7 @@ function getActiveTaskSummary(projects) {
 
 function EmptyState({ message }) {
   return (
-    <p className="type-body rounded-xl border border-black/[0.04] bg-white px-4 py-5">
+    <p className="type-body border-y border-black/[0.06] bg-studio-bone/24 px-4 py-5">
       {message}
     </p>
   );
@@ -174,8 +174,8 @@ function AttentionRow({ daysUntil, label, project }) {
   const tone = getDateTone(daysUntil);
 
   return (
-    <div className={`flex items-center gap-4 rounded-xl border p-4 shadow-sm transition-all hover:shadow-md ${getToneClass(tone)}`}>
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/70">
+    <div className={`flex items-center gap-4 border-y px-1 py-4 transition-colors hover:bg-studio-bone/20 ${getToneClass(tone)}`}>
+      <div className="flex h-9 w-9 items-center justify-center border border-black/[0.06] bg-studio-bone/35">
         <CalendarDays size={16} strokeWidth={2} className="text-studio-muted" />
       </div>
       <div className="min-w-0 flex-1 space-y-0.5">
@@ -189,13 +189,13 @@ function AttentionRow({ daysUntil, label, project }) {
 
 function MissingActionRow({ project }) {
   return (
-    <div className="group flex items-start justify-between gap-4 border-b border-black/[0.05] pb-4 transition-colors hover:border-black/10">
+    <div className="group flex items-start justify-between gap-4 border-b border-black/[0.06] pb-4 transition-colors hover:border-black/[0.14]">
       <div className="space-y-1">
-        <p className="type-label text-studio-orange">{project.status || 'active'}</p>
+        <p className="type-label text-studio-muted">{project.status || 'active'}</p>
         <h4 className="type-section-title">{project.name || 'Untitled Project'}</h4>
         <p className="type-caption">{project.client || project.location || 'Next action not set'}</p>
       </div>
-      <span className="type-control rounded-full border border-black/[0.05] bg-white px-3 py-1 text-studio-muted">
+      <span className="type-control border-l border-black/[0.1] pl-3 text-studio-muted">
         Needs action
       </span>
     </div>
@@ -204,7 +204,7 @@ function MissingActionRow({ project }) {
 
 function NextActionRow({ project }) {
   return (
-    <div className="rounded-xl border border-black/[0.05] bg-white p-4 shadow-sm">
+    <div className="border-y border-black/[0.06] bg-studio-bone/20 px-1 py-4">
       <p className="type-label">{project.name || 'Untitled Project'}</p>
       <p className="type-body mt-2 font-semibold text-studio-ink">{project.nextAction}</p>
     </div>
@@ -253,7 +253,7 @@ export function DailyFlow({ projects = [] }) {
         </div>
       </section>
 
-      <section className="grid rhythm-grid md:grid-cols-3">
+      <section className="grid border-y border-black/[0.07] md:grid-cols-3">
         <DailySummaryCard icon={AlertCircle} label="Overdue" value={summary.overdueDates.length} tone="critical" />
         <DailySummaryCard icon={Clock} label="Due Today" value={summary.dueToday.length} tone="watch" />
         <DailySummaryCard icon={Target} label="Missing Next Action" value={summary.missingNextActions.length} tone="steady" />
@@ -320,13 +320,8 @@ export function DailyFlow({ projects = [] }) {
             </header>
             <div className="flex gap-8 overflow-x-auto pb-8 no-scrollbar scroll-smooth">
               {[1, 2, 3, 4, 5].map((item) => (
-                <div key={item} className="relative aspect-[4/5] min-w-[280px] overflow-hidden rounded-sm bg-studio-stone/20 transition-transform duration-700 hover:scale-[1.02]">
-                  <img
-                    src={`https://images.unsplash.com/photo-${1600585154340 + item}-be6161a20a61?auto=format&fit=crop&q=80&w=800`}
-                    alt="Atmosphere"
-                    className="h-full w-full object-cover grayscale transition-all duration-1000 hover:grayscale-0"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 transition-opacity hover:opacity-100" />
+                <div key={item} className="relative grid aspect-[4/5] min-w-[280px] place-items-center border border-black/[0.06] bg-studio-bone/24">
+                  <div className="h-10 w-px bg-black/[0.08]" />
                 </div>
               ))}
             </div>
@@ -334,7 +329,7 @@ export function DailyFlow({ projects = [] }) {
         </div>
 
         <aside className="grid rhythm-section lg:col-span-4">
-          <section className="rounded-2xl border border-black/[0.06] bg-white rhythm-card shadow-studio">
+          <section className="rounded-lg border border-black/[0.07] bg-studio-bone/30 rhythm-card">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <StickyNote size={12} className="text-studio-ink" />
@@ -376,11 +371,11 @@ export function DailyFlow({ projects = [] }) {
           </section>
 
           <section className="grid rhythm-stack-tight">
-            <button className="group flex w-full items-center justify-between rounded-2xl border border-black/[0.06] bg-white p-5 transition-all hover:bg-black/[0.02] hover:shadow-sm">
+            <button className="group flex w-full items-center justify-between border-y border-black/[0.07] bg-transparent px-1 py-5 transition-colors hover:bg-studio-bone/22">
               <span className="type-control">Review Journal</span>
               <ArrowUpRight size={14} className="text-studio-muted transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </button>
-            <button className="group flex w-full items-center justify-between rounded-2xl border border-black/[0.06] bg-white p-5 transition-all hover:bg-black/[0.02] hover:shadow-sm">
+            <button className="group flex w-full items-center justify-between border-y border-black/[0.07] bg-transparent px-1 py-5 transition-colors hover:bg-studio-bone/22">
               <span className="type-control">Archive Session</span>
               <ArrowUpRight size={14} className="text-studio-muted transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </button>
@@ -402,13 +397,13 @@ function SummaryMetric({ label, value }) {
 
 function DailySummaryCard({ icon: Icon, label, tone, value }) {
   const toneClass = tone === 'critical'
-    ? 'bg-red-50 text-red-800 border-red-700/20'
+    ? 'text-red-800 border-red-900/20'
     : tone === 'watch'
-      ? 'bg-[#FFF8CD] text-[#212121] border-[#FFF0A3]'
-      : 'bg-white text-studio-ink border-black/[0.05]';
+      ? 'text-[#212121] border-black/[0.1]'
+      : 'text-studio-ink border-black/[0.07]';
 
   return (
-    <div className={`rounded-2xl border rhythm-card-compact shadow-sm ${toneClass}`}>
+    <div className={`border-r px-5 py-5 ${toneClass}`}>
       <div className="flex items-center justify-between">
         <p className="type-control">{label}</p>
         <Icon size={14} strokeWidth={2.4} />
