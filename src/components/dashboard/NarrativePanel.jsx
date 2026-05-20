@@ -1,157 +1,196 @@
-import { AlertTriangle, CheckCircle2, CircleDashed, ClipboardList, Sparkles } from 'lucide-react';
-import { useState } from 'react';
+import { AlertTriangle, CheckCircle2, CircleDashed, ClipboardList } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import {
+  getPressureState,
+  normalizeTaskStatus,
+} from '../../utils/operationalTasks.js';
 
-const energies = [
+const deliveryStates = [
   { id: 'calm', icon: CheckCircle2, label: 'On Track' },
   { id: 'steady', icon: CircleDashed, label: 'In Progress' },
   { id: 'high', icon: AlertTriangle, label: 'At Risk' },
   { id: 'rest', icon: ClipboardList, label: 'Awaiting Input' },
 ];
 
-export function NarrativePanel({ project, onUpdate }) {
+function compact(value) {
+  return String(value || '').trim();
+}
+
+function formatReviewDate(value) {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return 'Undated';
+  return date.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
+}
+
+function splitText(value) {
+  return compact(value).split(/\n|,/).map((item) => item.trim()).filter(Boolean);
+}
+
+function getTaskCount(tasks, predicate) {
+  return tasks.filter((task) => normalizeTaskStatus(task.status) !== 'DONE' && predicate(task)).length;
+}
+
+function IntelligenceBlock({ label, value, empty = 'Not recorded.' }) {
+  const text = compact(value);
+  return (
+    <div className="border-t border-black/[0.06] pt-4">
+      <p className="type-label text-studio-muted">{label}</p>
+      <p className="type-body mt-2 text-studio-ink">{text || empty}</p>
+    </div>
+  );
+}
+
+function IntelligenceHistory({ history }) {
+  if (!history.length) {
+    return (
+      <p className="type-caption border-t border-black/[0.06] pt-4 italic text-studio-muted/70">
+        No AI intelligence reviews applied yet.
+      </p>
+    );
+  }
+
+  return (
+    <div className="border-t border-black/[0.06] pt-4">
+      <p className="type-label text-studio-muted">Intelligence History</p>
+      <div className="mt-3 grid gap-2">
+        {history.slice(-5).reverse().map((entry, index) => {
+          const risks = Array.isArray(entry.keyRisks) ? entry.keyRisks : [];
+          const focus = compact(entry.suggestedFocus) || compact(entry.summary) || risks[0] || 'Operational review recorded.';
+          return (
+            <div key={`${entry.generatedAt || 'review'}-${index}`} className="grid grid-cols-[4.5rem_1fr] gap-3 border-b border-black/[0.04] pb-2 last:border-b-0">
+              <p className="type-control text-studio-muted">{formatReviewDate(entry.generatedAt)}</p>
+              <div>
+                <p className="type-body text-sm text-studio-ink">{focus}</p>
+                {entry.pressureState && <p className="type-caption mt-0.5 text-studio-muted">{entry.pressureState}</p>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export function NarrativePanel({ project, tasks = [], onUpdate }) {
   const [isEditing, setIsEditing] = useState(false);
+  const projectTasks = useMemo(() => tasks.filter((task) => task.projectId === project.id), [project.id, tasks]);
+  const pressure = useMemo(() => getPressureState({ project, tasks }), [project, tasks]);
+  const history = Array.isArray(project.intelligenceHistory) ? project.intelligenceHistory : [];
+  const waitingCount = getTaskCount(projectTasks, (task) => normalizeTaskStatus(task.status) === 'WAITING' || compact(task.waitingFor));
+  const blockedCount = getTaskCount(projectTasks, (task) => normalizeTaskStatus(task.status) === 'BLOCKED' || compact(task.blockedBy));
+  const procurementCount = getTaskCount(projectTasks, (task) => task.procurementFlag);
+  const handoverCount = getTaskCount(projectTasks, (task) => task.handoverFlag);
+  const dependencies = [
+    ...projectTasks.flatMap((task) => splitText(task.dependencies)),
+    ...splitText(project.dependencies),
+  ].slice(0, 4);
 
   const handleUpdate = (field, value) => {
     onUpdate(project.id, { [field]: value });
   };
 
   return (
-    <section className="group relative overflow-hidden rounded-3xl border border-black/[0.03] bg-white/40 p-10 backdrop-blur-xl transition-all duration-700 hover:bg-white/60">
-      <div className="absolute -right-20 -top-20 size-64 rounded-full bg-studio-orange/5 blur-3xl transition-opacity duration-1000 group-hover:opacity-100 opacity-0" />
-
-      <header className="mb-12 flex items-center justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-studio-orange">
-            <Sparkles size={14} strokeWidth={2} />
+    <section className="studio-accent-left rounded-lg border border-black/[0.06] bg-studio-bone/42 p-7" data-tone={pressure.state === 'SAFE' ? 'neutral' : pressure.state.toLowerCase()}>
+      <header className="flex flex-col gap-4 border-b border-black/[0.06] pb-5 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="type-label flex items-center gap-2 text-studio-orange">
+            <span className="studio-signal-dot" data-tone={pressure.state === 'SAFE' ? 'neutral' : 'risk'} />
             Project Intelligence
-          </div>
-          <p className="text-3xl font-bold tracking-tight text-studio-ink">
-            {project.name || 'Operational Profile'}
           </p>
+          <h2 className="type-section-title mt-2">{project.name || 'Operational Profile'}</h2>
         </div>
         <button
           onClick={() => setIsEditing(!isEditing)}
-          className="rounded-full border border-black/[0.1] px-5 py-2 text-[12px] font-bold uppercase tracking-wide text-studio-muted transition hover:bg-studio-ink hover:text-white"
+          className="type-control inline-flex h-9 items-center justify-center rounded-full border border-black/[0.08] px-4 text-studio-muted transition hover:border-studio-ink/20 hover:text-studio-ink"
+          type="button"
         >
           {isEditing ? 'Save' : 'Edit'}
         </button>
       </header>
 
-      <div className="grid gap-16 lg:grid-cols-2">
-        {/* Left Column: Objective & Tags */}
-        <div className="space-y-12">
-          <div className="space-y-3">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-studio-muted/60">Project Objective</label>
+      <div className="mt-6 grid gap-5 lg:grid-cols-2">
+        <div className="grid gap-5">
+          <div>
+            <p className="type-label text-studio-muted">Objective</p>
             {isEditing ? (
               <textarea
+                className="type-body mt-2 min-h-24 w-full resize-y rounded-md border border-black/[0.07] bg-studio-bone/35 p-3 text-studio-ink outline-none focus:border-studio-ink/20"
+                onChange={(event) => handleUpdate('mood', event.target.value)}
+                placeholder="Delivery strategy, approvals, procurement, contractor coordination..."
                 value={project.mood || ''}
-                onChange={(e) => handleUpdate('mood', e.target.value)}
-                placeholder="Define delivery strategy, approvals, procurement, contractor coordination..."
-                className="w-full border-none bg-transparent p-0 text-xl font-medium leading-relaxed text-studio-ink placeholder:text-black/10 focus:ring-0"
-                rows={3}
               />
             ) : (
-              <p className="text-xl font-medium leading-relaxed text-studio-ink/80">
-                {project.mood || 'delivery strategy, approvals, procurement, contractor coordination'}
-              </p>
+              <p className="type-body mt-2 text-studio-ink">{project.mood || 'Delivery strategy and approval coordination.'}</p>
             )}
           </div>
 
-          <div className="space-y-3">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-studio-muted/60">Operational Tags</label>
-            <div className="flex flex-wrap gap-x-6 gap-y-3">
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={project.atmosphericDescriptors || ''}
-                  onChange={(e) => handleUpdate('atmosphericDescriptors', e.target.value)}
-                  placeholder="approvals, procurement, blockers, dependencies"
-                  className="w-full border-b border-black/10 bg-transparent py-1.5 text-sm font-semibold focus:border-studio-orange focus:ring-0"
-                />
-              ) : (
-                (project.atmosphericDescriptors || 'approvals, procurement, handover readiness, timeline risk').split(',').map((tag, i) => (
-                  <span key={i} className="text-[11px] font-bold uppercase tracking-wide text-studio-muted">
-                    {tag.trim()}
-                  </span>
-                ))
-              )}
-            </div>
-          </div>
+          <IntelligenceBlock
+            label="Current Risk"
+            value={(Array.isArray(project.intelligenceRisks) && project.intelligenceRisks[0]) || project.blockers || (blockedCount ? `${blockedCount} blocked item(s).` : `${pressure.state} pressure.`)}
+          />
+          <IntelligenceBlock
+            label="Dependencies"
+            value={dependencies.length ? dependencies.join('\n') : ''}
+            empty={waitingCount ? `${waitingCount} waiting approval(s).` : 'Dependencies not recorded.'}
+          />
+          <IntelligenceBlock
+            label="Next Decision"
+            value={project.currentFocus || project.nextAction}
+            empty="Next decision not set."
+          />
         </div>
 
-        {/* Right Column: Delivery & Priority */}
-        <div className="space-y-12">
-          <div className="space-y-4">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-studio-muted/60">Delivery Status</label>
-            <div className="grid grid-cols-2 gap-3">
-              {energies.map((energy) => {
-                const Icon = energy.icon;
-                const isActive = project.timelineEnergy === energy.id;
+        <div className="grid gap-5">
+          <div>
+            <p className="type-label text-studio-muted">Delivery Status</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {deliveryStates.map((state) => {
+                const Icon = state.icon;
+                const isActive = project.timelineEnergy === state.id;
                 return (
                   <button
-                    key={energy.id}
-                    onClick={() => handleUpdate('timelineEnergy', energy.id)}
-                    className={`flex items-center gap-4 rounded-2xl border p-4 transition-all duration-500 ${
+                    key={state.id}
+                    className={`type-control flex items-center gap-3 rounded-md border px-3 py-3 text-left transition ${
                       isActive
-                        ? 'border-studio-orange bg-studio-orange/5 text-studio-ink'
-                        : 'border-black/[0.03] bg-transparent text-studio-muted hover:border-black/10'
+                        ? 'border-studio-orange/70 bg-studio-bone/60 text-studio-ink'
+                        : 'border-black/[0.06] bg-transparent text-studio-muted hover:border-black/[0.12]'
                     }`}
+                    onClick={() => handleUpdate('timelineEnergy', state.id)}
+                    type="button"
                   >
-                    <Icon size={18} strokeWidth={isActive ? 2 : 1.5} className={isActive ? 'text-studio-orange' : ''} />
-                    <span className="text-[11px] font-bold uppercase ">{energy.label}</span>
+                    <Icon size={15} className={isActive ? 'text-studio-orange' : ''} />
+                    {state.label}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          <div className="space-y-4">
-            <label className="text-[10px] font-bold uppercase  text-studio-muted/60">Current Priority</label>
-            {isEditing ? (
-              <input
-                type="text"
-                value={project.currentFocus || ''}
-                onChange={(e) => handleUpdate('currentFocus', e.target.value)}
-                placeholder="Current priority, approval, dependency, or blocker..."
-                className="w-full border-none bg-transparent p-0 text-xl font-medium tracking-tight text-studio-ink placeholder:text-black/10 focus:ring-0"
-              />
-            ) : (
-              <p className="text-xl font-medium tracking-tight text-studio-ink">
-                {project.currentFocus || 'handover readiness and contractor coordination'}
-              </p>
-            )}
-          </div>
+          <IntelligenceBlock
+            label="Procurement Status"
+            value={project.procurementStatus || (procurementCount ? `${procurementCount} procurement task(s) flagged.` : '')}
+            empty="Procurement status not recorded."
+          />
+          <IntelligenceBlock
+            label="Handover Readiness"
+            value={project.handoverReadiness || (handoverCount ? `${handoverCount} handover task(s) flagged.` : '')}
+            empty="Handover readiness not recorded."
+          />
+          <IntelligenceBlock
+            label="Delivery Constraints"
+            value={project.phaseNotes}
+            empty="No delivery constraints recorded."
+          />
         </div>
       </div>
 
-      <footer className="mt-20 border-t border-black/[0.03] pt-10">
-        <div className="flex items-center gap-12">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-studio-muted/40">Open Operational Tasks</span>
-            <div className="flex items-center gap-3">
-              <span className="text-2xl font-bold text-studio-ink">{project.inspirationCount || 0}</span>
-              <div className="flex -space-x-1.5">
-                {[...Array(Math.min(project.inspirationCount || 0, 5))].map((_, i) => (
-                  <div key={i} className="size-6 rounded-full border-2 border-white bg-studio-stone" />
-                ))}
-                {(project.inspirationCount || 0) > 5 && (
-                  <div className="grid size-6 place-items-center rounded-full border-2 border-white bg-studio-bone text-[8px] font-bold">
-                    +{(project.inspirationCount || 0) - 5}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="h-10 w-px bg-black/[0.03]" />
-
-          <div className="space-y-1">
-            <span className="text-[9px] font-bold uppercase  text-studio-muted/40">Delivery Constraints</span>
-            <p className="text-xs font-medium italic text-studio-muted">
-              {project.phaseNotes || 'No delivery constraints recorded yet.'}
-            </p>
-          </div>
+      <footer className="mt-6 grid gap-5 border-t border-black/[0.06] pt-5 lg:grid-cols-[0.8fr_1.2fr]">
+        <div>
+          <p className="type-label text-studio-muted">Open Operational Tasks</p>
+          <p className="type-section-title mt-2">{projectTasks.filter((task) => normalizeTaskStatus(task.status) !== 'DONE').length}</p>
+          <p className="type-caption mt-1 text-studio-muted">{waitingCount} waiting / {blockedCount} blocked</p>
         </div>
+        <IntelligenceHistory history={history} />
       </footer>
     </section>
   );

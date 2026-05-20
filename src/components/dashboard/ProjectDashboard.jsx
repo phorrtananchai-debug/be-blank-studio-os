@@ -26,7 +26,7 @@ import { ProjectWorkspace } from './ProjectWorkspace.jsx';
 
 const drawingStatuses = ['draft', 'review', 'approved', 'issued'];
 
-export function ProjectDashboard({ projects, statusCounts, onAdd, onDelete, onUpdate, onOpenSpace, user }) {
+export function ProjectDashboard({ projects, statusCounts, tasks = [], onAdd, onDelete, onUpdate, onOpenSpace, user }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedProjectId, setSelectedProjectId] = useState('');
@@ -61,6 +61,7 @@ export function ProjectDashboard({ projects, statusCounts, onAdd, onDelete, onUp
         onDelete={() => deleteProject(selectedProject.id)}
         onUpdate={(updates) => onUpdate(selectedProject.id, updates)}
         onOpenSpace={() => onOpenSpace?.(selectedProject.id)}
+        tasks={tasks}
         user={user}
       />
     );
@@ -226,7 +227,7 @@ export function ProjectDashboard({ projects, statusCounts, onAdd, onDelete, onUp
   );
 }
 
-export function ProjectDetailView({ project, onBack, onDelete, onUpdate, onOpenSpace }) {
+export function ProjectDetailView({ project, tasks = [], onBack, onDelete, onUpdate, onOpenSpace }) {
   const timeline = calculateTimeline(project);
   const financials = calculateProjectFinancials(project);
   const siteLogs = Array.isArray(project.siteLogs) ? project.siteLogs : [];
@@ -266,7 +267,7 @@ export function ProjectDetailView({ project, onBack, onDelete, onUpdate, onOpenS
 
   return (
     <main className="grid gap-12">
-      <NarrativePanel project={project} onUpdate={(id, updates) => onUpdate(updates)} />
+      <NarrativePanel project={project} tasks={tasks} onUpdate={(id, updates) => onUpdate(updates)} />
 
       <SectionCard
         action={

@@ -41,10 +41,11 @@ import {
   downloadJson,
 } from '../utils/dashboard.js';
 import { getAutoPortfolioLayout, stringifyLayout } from '../utils/layout.js';
-import { inferTaskDraft } from '../utils/operationalTasks.js';
+import { inferTaskDraft, normalizeTaskStatus } from '../utils/operationalTasks.js';
 import { parseBackupJson, validateStudioBackup } from '../utils/backupValidation.js';
 import {
   buildAiAnalysisPrompt,
+  buildIntelligenceHistoryEntry,
   buildStudioIntelligenceExport,
   buildStudioIntelligenceSummary,
   createAnalysisNote,
@@ -486,6 +487,21 @@ export function StudioOSApp({ navigate, routePath }) {
     return projects.find((project) => name && String(project.name || '').trim().toLowerCase() === name);
   };
 
+  const getProjectTaskMetrics = (projectId) => {
+    const openTasks = tasks.filter((task) => task.projectId === projectId && normalizeTaskStatus(task.status) !== 'DONE');
+    return {
+      blocked: openTasks.filter((task) => normalizeTaskStatus(task.status) === 'BLOCKED' || String(task.blockedBy || '').trim()).length,
+      overdue: openTasks.filter((task) => {
+        if (!task.dueDate) return false;
+        const dueDate = new Date(`${task.dueDate}T00:00:00`);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return !Number.isNaN(dueDate.getTime()) && dueDate < today;
+      }).length,
+      waiting: openTasks.filter((task) => normalizeTaskStatus(task.status) === 'WAITING' || String(task.waitingFor || '').trim()).length,
+    };
+  };
+
   const confirmImportAnalysis = async () => {
     if (!pendingAnalysis) return;
 
@@ -502,9 +518,25 @@ export function StudioOSApp({ navigate, routePath }) {
         if (projectUpdate.status) updates.status = projectUpdate.status;
         if (projectUpdate.pressureState) updates.intelligencePressureState = projectUpdate.pressureState;
         if (Array.isArray(projectUpdate.risks)) updates.intelligenceRisks = projectUpdate.risks;
+        if (projectUpdate.dependencies) updates.dependencies = projectUpdate.dependencies;
+        if (projectUpdate.nextDecision) updates.currentFocus = projectUpdate.nextDecision;
+        if (projectUpdate.procurementStatus) updates.procurementStatus = projectUpdate.procurementStatus;
+        if (projectUpdate.handoverReadiness) updates.handoverReadiness = projectUpdate.handoverReadiness;
         if (Array.isArray(projectUpdate.recommendedNextActions)) {
           updates.nextAction = projectUpdate.recommendedNextActions.join('\n');
         }
+
+        const previousHistory = Array.isArray(project.intelligenceHistory) ? project.intelligenceHistory : [];
+        const currentMetrics = getProjectTaskMetrics(project.id);
+        updates.intelligenceHistory = [
+          ...previousHistory,
+          buildIntelligenceHistoryEntry({
+            ...projectUpdate,
+            blockedCount: projectUpdate.blockedCount ?? currentMetrics.blocked,
+            overdueCount: projectUpdate.overdueCount ?? currentMetrics.overdue,
+            waitingCount: projectUpdate.waitingCount ?? currentMetrics.waiting,
+          }, analysis),
+        ].slice(-20);
 
         if (Object.keys(updates).length) {
           await updateProject(project.id, updates);

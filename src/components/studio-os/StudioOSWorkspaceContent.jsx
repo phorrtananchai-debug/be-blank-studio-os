@@ -53,6 +53,7 @@ export function StudioOSWorkspaceContent({
           <ProjectDashboard
             projects={projects}
             statusCounts={statusCounts}
+            tasks={tasks}
             onAdd={addProject}
             onDelete={deleteProject}
             onUpdate={updateProject}

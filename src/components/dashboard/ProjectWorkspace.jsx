@@ -44,7 +44,7 @@ function EditorialEntry({ children, emptyText, tone = 'neutral' }) {
   );
 }
 
-export function ProjectWorkspace({ project, onBack, onDelete, onUpdate, user }) {
+export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpdate, user }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [isPresenting, setIsPresenting] = useState(false);
   const timeline = calculateTimeline(project);
@@ -182,7 +182,7 @@ export function ProjectWorkspace({ project, onBack, onDelete, onUpdate, user }) 
         {activeTab === 'overview' && (
           <div className="grid gap-8 lg:grid-cols-12">
             <div className="lg:col-span-8 space-y-8">
-              <NarrativePanel project={project} onUpdate={(id, updates) => onUpdate(updates)} />
+              <NarrativePanel project={project} tasks={tasks} onUpdate={(id, updates) => onUpdate(updates)} />
 
               <SectionCard title="Studio Financials" eyebrow="Real-time Performance">
                 <div className="grid gap-8">
