@@ -233,14 +233,18 @@ export function StudioOSApp({ navigate, routePath }) {
       const url = await uploadFile(path, file);
       const imageMeta = {
         alt: file.name.replace(/\.[^.]+$/, ''),
+        blurhash: '',
         caption: '',
         fullUrl: url,
+        height: null,
         mediumUrl: url,
         order: 0,
         path,
+        placeholder: '',
         relationship,
         thumbnailUrl: url,
         url,
+        width: null,
       };
 
       if (relationship === 'cover') {

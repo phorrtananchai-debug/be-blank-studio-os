@@ -1,23 +1,89 @@
 import {
+  ArrowDown,
+  ArrowUp,
   ExternalLink,
   Download,
+  Eye,
   Image,
   Plus,
+  Star,
   Trash2,
   Upload,
+  X,
 } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { Button } from '../Button.jsx';
 import { Field } from '../Field.jsx';
 import { SectionCard } from '../SectionCard.jsx';
 
-function UploadControl({ accept = 'image/*', children, multiple = false, onChange }) {
+function normalizeImageRecord(image, fallbackAlt = '') {
+  if (!image) return null;
+  if (typeof image === 'string') {
+    return { alt: fallbackAlt, caption: '', fullUrl: image, mediumUrl: image, thumbnailUrl: image, url: image };
+  }
+
+  const url = image.url || image.fullUrl || image.mediumUrl || image.thumbnailUrl || '';
+  if (!url) return null;
+
+  return {
+    alt: image.alt || fallbackAlt,
+    blurhash: image.blurhash || '',
+    caption: image.caption || '',
+    fullUrl: image.fullUrl || url,
+    height: image.height || null,
+    mediumUrl: image.mediumUrl || image.fullUrl || url,
+    order: image.order,
+    orientation: image.orientation || '',
+    path: image.path || image.fullPath || '',
+    placeholder: image.placeholder || '',
+    relationship: image.relationship || '',
+    thumbnailUrl: image.thumbnailUrl || image.mediumUrl || image.fullUrl || url,
+    url,
+    width: image.width || null,
+  };
+}
+
+function getCoverImage(item) {
+  return normalizeImageRecord(item.coverImage, item.title) || normalizeImageRecord(item.imageUrl, item.title);
+}
+
+function getGalleryImages(item) {
+  return Array.isArray(item.galleryImages)
+    ? item.galleryImages
+      .map((image, index) => ({ ...normalizeImageRecord(image, item.title), originalIndex: index }))
+      .filter((image) => image?.url)
+      .sort((left, right) => (Number(left.order) || left.originalIndex) - (Number(right.order) || right.originalIndex))
+    : [];
+}
+
+function getImageKey(image, index = 0) {
+  return image?.path || image?.url || image?.fullUrl || `image-${index}`;
+}
+
+function getOrientation(width, height) {
+  if (!width || !height) return '';
+  if (height > width * 1.12) return 'portrait';
+  if (width > height * 1.12) return 'landscape';
+  return 'square';
+}
+
+function withOrderedImages(images) {
+  return images.map((image, index) => ({
+    ...image,
+    order: index,
+    relationship: image.relationship || 'gallery',
+  }));
+}
+
+function UploadControl({ accept = 'image/*', children, disabled = false, multiple = false, onChange }) {
   return (
-    <label className="type-control inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-black/[0.08] bg-studio-bone/45 px-4 text-studio-muted transition hover:border-studio-ink/20 hover:text-studio-ink">
+    <label className={`type-control inline-flex min-h-10 items-center gap-2 rounded-md border border-black/[0.08] bg-studio-bone/45 px-4 text-studio-muted transition ${disabled ? 'cursor-wait opacity-60' : 'cursor-pointer hover:border-studio-ink/20 hover:text-studio-ink'}`}>
       <Upload size={14} />
       {children}
       <input
         accept={accept}
         className="sr-only"
+        disabled={disabled}
         multiple={multiple}
         type="file"
         onChange={(event) => {
@@ -27,6 +93,264 @@ function UploadControl({ accept = 'image/*', children, multiple = false, onChang
         }}
       />
     </label>
+  );
+}
+
+function CoverPreview({ coverImage, isUploading, item, onPreview, onRemove, onUploadImage }) {
+  return (
+    <section>
+      <div className="mb-3 flex items-center justify-between gap-4">
+        <div>
+          <p className="type-label">Cover Image Preview</p>
+          <p className="type-caption mt-1">Primary archive image and social preview source.</p>
+        </div>
+        {coverImage && <span className="type-control rounded-full border border-black/[0.08] px-3 py-1 text-studio-muted">Cover</span>}
+      </div>
+      <div className="relative overflow-hidden rounded-md border border-black/[0.07] bg-studio-bone/35">
+        <div className="aspect-[16/10]">
+          {coverImage ? (
+            <button className="group h-full w-full text-left" type="button" onClick={() => onPreview(coverImage)}>
+              <img
+                alt={coverImage.alt || item.title}
+                className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.015]"
+                loading="lazy"
+                src={coverImage.mediumUrl || coverImage.thumbnailUrl || coverImage.url}
+              />
+            </button>
+          ) : (
+            <div className="grid h-full place-items-center text-studio-muted/35">
+              <Image size={42} strokeWidth={1} />
+            </div>
+          )}
+        </div>
+        {isUploading && (
+          <div className="absolute inset-x-0 bottom-0 h-1 overflow-hidden bg-black/[0.04]">
+            <div className="h-full w-2/3 animate-pulse bg-studio-orange/80" />
+          </div>
+        )}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <UploadControl disabled={isUploading} onChange={(file) => file && onUploadImage?.(item.id, file, 'cover')}>
+          {coverImage ? 'Replace cover' : 'Upload cover'}
+        </UploadControl>
+        {coverImage && (
+          <>
+            <button className="type-control inline-flex min-h-10 items-center gap-2 rounded-md border border-black/[0.08] px-4 text-studio-muted transition hover:border-studio-ink/20 hover:text-studio-ink" type="button" onClick={() => onPreview(coverImage)}>
+              <Eye size={14} />
+              Preview
+            </button>
+            <button className="type-control inline-flex min-h-10 items-center gap-2 rounded-md border border-black/[0.08] px-4 text-studio-muted transition hover:border-studio-rust/30 hover:text-studio-rust" type="button" onClick={onRemove}>
+              <Trash2 size={14} />
+              Remove
+            </button>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function GalleryImageCard({
+  canMoveDown,
+  canMoveUp,
+  image,
+  index,
+  isCover,
+  onDelete,
+  onImageLoad,
+  onMove,
+  onPreview,
+  onSetCover,
+  onUpdate,
+}) {
+  const orientation = image.orientation || getOrientation(image.width, image.height) || 'pending';
+  return (
+    <article
+      className={`studio-accent-left overflow-hidden rounded-md border border-black/[0.06] bg-studio-bone/32 ${orientation === 'portrait' ? 'md:row-span-2' : ''}`}
+      data-tone={isCover ? 'risk' : 'neutral'}
+    >
+      <button className="group relative block w-full bg-studio-ink/[0.03]" type="button" onClick={() => onPreview(image)}>
+        <img
+          alt={image.alt || `Gallery image ${index + 1}`}
+          className={`w-full object-cover transition duration-500 group-hover:scale-[1.02] ${orientation === 'portrait' ? 'aspect-[4/5]' : 'aspect-[4/3]'}`}
+          loading="lazy"
+          src={image.thumbnailUrl || image.mediumUrl || image.url}
+          onLoad={(event) => onImageLoad(index, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)}
+        />
+        <div className="absolute left-3 top-3 flex gap-2">
+          <span className="type-control rounded-full bg-studio-paper/90 px-2 py-1 text-studio-muted">{String(index + 1).padStart(2, '0')}</span>
+          {isCover && <span className="type-control rounded-full bg-studio-ink px-2 py-1 text-studio-paper">Cover</span>}
+        </div>
+      </button>
+      <div className="grid gap-3 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="type-caption text-studio-muted">{orientation}</p>
+          <div className="flex items-center gap-1">
+            <IconButton disabled={!canMoveUp} label="Move image up" onClick={() => onMove(index, -1)}>
+              <ArrowUp size={13} />
+            </IconButton>
+            <IconButton disabled={!canMoveDown} label="Move image down" onClick={() => onMove(index, 1)}>
+              <ArrowDown size={13} />
+            </IconButton>
+            <IconButton label="Set as cover" onClick={() => onSetCover(image)}>
+              <Star size={13} />
+            </IconButton>
+            <IconButton label="Remove image" tone="danger" onClick={() => onDelete(index)}>
+              <Trash2 size={13} />
+            </IconButton>
+          </div>
+        </div>
+        <Field
+          label="Caption"
+          value={image.caption || ''}
+          onChange={(value) => onUpdate(index, { caption: value })}
+        />
+        <Field
+          label="Alt text"
+          value={image.alt || ''}
+          onChange={(value) => onUpdate(index, { alt: value })}
+        />
+      </div>
+    </article>
+  );
+}
+
+function IconButton({ children, disabled = false, label, onClick, tone = 'neutral' }) {
+  return (
+    <button
+      aria-label={label}
+      className={`grid size-8 place-items-center rounded-full border border-black/[0.07] text-studio-muted transition ${disabled ? 'cursor-not-allowed opacity-35' : tone === 'danger' ? 'hover:border-studio-rust/30 hover:text-studio-rust' : 'hover:border-studio-ink/20 hover:text-studio-ink'}`}
+      disabled={disabled}
+      type="button"
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+}
+
+function GalleryManager({ galleryImages, isUploading, item, onPreview, onUpdate, onUploadImage }) {
+  const [draggedIndex, setDraggedIndex] = useState(null);
+
+  const commitGallery = (images) => onUpdate(item.id, { galleryImages: withOrderedImages(images) });
+  const updateGalleryImage = (index, updates) => {
+    const nextImages = galleryImages.map((image, imageIndex) => (imageIndex === index ? { ...image, ...updates } : image));
+    commitGallery(nextImages);
+  };
+  const moveGalleryImage = (index, direction) => {
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= galleryImages.length) return;
+    const nextImages = [...galleryImages];
+    const [image] = nextImages.splice(index, 1);
+    nextImages.splice(nextIndex, 0, image);
+    commitGallery(nextImages);
+  };
+  const deleteGalleryImage = (index) => {
+    commitGallery(galleryImages.filter((_, imageIndex) => imageIndex !== index));
+  };
+  const setCover = (image) => {
+    onUpdate(item.id, {
+      coverImage: { ...image, relationship: 'cover' },
+      imageUrl: image.fullUrl || image.url,
+    });
+  };
+  const recordDimensions = (index, width, height) => {
+    const image = galleryImages[index];
+    if (!image || (image.width && image.height && image.orientation)) return;
+    updateGalleryImage(index, { height, orientation: getOrientation(width, height), width });
+  };
+  const handleDrop = (index) => {
+    if (draggedIndex === null || draggedIndex === index) return;
+    const nextImages = [...galleryImages];
+    const [image] = nextImages.splice(draggedIndex, 1);
+    nextImages.splice(index, 0, image);
+    setDraggedIndex(null);
+    commitGallery(nextImages);
+  };
+
+  return (
+    <section className="border-t border-black/[0.06] pt-6">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="type-label">Uploaded Media</p>
+          <p className="type-caption mt-1">Gallery order feeds the public project page and lightbox.</p>
+        </div>
+        <UploadControl disabled={isUploading} multiple onChange={(files) => files?.forEach((file) => onUploadImage?.(item.id, file, 'gallery'))}>
+          {isUploading ? 'Uploading...' : 'Upload gallery'}
+        </UploadControl>
+      </div>
+
+      {isUploading && (
+        <div className="mb-4 grid gap-3 md:grid-cols-3">
+          {[0, 1, 2].map((value) => (
+            <div key={value} className="aspect-[4/3] animate-pulse rounded-md border border-black/[0.05] bg-studio-bone/55" />
+          ))}
+        </div>
+      )}
+
+      {galleryImages.length ? (
+        <div className="grid auto-rows-auto gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {galleryImages.map((image, index) => (
+            <div
+              key={getImageKey(image, index)}
+              draggable
+              onDragEnd={() => setDraggedIndex(null)}
+              onDragOver={(event) => event.preventDefault()}
+              onDragStart={() => setDraggedIndex(index)}
+              onDrop={() => handleDrop(index)}
+            >
+              <GalleryImageCard
+                canMoveDown={index < galleryImages.length - 1}
+                canMoveUp={index > 0}
+                image={image}
+                index={index}
+                isCover={getImageKey(image, index) === getImageKey(getCoverImage(item))}
+                onDelete={deleteGalleryImage}
+                onImageLoad={recordDimensions}
+                onMove={moveGalleryImage}
+                onPreview={onPreview}
+                onSetCover={setCover}
+                onUpdate={updateGalleryImage}
+              />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid min-h-48 place-items-center rounded-md border border-dashed border-black/[0.08] bg-studio-bone/30 text-center">
+          <div>
+            <Image className="mx-auto text-studio-muted/35" size={34} strokeWidth={1} />
+            <p className="type-caption mt-3 text-studio-muted">No uploaded gallery images yet.</p>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function MediaPreviewModal({ image, onClose }) {
+  if (!image) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black p-6">
+      <button
+        aria-label="Close media preview"
+        className="absolute right-5 top-5 grid size-10 place-items-center rounded-full border border-white/20 text-white/75 transition hover:text-white"
+        type="button"
+        onClick={onClose}
+      >
+        <X size={18} />
+      </button>
+      <img
+        alt={image.alt || image.caption || 'Portfolio media preview'}
+        className="max-h-[88vh] max-w-[92vw] object-contain"
+        src={image.fullUrl || image.mediumUrl || image.url}
+      />
+      {(image.caption || image.alt) && (
+        <p className="type-caption absolute bottom-5 left-1/2 max-w-xl -translate-x-1/2 text-center text-white/70">
+          {image.caption || image.alt}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -40,6 +364,19 @@ export function PortfolioManager({
   onUploadImage,
   portfolioItems,
 }) {
+  const [previewImage, setPreviewImage] = useState(null);
+  const [uploadingKeys, setUploadingKeys] = useState({});
+  const uploadMedia = async (itemId, file, relationship) => {
+    const key = `${itemId}-${relationship}`;
+    setUploadingKeys((items) => ({ ...items, [key]: true }));
+    try {
+      return await onUploadImage?.(itemId, file, relationship);
+    } finally {
+      setUploadingKeys((items) => ({ ...items, [key]: false }));
+    }
+  };
+  const items = useMemo(() => portfolioItems || [], [portfolioItems]);
+
   return (
     <SectionCard
       action={
@@ -69,116 +406,100 @@ export function PortfolioManager({
           </Button>
         </div>
       )}
-      <div className="grid gap-10 lg:grid-cols-2">
-        {portfolioItems.map((item) => (
-          <article key={item.id} className="overflow-hidden rounded-xl border border-black/[0.05] bg-white shadow-sm transition-all duration-300 hover:shadow-glow">
-            <div className="aspect-[16/9] bg-studio-ink/5 relative group">
-              {item.imageUrl ? (
-                <img alt={item.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" src={item.imageUrl} />
-              ) : (
-                <div className="grid h-full place-items-center text-studio-muted/30">
-                  <Image size={48} strokeWidth={1} />
-                </div>
-              )}
-              <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/5" />
-            </div>
-            <div className="grid gap-8 p-8">
-              <div className="flex items-start gap-6">
-                <Field
-                  label="Project title"
-                  value={item.title}
-                  wrapperClassName="flex-1"
-                  onChange={(value) => onUpdate(item.id, { title: value })}
-                />
-                <button
-                  aria-label="Delete portfolio item"
-                  className="mt-8 grid size-10 place-items-center rounded-full border border-black/[0.05] text-studio-muted/30 transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-500"
-                  type="button"
-                  onClick={() => onDelete(item.id)}
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-              <div className="grid gap-6 sm:grid-cols-2">
-                <Field
-                  label="Category"
-                  value={item.category}
-                  onChange={(value) => onUpdate(item.id, { category: value })}
-                />
-                <Field label="Location" value={item.location || ''} onChange={(value) => onUpdate(item.id, { location: value })} />
-                <Field label="Client" value={item.client || ''} onChange={(value) => onUpdate(item.id, { client: value })} />
-                <Field label="Year" value={item.year || ''} onChange={(value) => onUpdate(item.id, { year: value })} />
-                <Field label="Area / sqm" value={item.areaSqm || ''} onChange={(value) => onUpdate(item.id, { areaSqm: value })} />
-                <Field label="Cover image URL" value={item.imageUrl || ''} onChange={(value) => onUpdate(item.id, { imageUrl: value })} />
-              </div>
-              <div className="grid gap-4 rounded-md border border-black/[0.06] bg-studio-bone/35 p-5">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="type-label">Image Uploads</p>
-                    <p className="type-caption mt-1">Stored in Firebase Storage when configured. URL fields remain available.</p>
+      <div className="grid gap-10">
+        {items.map((item) => {
+          const coverImage = getCoverImage(item);
+          const galleryImages = getGalleryImages(item);
+          const hasUploadedMedia = Boolean(item.coverImage || galleryImages.length);
+          const isCoverUploading = Boolean(uploadingKeys[`${item.id}-cover`]);
+          const isGalleryUploading = Boolean(uploadingKeys[`${item.id}-gallery`]);
+          return (
+            <article key={item.id} className="overflow-hidden rounded-lg border border-black/[0.06] bg-studio-bone/36">
+              <div className="grid gap-8 p-7 lg:grid-cols-[0.95fr_1.05fr]">
+                <div className="grid gap-6">
+                  <CoverPreview
+                    coverImage={coverImage}
+                    isUploading={isCoverUploading}
+                    item={item}
+                    onPreview={setPreviewImage}
+                    onRemove={() => onUpdate(item.id, { coverImage: null, imageUrl: '' })}
+                    onUploadImage={uploadMedia}
+                  />
+                  <div className="flex items-start gap-6 border-t border-black/[0.06] pt-6">
+                    <Field
+                      label="Project title"
+                      value={item.title}
+                      wrapperClassName="flex-1"
+                      onChange={(value) => onUpdate(item.id, { title: value })}
+                    />
+                    <button
+                      aria-label="Delete portfolio item"
+                      className="mt-8 grid size-10 place-items-center rounded-full border border-black/[0.05] text-studio-muted/40 transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-500"
+                      type="button"
+                      onClick={() => onDelete(item.id)}
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <UploadControl onChange={(file) => file && onUploadImage?.(item.id, file, 'cover')}>
-                      Upload cover
-                    </UploadControl>
-                    <UploadControl multiple onChange={(files) => files?.forEach((file) => onUploadImage?.(item.id, file, 'gallery'))}>
-                      Upload gallery
-                    </UploadControl>
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <Field label="Category" value={item.category} onChange={(value) => onUpdate(item.id, { category: value })} />
+                    <Field label="Location" value={item.location || ''} onChange={(value) => onUpdate(item.id, { location: value })} />
+                    <Field label="Client" value={item.client || ''} onChange={(value) => onUpdate(item.id, { client: value })} />
+                    <Field label="Year" value={item.year || ''} onChange={(value) => onUpdate(item.id, { year: value })} />
+                    <Field label="Area / sqm" value={item.areaSqm || ''} onChange={(value) => onUpdate(item.id, { areaSqm: value })} />
+                  </div>
+                  <Field label="Subtitle" value={item.subtitle || ''} onChange={(value) => onUpdate(item.id, { subtitle: value })} />
+                  <Field label="Description" multiline value={item.description} onChange={(value) => onUpdate(item.id, { description: value })} />
+                  <Field label="Design story / concept" multiline value={item.concept || ''} onChange={(value) => onUpdate(item.id, { concept: value })} />
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <Field label="Credits" value={item.credits || ''} onChange={(value) => onUpdate(item.id, { credits: value })} />
+                    <Field label="Tags" value={item.tags} onChange={(value) => onUpdate(item.id, { tags: value })} />
                   </div>
                 </div>
-                {Array.isArray(item.galleryImages) && item.galleryImages.length > 0 && (
-                  <div className="grid gap-2 border-t border-black/[0.05] pt-4">
-                    {item.galleryImages.map((image, index) => (
-                      <p key={`${image.path || image.url}-${index}`} className="type-caption truncate">
-                        {String(index + 1).padStart(2, '0')} / {image.caption || image.alt || image.path || image.url}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <Field label="Subtitle" value={item.subtitle || ''} onChange={(value) => onUpdate(item.id, { subtitle: value })} />
-              <Field
-                label="Gallery image URLs"
-                multiline
-                value={item.galleryUrls || ''}
-                onChange={(value) => onUpdate(item.id, { galleryUrls: value })}
-              />
-              <Field
-                label="Description"
-                multiline
-                value={item.description}
-                onChange={(value) => onUpdate(item.id, { description: value })}
-              />
-              <Field
-                label="Design story / concept"
-                multiline
-                value={item.concept || ''}
-                onChange={(value) => onUpdate(item.id, { concept: value })}
-              />
-              <Field label="Credits" value={item.credits || ''} onChange={(value) => onUpdate(item.id, { credits: value })} />
-              <Field label="Tags" value={item.tags} onChange={(value) => onUpdate(item.id, { tags: value })} />
 
-              <details className="mt-4 border-t border-black/[0.05] pt-6">
-                <summary className="type-control cursor-pointer text-studio-muted transition hover:text-studio-ink">Advanced Layout Settings</summary>
-                <p className="type-caption mt-2">Usually handled visually in homepage edit mode.</p>
-                <div className="mt-6 grid gap-6 sm:grid-cols-5">
-                  <Field label="X %" value={item.x || ''} onChange={(value) => onUpdate(item.id, { x: value })} />
-                  <Field label="Y %" value={item.y || ''} onChange={(value) => onUpdate(item.id, { y: value })} />
-                  <Field label="Width %" value={item.width || ''} onChange={(value) => onUpdate(item.id, { width: value })} />
-                  <Field label="Height %" value={item.height || ''} onChange={(value) => onUpdate(item.id, { height: value })} />
-                  <Field label="Z index" value={item.zIndex || ''} onChange={(value) => onUpdate(item.id, { zIndex: value })} />
+                <div className="grid content-start gap-6">
+                  <GalleryManager
+                    galleryImages={galleryImages}
+                    isUploading={isGalleryUploading}
+                    item={item}
+                    onPreview={setPreviewImage}
+                    onUpdate={onUpdate}
+                    onUploadImage={uploadMedia}
+                  />
+
+                  <details className="border-t border-black/[0.06] pt-5" open={!hasUploadedMedia}>
+                    <summary className="type-control cursor-pointer text-studio-muted transition hover:text-studio-ink">URL Fallbacks</summary>
+                    <p className="type-caption mt-2">Use only when Firebase Storage upload is unavailable or an external hosted image is preferred.</p>
+                    <div className="mt-5 grid gap-5">
+                      <Field label="Cover image URL" value={item.imageUrl || ''} onChange={(value) => onUpdate(item.id, { imageUrl: value })} />
+                      <Field label="Gallery image URLs" multiline value={item.galleryUrls || ''} onChange={(value) => onUpdate(item.id, { galleryUrls: value })} />
+                    </div>
+                  </details>
+
+                  <details className="border-t border-black/[0.06] pt-5">
+                    <summary className="type-control cursor-pointer text-studio-muted transition hover:text-studio-ink">Advanced Layout Settings</summary>
+                    <p className="type-caption mt-2">Usually handled visually in homepage edit mode.</p>
+                    <div className="mt-6 grid gap-5 sm:grid-cols-5">
+                      <Field label="X %" value={item.x || ''} onChange={(value) => onUpdate(item.id, { x: value })} />
+                      <Field label="Y %" value={item.y || ''} onChange={(value) => onUpdate(item.id, { y: value })} />
+                      <Field label="Width %" value={item.width || ''} onChange={(value) => onUpdate(item.id, { width: value })} />
+                      <Field label="Height %" value={item.height || ''} onChange={(value) => onUpdate(item.id, { height: value })} />
+                      <Field label="Z index" value={item.zIndex || ''} onChange={(value) => onUpdate(item.id, { zIndex: value })} />
+                    </div>
+                    <div className="mt-5">
+                      <Button variant="secondary" onClick={() => onOpenHomepageEditor?.(item.id)}>
+                        <ExternalLink size={14} />
+                        Adjust layout on homepage
+                      </Button>
+                    </div>
+                  </details>
                 </div>
-                <div className="mt-5">
-                  <Button variant="secondary" onClick={() => onOpenHomepageEditor?.(item.id)}>
-                    <ExternalLink size={14} />
-                    Adjust layout on homepage
-                  </Button>
-                </div>
-              </details>
-            </div>
-          </article>
-        ))}
+              </div>
+            </article>
+          );
+        })}
       </div>
+      <MediaPreviewModal image={previewImage} onClose={() => setPreviewImage(null)} />
     </SectionCard>
   );
 }
