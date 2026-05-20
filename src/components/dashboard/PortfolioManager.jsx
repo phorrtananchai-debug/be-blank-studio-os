@@ -15,20 +15,26 @@ import { useMemo, useState } from 'react';
 import { Button } from '../Button.jsx';
 import { Field } from '../Field.jsx';
 import { SectionCard } from '../SectionCard.jsx';
+import { createImageRecordDefaults, getImageFocusStyle } from '../../utils/portfolioImages.js';
 
 function normalizeImageRecord(image, fallbackAlt = '') {
   if (!image) return null;
   if (typeof image === 'string') {
-    return { alt: fallbackAlt, caption: '', fullUrl: image, mediumUrl: image, thumbnailUrl: image, url: image };
+    return createImageRecordDefaults({ alt: fallbackAlt, caption: '', fullUrl: image, mediumUrl: image, thumbnailUrl: image, url: image });
   }
 
   const url = image.url || image.fullUrl || image.mediumUrl || image.thumbnailUrl || '';
   if (!url) return null;
 
-  return {
+  return createImageRecordDefaults({
     alt: image.alt || fallbackAlt,
+    aspectIntent: image.aspectIntent,
     blurhash: image.blurhash || '',
     caption: image.caption || '',
+    cropMode: image.cropMode,
+    cropNotes: image.cropNotes || '',
+    focusX: image.focusX,
+    focusY: image.focusY,
     fullUrl: image.fullUrl || url,
     height: image.height || null,
     mediumUrl: image.mediumUrl || image.fullUrl || url,
@@ -40,7 +46,7 @@ function normalizeImageRecord(image, fallbackAlt = '') {
     thumbnailUrl: image.thumbnailUrl || image.mediumUrl || image.fullUrl || url,
     url,
     width: image.width || null,
-  };
+  });
 }
 
 function getCoverImage(item) {
@@ -96,7 +102,57 @@ function UploadControl({ accept = 'image/*', children, disabled = false, multipl
   );
 }
 
-function CoverPreview({ coverImage, isUploading, item, onPreview, onRemove, onUploadImage }) {
+function FocusPicker({ image, label, onChange }) {
+  const focus = createImageRecordDefaults(image || {});
+  const setFocus = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const focusX = Math.round(((event.clientX - rect.left) / rect.width) * 100);
+    const focusY = Math.round(((event.clientY - rect.top) / rect.height) * 100);
+    onChange({ focusX: Math.min(100, Math.max(0, focusX)), focusY: Math.min(100, Math.max(0, focusY)) });
+  };
+
+  return (
+    <div className="grid gap-3">
+      <p className="type-label text-studio-muted">{label}</p>
+      <button className="relative block overflow-hidden rounded-md border border-black/[0.07] bg-studio-bone/35" type="button" onClick={setFocus}>
+        <img
+          alt={image?.alt || label}
+          className="aspect-[16/10] w-full"
+          loading="lazy"
+          src={image?.mediumUrl || image?.thumbnailUrl || image?.url}
+          style={getImageFocusStyle(image)}
+        />
+        <span
+          className="absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white bg-studio-orange shadow-[0_0_0_1px_rgba(0,0,0,0.25)]"
+          style={{ left: `${focus.focusX}%`, top: `${focus.focusY}%` }}
+        />
+      </button>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block">
+          <span className="type-control mb-2 block text-studio-muted/60">Crop mode</span>
+          <select className="type-field min-h-11 w-full rounded-md border border-black/[0.07] bg-studio-bone/55 px-4 py-3 text-[#111111] outline-none" value={focus.cropMode} onChange={(event) => onChange({ cropMode: event.target.value })}>
+            {['cover', 'contain', 'natural'].map((option) => <option key={option} value={option}>{option}</option>)}
+          </select>
+        </label>
+        <label className="block">
+          <span className="type-control mb-2 block text-studio-muted/60">Aspect intent</span>
+          <select className="type-field min-h-11 w-full rounded-md border border-black/[0.07] bg-studio-bone/55 px-4 py-3 text-[#111111] outline-none" value={focus.aspectIntent} onChange={(event) => onChange({ aspectIntent: event.target.value })}>
+            {['auto', 'portrait', 'landscape', 'square', 'wide'].map((option) => <option key={option} value={option}>{option}</option>)}
+          </select>
+        </label>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button className="type-control rounded-md border border-black/[0.08] px-3 py-2 text-studio-muted transition hover:text-studio-ink" type="button" onClick={() => onChange({ focusX: 50, focusY: 50 })}>
+          Reset focus
+        </button>
+        <span className="type-caption self-center text-studio-muted">Focus {focus.focusX}/{focus.focusY}</span>
+      </div>
+      <Field label="Crop notes" value={focus.cropNotes || ''} onChange={(value) => onChange({ cropNotes: value })} />
+    </div>
+  );
+}
+
+function CoverPreview({ coverImage, isUploading, item, onFocusChange, onPreview, onRemove, onUploadImage }) {
   return (
     <section>
       <div className="mb-3 flex items-center justify-between gap-4">
@@ -115,6 +171,7 @@ function CoverPreview({ coverImage, isUploading, item, onPreview, onRemove, onUp
                 className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.015]"
                 loading="lazy"
                 src={coverImage.mediumUrl || coverImage.thumbnailUrl || coverImage.url}
+                style={getImageFocusStyle(coverImage)}
               />
             </button>
           ) : (
@@ -146,6 +203,11 @@ function CoverPreview({ coverImage, isUploading, item, onPreview, onRemove, onUp
           </>
         )}
       </div>
+      {coverImage && (
+        <div className="mt-5">
+          <FocusPicker image={coverImage} label="Cover focus" onChange={onFocusChange} />
+        </div>
+      )}
     </section>
   );
 }
@@ -175,6 +237,7 @@ function GalleryImageCard({
           className={`w-full object-cover transition duration-500 group-hover:scale-[1.02] ${orientation === 'portrait' ? 'aspect-[4/5]' : 'aspect-[4/3]'}`}
           loading="lazy"
           src={image.thumbnailUrl || image.mediumUrl || image.url}
+          style={getImageFocusStyle(image)}
           onLoad={(event) => onImageLoad(index, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)}
         />
         <div className="absolute left-3 top-3 flex gap-2">
@@ -210,6 +273,7 @@ function GalleryImageCard({
           value={image.alt || ''}
           onChange={(value) => onUpdate(index, { alt: value })}
         />
+        <FocusPicker image={image} label="Image focus" onChange={(updates) => onUpdate(index, updates)} />
       </div>
     </article>
   );
@@ -421,6 +485,7 @@ export function PortfolioManager({
                     coverImage={coverImage}
                     isUploading={isCoverUploading}
                     item={item}
+                    onFocusChange={(updates) => onUpdate(item.id, { coverImage: { ...coverImage, ...updates } })}
                     onPreview={setPreviewImage}
                     onRemove={() => onUpdate(item.id, { coverImage: null, imageUrl: '' })}
                     onUploadImage={uploadMedia}

@@ -244,8 +244,13 @@ export function StudioOSApp({ navigate, routePath }) {
       const url = await uploadFile(path, file);
       const imageMeta = {
         alt: file.name.replace(/\.[^.]+$/, ''),
+        aspectIntent: 'auto',
         blurhash: '',
         caption: '',
+        cropMode: 'cover',
+        cropNotes: '',
+        focusX: 50,
+        focusY: 50,
         fullUrl: url,
         height: null,
         mediumUrl: url,
