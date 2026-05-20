@@ -18,7 +18,9 @@ import {
   addCollectionItem,
   deleteCollectionItem,
   getFirebaseDebugInfo,
+  isFirebaseConfigured as hasFirebaseStorageConfig,
   updateCollectionItem,
+  uploadFile,
 } from '../services/firebase.js';
 import {
   createFirebaseProject,
@@ -37,6 +39,7 @@ import {
   createProject,
   downloadJson,
 } from '../utils/dashboard.js';
+import { getAutoPortfolioLayout, stringifyLayout } from '../utils/layout.js';
 import { inferTaskDraft } from '../utils/operationalTasks.js';
 import { parseBackupJson, validateStudioBackup } from '../utils/backupValidation.js';
 
@@ -98,6 +101,7 @@ export function StudioOSApp({ navigate, routePath }) {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   const [pendingBackup, setPendingBackup] = useState(null);
+  const [lastAddedPortfolioId, setLastAddedPortfolioId] = useState('');
   const importInputRef = useRef(null);
 
   const dataMode = isFirebaseConfigured
@@ -179,11 +183,73 @@ export function StudioOSApp({ navigate, routePath }) {
   const addPortfolio = async () => {
     if (!studioUser) return;
     try {
-      await addCollectionItem('portfolioItems', createPortfolioItem());
+      const itemId = crypto.randomUUID ? `portfolio-${crypto.randomUUID()}` : `portfolio-${Date.now()}`;
+      const layout = stringifyLayout(getAutoPortfolioLayout(portfolioItems));
+      const portfolioItem = createPortfolioItem({ id: itemId, ...layout });
+      await addCollectionItem('portfolioItems', portfolioItem);
+      setLastAddedPortfolioId(itemId);
       showToast('Portfolio item added.');
     } catch (error) {
       console.error(error);
       showToast('Portfolio item could not be added.', 'error');
+    }
+  };
+
+  const openHomepageEditor = (portfolioItemId = '') => {
+    const query = new URLSearchParams({ edit: '1' });
+    if (portfolioItemId) {
+      query.set('highlight', portfolioItemId);
+    }
+    navigate(`/work?${query.toString()}`);
+  };
+
+  const uploadPortfolioImage = async (id, file, relationship = 'gallery') => {
+    if (!studioUser) {
+      showToast('Sign in before uploading portfolio images.', 'warning');
+      return null;
+    }
+
+    if (!hasFirebaseStorageConfig()) {
+      showToast('Direct upload requires Firebase Storage. URL fields remain available.', 'warning');
+      return null;
+    }
+
+    try {
+      const safeName = file.name.toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/(^-|-$)/g, '') || 'image';
+      const folder = relationship === 'cover' ? 'cover' : 'gallery';
+      const path = `portfolio/${id}/${folder}/${Date.now()}-${safeName}`;
+      const url = await uploadFile(path, file);
+      const imageMeta = {
+        alt: file.name.replace(/\.[^.]+$/, ''),
+        caption: '',
+        fullUrl: url,
+        mediumUrl: url,
+        order: 0,
+        path,
+        relationship,
+        thumbnailUrl: url,
+        url,
+      };
+
+      if (relationship === 'cover') {
+        await updatePortfolio(id, { coverImage: imageMeta, imageUrl: url });
+      } else {
+        const currentItem = portfolioItems.find((item) => item.id === id);
+        const galleryImages = Array.isArray(currentItem?.galleryImages) ? currentItem.galleryImages : [];
+        await updatePortfolio(id, {
+          galleryImages: [
+            ...galleryImages,
+            { ...imageMeta, order: galleryImages.length },
+          ],
+        });
+      }
+
+      showToast(relationship === 'cover' ? 'Cover image uploaded.' : 'Gallery image uploaded.');
+      return imageMeta;
+    } catch (error) {
+      console.error(error);
+      showToast('Image upload failed. URL input is still available.', 'error');
+      return null;
     }
   };
 
@@ -446,6 +512,7 @@ export function StudioOSApp({ navigate, routePath }) {
           handleBackToGallery={handleBackToGallery}
           handleSelectArtwork={handleSelectArtwork}
           portfolioItems={portfolioItems}
+          lastAddedPortfolioId={lastAddedPortfolioId}
           projects={projects}
           selectedArtworkProjectId={selectedArtworkProjectId}
           statusCounts={statusCounts}
@@ -453,6 +520,8 @@ export function StudioOSApp({ navigate, routePath }) {
           updateContent={updateContent}
           updatePortfolio={updatePortfolio}
           updateProject={updateProject}
+          onOpenHomepageEditor={openHomepageEditor}
+          onUploadPortfolioImage={uploadPortfolioImage}
           tasks={tasks}
           onCompleteTask={completeTask}
           onUpdateTask={updateTask}

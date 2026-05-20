@@ -21,6 +21,9 @@ export function StudioOSWorkspaceContent({
   exportPortfolio,
   handleBackToGallery,
   handleSelectArtwork,
+  lastAddedPortfolioId,
+  onOpenHomepageEditor,
+  onUploadPortfolioImage,
   portfolioItems,
   projects,
   selectedArtworkProjectId,
@@ -119,11 +122,14 @@ export function StudioOSWorkspaceContent({
 
         {activeTab === 'portfolio' && (
           <PortfolioManager
+            lastAddedPortfolioId={lastAddedPortfolioId}
             portfolioItems={portfolioItems}
             onAdd={addPortfolio}
             onDelete={deletePortfolio}
             onExport={exportPortfolio}
+            onOpenHomepageEditor={onOpenHomepageEditor}
             onUpdate={updatePortfolio}
+            onUploadImage={onUploadPortfolioImage}
           />
         )}
       </div>

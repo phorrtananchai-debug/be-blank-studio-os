@@ -4,10 +4,13 @@ import { initialPortfolioItems } from '../data/seed.js';
 import { useStudioAuth } from '../hooks/useStudioAuth.js';
 import {
   getNextInteractionLayout,
+  getNormalizedPortfolioLayouts,
   getPortfolioImageObjectPosition,
   getPortfolioLayout,
+  hasExplicitPortfolioLayout,
   stringifyLayout,
 } from '../utils/layout.js';
+import { getCoverImage } from '../utils/portfolioImages.js';
 
 const defaultEditorSettings = {
   titleOffsetY: 0,
@@ -110,12 +113,8 @@ function getItems(portfolioItems) {
   return portfolioItems.length ? portfolioItems : initialPortfolioItems;
 }
 
-function hasLayoutFields(item) {
-  return ['x', 'y', 'width', 'height'].some((key) => item[key] !== undefined && item[key] !== '');
-}
-
 function getArchiveLayout(item, index) {
-  return getPortfolioLayout(hasLayoutFields(item) ? item : {}, index);
+  return getPortfolioLayout(hasExplicitPortfolioLayout(item) ? item : {}, index);
 }
 
 function getArchiveCanvasHeight(items, draftLayouts = {}) {
@@ -208,6 +207,7 @@ function PublicMasthead({ editorSettings, editMode, navigate, routePath, transit
 
 function HomeArchiveItem({ editorSettings, index, item, navigate }) {
   const layout = getArchiveLayout(item, index);
+  const cover = getCoverImage(item);
   const summary = item.category || item.subtitle || item.location || 'Archive';
   const area = item.areaSqm ? formatArea(item.areaSqm) : '';
 
@@ -226,7 +226,9 @@ function HomeArchiveItem({ editorSettings, index, item, navigate }) {
           <img
             alt={item.title}
             className="w-full object-cover transition duration-[1200ms] ease-studio-out group-hover:scale-[1.012] group-hover:opacity-95"
-            src={item.imageUrl}
+            loading="lazy"
+            sizes="(max-width: 768px) 92vw, 34vw"
+            src={cover?.mediumUrl || item.imageUrl}
             style={{
               height: `${layout.height * 10}px`,
               objectPosition: getPortfolioImageObjectPosition(index),
@@ -267,13 +269,14 @@ function HomeArchive({ editorSettings, items, navigate }) {
   );
 }
 
-function EditableArchiveItem({ editorSettings, index, item, layout, onLayer, onPointerStart }) {
+function EditableArchiveItem({ editorSettings, highlighted, index, item, layout, onLayer, onPointerStart }) {
+  const cover = getCoverImage(item);
   const summary = item.category || item.subtitle || item.location || 'Archive';
   const area = item.areaSqm ? formatArea(item.areaSqm) : '';
 
   return (
     <article
-      className="public-edit-item group absolute"
+      className={`public-edit-item group absolute ${highlighted ? 'is-highlighted' : ''}`}
       style={{
         left: `${layout.x}%`,
         top: `${layout.y}%`,
@@ -291,7 +294,9 @@ function EditableArchiveItem({ editorSettings, index, item, layout, onLayer, onP
           <img
             alt={item.title}
             className="w-full object-cover"
-            src={item.imageUrl}
+            loading="lazy"
+            sizes="(max-width: 768px) 92vw, 34vw"
+            src={cover?.mediumUrl || item.imageUrl}
             style={{
               height: `${layout.height * 10}px`,
               objectPosition: getPortfolioImageObjectPosition(index),
@@ -336,7 +341,7 @@ function EditableArchiveItem({ editorSettings, index, item, layout, onLayer, onP
   );
 }
 
-function EditableHomeArchive({ draftLayouts, editorSettings, items, onDraftLayout }) {
+function EditableHomeArchive({ draftLayouts, editorSettings, highlightedItemId, items, onDraftLayout }) {
   const canvasRef = useRef(null);
   const activeInteraction = useRef(null);
 
@@ -399,6 +404,7 @@ function EditableHomeArchive({ draftLayouts, editorSettings, items, onDraftLayou
           <EditableArchiveItem
             key={item.id}
             editorSettings={editorSettings}
+            highlighted={highlightedItemId === item.id}
             index={index}
             item={item}
             layout={layout}
@@ -463,7 +469,7 @@ function JournalArchive({ items, navigate }) {
   );
 }
 
-function PublicEditorControls({ editorSettings, gridVisible, onExit, onReset, onSave, onToggleGrid, onUpdateSettings }) {
+function PublicEditorControls({ editorSettings, gridVisible, onExit, onReflow, onReset, onSave, onToggleGrid, onUpdateSettings }) {
   const alignments = ['left', 'center', 'right'];
   const fonts = [
     { label: 'grotesk', value: 'grotesk' },
@@ -476,6 +482,7 @@ function PublicEditorControls({ editorSettings, gridVisible, onExit, onReset, on
       <div className="public-editor-toolbar">
         <button type="button" onClick={onSave}>save</button>
         <button type="button" onClick={onReset}>reset</button>
+        <button type="button" onClick={onReflow}>reflow layout</button>
         <button type="button" onClick={onExit}>exit</button>
         <button aria-pressed={gridVisible} type="button" onClick={onToggleGrid}>grid</button>
       </div>
@@ -601,6 +608,8 @@ export function PublicHomepage({ portfolioItems, navigate, updatePortfolioItem }
   const [gridVisible, setGridVisible] = useState(true);
   const [draftLayouts, setDraftLayouts] = useState({});
   const archiveItems = useMemo(() => getItems(portfolioItems), [portfolioItems]);
+  const query = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const highlightedItemId = query.get('highlight') || '';
   const draftArchiveItems = useMemo(
     () => archiveItems.map((item) => ({ ...item, ...(draftLayouts[item.id] ? stringifyLayout(draftLayouts[item.id]) : {}) })),
     [archiveItems, draftLayouts],
@@ -613,6 +622,12 @@ export function PublicHomepage({ portfolioItems, navigate, updatePortfolioItem }
       setEditMode(false);
     }
   }, [editMode, isEditorAvailable]);
+
+  useEffect(() => {
+    if (query.get('edit') === '1' && isArchiveRoute && isEditorAvailable && user) {
+      setEditMode(true);
+    }
+  }, [isArchiveRoute, isEditorAvailable, query, user]);
 
   const updateDraftLayout = (id, layout) => {
     setDraftLayouts((layouts) => ({ ...layouts, [id]: layout }));
@@ -638,6 +653,10 @@ export function PublicHomepage({ portfolioItems, navigate, updatePortfolioItem }
   const resetEditorChanges = () => {
     setDraftLayouts({});
     resetSettings();
+  };
+
+  const reflowEditorLayout = () => {
+    setDraftLayouts(getNormalizedPortfolioLayouts(archiveItems));
   };
 
   const toggleEditMode = () => {
@@ -679,6 +698,7 @@ export function PublicHomepage({ portfolioItems, navigate, updatePortfolioItem }
           <EditableHomeArchive
             draftLayouts={draftLayouts}
             editorSettings={editorSettings}
+            highlightedItemId={highlightedItemId}
             items={draftArchiveItems}
             onDraftLayout={updateDraftLayout}
           />
@@ -699,6 +719,7 @@ export function PublicHomepage({ portfolioItems, navigate, updatePortfolioItem }
           editorSettings={editorSettings}
           gridVisible={gridVisible}
           onExit={() => setEditMode(false)}
+          onReflow={reflowEditorLayout}
           onReset={resetEditorChanges}
           onSave={saveEditorChanges}
           onToggleGrid={() => setGridVisible((value) => !value)}
