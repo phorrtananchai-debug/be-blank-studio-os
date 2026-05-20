@@ -69,6 +69,11 @@ export function createOperationalTask(input = {}) {
     owner: input.owner || '',
     blockedBy: input.blockedBy || '',
     waitingFor: input.waitingFor || '',
+    dependencies: input.dependencies || input.dependency || '',
+    linkedMilestone: input.linkedMilestone || input.milestone || '',
+    linkedParty: input.linkedParty || input.contractor || input.client || '',
+    procurementFlag: Boolean(input.procurementFlag || input.procurement || input.isProcurement),
+    handoverFlag: Boolean(input.handoverFlag || input.handover || input.isHandover),
     createdAt: input.createdAt || now,
     completedAt: status === 'DONE' ? input.completedAt || now : input.completedAt || '',
     notes: input.notes || input.detail || '',
@@ -117,9 +122,40 @@ function sortTasksByPressure(left, right) {
 
   return (
     (statusWeight[rightStatus] || 0) - (statusWeight[leftStatus] || 0)
-    || leftDate - rightDate
     || (priorityWeight[normalizeTaskPriority(right.priority)] || 0) - (priorityWeight[normalizeTaskPriority(left.priority)] || 0)
+    || leftDate - rightDate
   );
+}
+
+function isWaitingTask(task) {
+  return normalizeTaskStatus(task.status) === 'WAITING' || String(task.waitingFor || '').trim();
+}
+
+function isBlockedTask(task) {
+  return normalizeTaskStatus(task.status) === 'BLOCKED' || String(task.blockedBy || '').trim();
+}
+
+export function getTaskSignalTone(task) {
+  const days = getTaskDaysUntil(task);
+  const status = normalizeTaskStatus(task?.status);
+  if (days !== null && days < 0) return 'overdue';
+  if (status === 'BLOCKED' || String(task?.blockedBy || '').trim()) return 'blocked';
+  if (status === 'WAITING' || String(task?.waitingFor || '').trim()) return 'waiting';
+  if (normalizeTaskPriority(task?.priority) === 'HIGH' || normalizeTaskPriority(task?.priority) === 'CRITICAL') return 'risk';
+  return status === 'DONE' ? 'safe' : 'neutral';
+}
+
+export function getTaskOperationalNote(task) {
+  return [
+    task?.blockedBy && `Blocked by ${task.blockedBy}`,
+    task?.waitingFor && `Waiting for ${task.waitingFor}`,
+    task?.dependencies && `Depends on ${task.dependencies}`,
+    task?.linkedMilestone && `Milestone ${task.linkedMilestone}`,
+    task?.linkedParty && `Linked to ${task.linkedParty}`,
+    task?.procurementFlag && 'Procurement flagged',
+    task?.handoverFlag && 'Handover flagged',
+    task?.notes,
+  ].find((value) => String(value || '').trim()) || 'No operational note.';
 }
 
 export function getProjectTaskSignals(project, tasks = []) {
@@ -199,9 +235,13 @@ export function getOperationalTaskSummary(tasks = []) {
     const days = getTaskDaysUntil(task, today);
     return days !== null && days > 0 && days <= 7;
   }).sort(sortTasksByPressure);
-  const waiting = openTasks.filter((task) => normalizeTaskStatus(task.status) === 'WAITING' || String(task.waitingFor || '').trim()).sort(sortTasksByPressure);
-  const blocked = openTasks.filter((task) => normalizeTaskStatus(task.status) === 'BLOCKED' || String(task.blockedBy || '').trim()).sort(sortTasksByPressure);
+  const waiting = openTasks.filter(isWaitingTask).sort(sortTasksByPressure);
+  const blocked = openTasks.filter(isBlockedTask).sort(sortTasksByPressure);
   const nextActions = [...openTasks].sort(sortTasksByPressure).slice(0, 7);
+  const upcomingDeadlines = openTasks.filter((task) => {
+    const days = getTaskDaysUntil(task, today);
+    return days !== null && days > 7 && days <= 30;
+  }).sort(sortTasksByPressure);
 
   return {
     blocked,
@@ -210,6 +250,25 @@ export function getOperationalTaskSummary(tasks = []) {
     openTasks,
     overdue,
     today: todayTasks,
+    upcomingDeadlines,
     waiting,
   };
+}
+
+export function getOperationalTaskGroups(tasks = []) {
+  const summary = getOperationalTaskSummary(tasks);
+  const openTasks = summary.openTasks;
+  const today = startOfToday();
+  const thisWeek = openTasks.filter((task) => {
+    const days = getTaskDaysUntil(task, today);
+    return days !== null && days > 0 && days <= 7 && !isWaitingTask(task) && !isBlockedTask(task);
+  }).sort(sortTasksByPressure);
+
+  return [
+    { id: 'today', label: 'Today', tasks: summary.today },
+    { id: 'this-week', label: 'This Week', tasks: thisWeek },
+    { id: 'waiting', label: 'Waiting', tasks: summary.waiting },
+    { id: 'blocked', label: 'Blocked', tasks: summary.blocked },
+    { id: 'upcoming', label: 'Upcoming Deadlines', tasks: summary.upcomingDeadlines },
+  ];
 }

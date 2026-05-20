@@ -57,8 +57,36 @@ function serializeTask(task) {
     owner: task.owner || '',
     blockedBy: task.blockedBy || '',
     waitingFor: task.waitingFor || '',
+    dependencies: task.dependencies || '',
+    linkedMilestone: task.linkedMilestone || '',
+    linkedParty: task.linkedParty || '',
+    procurementFlag: Boolean(task.procurementFlag),
+    handoverFlag: Boolean(task.handoverFlag),
+    createdAt: task.createdAt || '',
     completedAt: task.completedAt || '',
     notes: task.notes || task.detail || '',
+  };
+}
+
+export function buildIntelligenceHistoryEntry(projectUpdate = {}, analysis = {}) {
+  const risks = Array.isArray(projectUpdate.risks) ? projectUpdate.risks.filter(Boolean) : [];
+  const suggestedFocus = projectUpdate.currentPriority
+    || projectUpdate.recommendedFocus
+    || projectUpdate.nextDecision
+    || (Array.isArray(projectUpdate.recommendedNextActions) ? projectUpdate.recommendedNextActions[0] : '')
+    || '';
+
+  return {
+    generatedAt: projectUpdate.generatedAt || analysis.generatedAt || new Date().toISOString(),
+    keyRisks: risks,
+    pressureState: projectUpdate.pressureState || '',
+    summary: projectUpdate.summary || analysis.summary || '',
+    suggestedFocus,
+    metrics: {
+      blocked: Number(projectUpdate.blockedCount ?? projectUpdate.blocked ?? risks.filter((risk) => /block/i.test(risk)).length) || 0,
+      overdue: Number(projectUpdate.overdueCount ?? projectUpdate.overdue) || 0,
+      waiting: Number(projectUpdate.waitingCount ?? projectUpdate.waitingApprovals ?? projectUpdate.waiting) || 0,
+    },
   };
 }
 
@@ -97,6 +125,13 @@ export function buildStudioIntelligenceExport({ contentItems = [], portfolioItem
         pressureScore: (pressure.overdueCount * 5) + (pressure.blockedCount * 4) + (pressure.missingNextAction ? 1 : 0),
         openingDate: project.openingDate || '',
         handoverDate: project.handoverDate || '',
+        objective: project.mood || '',
+        currentPriority: project.currentFocus || '',
+        deliveryConstraints: project.phaseNotes || '',
+        dependencies: project.dependencies || '',
+        procurementStatus: project.procurementStatus || '',
+        handoverReadiness: project.handoverReadiness || '',
+        intelligenceHistory: Array.isArray(project.intelligenceHistory) ? project.intelligenceHistory : [],
         nextActions,
         blockedBy: [
           ...taskSignals.blocked.map((task) => task.blockedBy || task.title).filter(Boolean),
@@ -175,8 +210,27 @@ Use this exact schema:
       "deliveryConstraints": "...",
       "risks": [],
       "recommendedNextActions": [],
-      "suggestedTasks": [],
+      "suggestedTasks": [
+        {
+          "title": "...",
+          "projectId": "...",
+          "status": "OPEN | ACTIVE | WAITING | BLOCKED | DONE",
+          "priority": "LOW | NORMAL | HIGH | CRITICAL",
+          "dueDate": "YYYY-MM-DD",
+          "dependencies": "...",
+          "waitingFor": "...",
+          "linkedMilestone": "...",
+          "linkedParty": "...",
+          "procurementFlag": false,
+          "handoverFlag": false,
+          "notes": "..."
+        }
+      ],
       "status": "...",
+      "summary": "...",
+      "nextDecision": "...",
+      "procurementStatus": "...",
+      "handoverReadiness": "...",
       "pressureState": "SAFE | WATCH | RISK | CRITICAL"
     }
   ],

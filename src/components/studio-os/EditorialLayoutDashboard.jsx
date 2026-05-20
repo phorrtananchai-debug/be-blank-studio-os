@@ -16,8 +16,11 @@ import { Button } from '../Button.jsx';
 import { calculateTimeline, formatDate } from '../../utils/dashboard.js';
 import {
   getOperationalTaskSummary,
+  getOperationalTaskGroups,
   getPressureState,
   getTaskDaysUntil,
+  getTaskOperationalNote,
+  getTaskSignalTone,
   normalizeTaskStatus,
 } from '../../utils/operationalTasks.js';
 
@@ -115,6 +118,13 @@ function formatDaysLabel(daysUntil) {
   }
 
   return `${daysUntil}d left`;
+}
+
+function formatShortDate(value) {
+  if (!value) return 'No date';
+  const date = parseDate(value);
+  if (!date) return 'No date';
+  return date.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
 }
 
 function getSignalTone(value) {
@@ -217,7 +227,41 @@ function getOperationalSummary(projects, contentItems = [], tasks = []) {
     waiting,
     waitingApproval: taskSummary.waiting.length + waitingContent.length,
     waitingContent,
+    taskGroups: getOperationalTaskGroups(tasks),
   };
+}
+
+function getLatestHistory(project) {
+  const history = Array.isArray(project.intelligenceHistory) ? project.intelligenceHistory : [];
+  return history[history.length - 1] || null;
+}
+
+function getPreviousHistory(project) {
+  const history = Array.isArray(project.intelligenceHistory) ? project.intelligenceHistory : [];
+  return history.length > 1 ? history[history.length - 2] : null;
+}
+
+function getHealthTrends(projects, summary) {
+  const hasHistory = projects.some((project) => Array.isArray(project.intelligenceHistory) && project.intelligenceHistory.length);
+  const previous = hasHistory ? projects.reduce((totals, project) => {
+    const entry = getPreviousHistory(project) || getLatestHistory(project);
+    const metrics = entry?.metrics || {};
+    return {
+      blocked: totals.blocked + (Number(metrics.blocked) || 0),
+      overdue: totals.overdue + (Number(metrics.overdue) || 0),
+      waiting: totals.waiting + (Number(metrics.waiting) || 0),
+    };
+  }, { blocked: 0, overdue: 0, waiting: 0 }) : {
+    blocked: summary.taskSummary.blocked.length,
+    overdue: summary.taskSummary.overdue.length,
+    waiting: summary.waitingApproval,
+  };
+
+  return [
+    { current: summary.waitingApproval, label: 'Waiting approvals', previous: previous.waiting },
+    { current: summary.taskSummary.blocked.length, label: 'Blocked items', previous: previous.blocked },
+    { current: summary.taskSummary.overdue.length, label: 'Overdue pressure', previous: previous.overdue },
+  ];
 }
 
 function moveItem(items, index, direction) {
@@ -354,36 +398,40 @@ function CommandCenter({ projects, summary, onCompleteTask }) {
   const [firstRisk] = summary.atRisk;
   const leadProject = leadTask ? projects.find((project) => project.id === leadTask.projectId) : firstRisk?.project;
   const nextAction = leadTask?.title || leadProject?.nextAction || firstRisk?.pressure?.blockers || 'No urgent task is currently leading the desk.';
+  const healthTrends = getHealthTrends(projects, summary);
+  const visibleGroups = summary.taskGroups.filter((group) => group.tasks.length).slice(0, 5);
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
+    <div className="grid gap-7 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
       <div>
         <p className="type-label text-studio-muted">Desktop Command Center</p>
         <h1 className="type-page-title mt-2 max-w-3xl">
           {leadProject ? leadProject.name : 'Studio desk is clear'}
         </h1>
-        <p className="type-body mt-4 max-w-3xl text-studio-ink">
+        <p className="type-body mt-3 max-w-3xl text-studio-ink">
           {nextAction}
         </p>
-        <div className="mt-8 grid gap-0 border-y border-black/[0.08] sm:grid-cols-5">
+        <div className="mt-6 grid gap-0 border-y border-black/[0.08] sm:grid-cols-5">
           <Signal label="Overdue" tone="overdue" value={summary.taskSummary.overdue.length} urgent={summary.taskSummary.overdue.length > 0} />
           <Signal label="Opening soon" value={summary.openingSoon.length} />
           <Signal label="Waiting" tone="waiting" value={summary.waitingApproval} />
           <Signal label="Blocked" tone="blocked" value={summary.taskSummary.blocked.length} urgent={summary.taskSummary.blocked.length > 0} />
           <Signal label="Handover risk" tone="risk" value={summary.handoverRisk.length} />
         </div>
+        <div className="mt-5 grid gap-0 border-b border-black/[0.06] sm:grid-cols-3">
+          {healthTrends.map((trend) => (
+            <TrendIndicator key={trend.label} {...trend} />
+          ))}
+        </div>
       </div>
       <div className="border-l border-black/[0.08] pl-6">
-        <p className="type-label text-studio-muted">Next operational move</p>
-        <div className="mt-4 grid gap-4">
-          {summary.taskSummary.blocked.slice(0, 3).map((task) => (
-            <ActionLine key={task.id} label="Unblock" project={projects.find((project) => project.id === task.projectId)} task={task} value={task.blockedBy || task.notes} onCompleteTask={onCompleteTask} />
-          ))}
-          {!summary.taskSummary.blocked.length && summary.taskSummary.waiting.slice(0, 3).map((task) => (
-            <ActionLine key={task.id} label="Confirm" project={projects.find((project) => project.id === task.projectId)} task={task} value={task.waitingFor || task.notes || 'Decision needed'} onCompleteTask={onCompleteTask} />
-          ))}
-          {!summary.taskSummary.blocked.length && !summary.taskSummary.waiting.length && summary.taskSummary.nextActions.slice(0, 3).map((task) => (
-            <ActionLine key={task.id} label="Move" project={projects.find((project) => project.id === task.projectId)} task={task} value={task.notes || 'Ready for action'} onCompleteTask={onCompleteTask} />
+        <div className="flex items-center justify-between gap-4">
+          <p className="type-label text-studio-muted">Next Operational Move</p>
+          <span className="type-control text-studio-muted">{summary.taskSummary.openTasks.length} open</span>
+        </div>
+        <div className="mt-3 grid gap-4">
+          {visibleGroups.map((group) => (
+            <TaskMoveGroup key={group.id} group={group} projects={projects} onCompleteTask={onCompleteTask} />
           ))}
           {!summary.taskSummary.nextActions.length && <EmptyModule message="No open operational tasks are visible." />}
         </div>
@@ -443,26 +491,64 @@ function Signal({ label, tone = 'neutral', urgent = false, value }) {
   );
 }
 
-function ActionLine({ label, project, task, value, onCompleteTask }) {
-  const tone = label === 'Unblock' ? 'blocked' : label === 'Confirm' ? 'waiting' : 'neutral';
+function TrendIndicator({ current, label, previous }) {
+  const diff = current - previous;
+  const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '→';
+  const tone = diff > 0 ? 'text-studio-rust' : diff < 0 ? 'text-studio-olive' : 'text-studio-muted';
   return (
-    <div className="studio-accent-left grid gap-3 border-b border-black/[0.06] pb-4 pl-4 sm:grid-cols-[1fr_auto] sm:items-start" data-tone={tone}>
-      <div>
-        <p className="type-label flex items-center gap-2"><span className="studio-signal-dot" data-tone={tone} />{label}</p>
-        <p className="type-card-title mt-2">{task?.title || project?.name || 'Untitled task'}</p>
-        <p className="type-caption mt-1">{project?.name || 'Unassigned'}{value ? ` / ${value}` : ''}</p>
+    <div className="border-r border-black/[0.06] py-3 pr-4 last:border-r-0 sm:px-4 sm:first:pl-0">
+      <p className="type-label text-studio-muted">{label}</p>
+      <div className="mt-1 flex items-center gap-2">
+        <span className={`type-card-title ${tone}`}>{arrow}</span>
+        <span className="type-control text-studio-muted">{current}</span>
+        <span className="h-px flex-1 bg-black/[0.06]" />
       </div>
-      {task && (
+    </div>
+  );
+}
+
+function TaskMoveGroup({ group, projects, onCompleteTask }) {
+  return (
+    <section>
+      <div className="flex items-center gap-2 border-b border-black/[0.06] pb-1.5">
+        <p className="type-label text-studio-muted">{group.label}</p>
+        <span className="h-px flex-1 bg-black/[0.04]" />
+        <span className="type-control text-studio-muted">{group.tasks.length}</span>
+      </div>
+      <div>
+        {group.tasks.slice(0, 3).map((task) => (
+          <TaskMoveRow key={`${group.id}-${task.id}`} project={projects.find((project) => project.id === task.projectId)} task={task} onCompleteTask={onCompleteTask} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TaskMoveRow({ project, task, onCompleteTask }) {
+  const tone = getTaskSignalTone(task);
+  const days = getTaskDaysUntil(task);
+  const dateLabel = days === null ? formatShortDate(task.dueDate) : formatDaysLabel(days);
+  return (
+    <article className="studio-accent-left grid gap-2 border-b border-black/[0.05] py-2.5 pl-3 last:border-b-0" data-tone={tone}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="type-card-title flex items-center gap-2 truncate text-sm">
+            <span className="studio-signal-dot shrink-0" data-tone={tone} />
+            {task.title || 'Untitled task'}
+          </p>
+          <p className="type-caption mt-1 truncate">{project?.name || 'Unassigned'} / {dateLabel} / {normalizeTaskStatus(task.status)}</p>
+        </div>
         <button
-          className="type-control inline-flex h-8 items-center gap-2 rounded-full border border-black/[0.08] px-3 text-studio-muted transition hover:border-studio-ink/20 hover:text-studio-ink"
+          className="type-control inline-flex h-7 shrink-0 items-center gap-1 rounded-full border border-black/[0.08] px-2.5 text-studio-muted transition hover:border-studio-ink/20 hover:text-studio-ink"
           type="button"
           onClick={() => onCompleteTask?.(task)}
         >
-          <Check size={12} />
+          <Check size={11} />
           Done
         </button>
-      )}
-    </div>
+      </div>
+      <p className="type-caption truncate text-studio-muted/80">{getTaskOperationalNote(task)}</p>
+    </article>
   );
 }
 
