@@ -54,6 +54,7 @@
     --signal-ochre: #8C6A24;
     --signal-olive: #5D6B44;
     --signal-neutral: rgba(33, 33, 33, 0.42);
+    --font-archive-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   }
 
   body {
@@ -190,12 +191,12 @@
 
   .studio-os-shell .type-label,
   .studio-os-shell .type-control {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-family: var(--font-archive-mono);
     font-weight: 700;
   }
 
   .studio-os-shell .type-caption {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-family: var(--font-archive-mono);
     font-weight: 500;
   }
 
@@ -246,11 +247,11 @@
   }
 
   .public-editorial-nav {
-    font-family: Baskerville, Georgia, 'Times New Roman', serif;
-    font-size: 0.75rem;
-    font-weight: 500;
+    font-family: var(--font-archive-mono);
+    font-size: 0.6875rem;
+    font-weight: 600;
     line-height: 1.1;
-    letter-spacing: 0;
+    letter-spacing: 0.035em;
     text-transform: lowercase;
   }
 
@@ -272,19 +273,19 @@
   }
 
   .public-project-meta {
-    font-family: Baskerville, Georgia, 'Times New Roman', serif;
-    font-size: 0.75rem;
+    font-family: var(--font-archive-mono);
+    font-size: 0.6875rem;
     font-weight: 500;
-    line-height: 1.22;
-    letter-spacing: 0;
+    line-height: 1.28;
+    letter-spacing: 0.015em;
   }
 
   .public-utility-meta {
-    font-family: Baskerville, Georgia, 'Times New Roman', serif;
-    font-size: 0.6875rem;
+    font-family: var(--font-archive-mono);
+    font-size: 0.625rem;
     font-weight: 500;
-    line-height: 1.15;
-    letter-spacing: 0;
+    line-height: 1.2;
+    letter-spacing: 0.035em;
   }
 
   @media (max-width: 767px) {
@@ -294,7 +295,7 @@
     }
 
     .public-project-meta {
-      font-size: 0.75rem;
+      font-size: 0.6875rem;
       line-height: 1.24;
     }
   }
@@ -370,6 +371,7 @@
   .public-work-item {
     position: absolute;
     min-width: 0;
+    will-change: transform;
   }
 
   .public-archive-canvas {
@@ -386,11 +388,11 @@
     display: flex;
     align-items: center;
     gap: 0.85rem;
-    font-family: Baskerville, Georgia, 'Times New Roman', serif;
-    font-size: 0.75rem;
-    font-weight: 500;
+    font-family: var(--font-archive-mono);
+    font-size: 0.625rem;
+    font-weight: 600;
     line-height: 1;
-    letter-spacing: 0;
+    letter-spacing: 0.035em;
     text-transform: lowercase;
     color: #111111;
   }
@@ -442,9 +444,42 @@
   }
 
   .public-edit-frame {
+    position: relative;
     outline: 1px solid rgba(17, 17, 17, 0.2);
     outline-offset: 0.35rem;
     cursor: move;
+  }
+
+  .public-edit-frame::before,
+  .public-edit-frame::after {
+    content: '';
+    position: absolute;
+    z-index: 20;
+    pointer-events: none;
+    background: rgba(240, 74, 35, 0.28);
+    opacity: 0;
+    transition: opacity 180ms ease;
+  }
+
+  .public-edit-frame::before {
+    left: 50%;
+    top: -999vh;
+    width: 1px;
+    height: 2000vh;
+  }
+
+  .public-edit-frame::after {
+    left: -999vw;
+    top: 50%;
+    width: 2000vw;
+    height: 1px;
+  }
+
+  .public-edit-item:hover .public-edit-frame::before,
+  .public-edit-item:hover .public-edit-frame::after,
+  .public-edit-item:focus-within .public-edit-frame::before,
+  .public-edit-item:focus-within .public-edit-frame::after {
+    opacity: 1;
   }
 
   .public-edit-item.is-highlighted .public-edit-frame {
@@ -469,7 +504,8 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-family: Baskerville, Georgia, 'Times New Roman', serif;
+    white-space: nowrap;
+    font-family: var(--font-archive-mono);
     font-size: 0.6875rem;
     line-height: 1;
     color: rgba(17, 17, 17, 0.64);
@@ -513,7 +549,7 @@
     background: rgba(233, 229, 219, 0.78);
     padding-top: 0.75rem;
     backdrop-filter: blur(10px);
-    font-family: Baskerville, Georgia, 'Times New Roman', serif;
+    font-family: var(--font-archive-mono);
     font-size: 0.6875rem;
     line-height: 1.15;
     color: rgba(17, 17, 17, 0.72);
