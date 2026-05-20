@@ -52,11 +52,17 @@ import {
   createAnalysisTask,
   parseStudioAnalysisJson,
 } from '../utils/studioIntelligence.js';
-import { mergeCriticalPathUpdates } from '../utils/criticalPath.js';
 import {
   buildWeeklyReviewBriefing,
   buildWeeklyStudioReview,
 } from '../utils/weeklyReview.js';
+import {
+  applySafeAnalysisProjectUpdates,
+  buildAnalysisDiffPreview,
+  createAiImportSnapshot,
+  getLatestAiImportSnapshot,
+  writeAiImportSnapshot,
+} from '../utils/dataSafety.js';
 
 export function StudioOSApp({ navigate, routePath }) {
   const {
@@ -450,7 +456,12 @@ export function StudioOSApp({ navigate, routePath }) {
         throw new Error(errors[0]);
       }
 
-      setPendingAnalysis({ analysis, fileName: file.name, preview });
+      setPendingAnalysis({
+        analysis,
+        diffPreview: buildAnalysisDiffPreview({ analysis, findProject: findAnalysisProject }),
+        fileName: file.name,
+        preview,
+      });
       showToast('AI analysis ready to review.', 'info');
     } catch (error) {
       setPendingAnalysis(null);
@@ -540,38 +551,26 @@ export function StudioOSApp({ navigate, routePath }) {
     const { analysis } = pendingAnalysis;
 
     try {
+      const snapshot = createAiImportSnapshot({
+        analysis,
+        contentItems,
+        projects,
+        tasks,
+      });
+      writeAiImportSnapshot(snapshot);
+
       await Promise.all(analysis.projectUpdates.map(async (projectUpdate) => {
         const project = findAnalysisProject(projectUpdate);
         if (!project) return;
 
-        const updates = {};
-        if (projectUpdate.currentPriority) updates.currentFocus = projectUpdate.currentPriority;
-        if (projectUpdate.deliveryConstraints) updates.phaseNotes = projectUpdate.deliveryConstraints;
-        if (projectUpdate.status) updates.status = projectUpdate.status;
-        if (projectUpdate.pressureState) updates.intelligencePressureState = projectUpdate.pressureState;
-        if (Array.isArray(projectUpdate.risks)) updates.intelligenceRisks = projectUpdate.risks;
-        if (projectUpdate.dependencies) updates.dependencies = projectUpdate.dependencies;
-        if (projectUpdate.nextDecision) updates.currentFocus = projectUpdate.nextDecision;
-        if (projectUpdate.procurementStatus) updates.procurementStatus = projectUpdate.procurementStatus;
-        if (projectUpdate.handoverReadiness) updates.handoverReadiness = projectUpdate.handoverReadiness;
-        if (Array.isArray(projectUpdate.criticalPath)) {
-          updates.criticalPath = mergeCriticalPathUpdates(project, projectUpdate.criticalPath);
-        }
-        if (Array.isArray(projectUpdate.recommendedNextActions)) {
-          updates.nextAction = projectUpdate.recommendedNextActions.join('\n');
-        }
-
-        const previousHistory = Array.isArray(project.intelligenceHistory) ? project.intelligenceHistory : [];
         const currentMetrics = getProjectTaskMetrics(project.id);
-        updates.intelligenceHistory = [
-          ...previousHistory,
-          buildIntelligenceHistoryEntry({
+        const historyEntry = buildIntelligenceHistoryEntry({
             ...projectUpdate,
             blockedCount: projectUpdate.blockedCount ?? currentMetrics.blocked,
             overdueCount: projectUpdate.overdueCount ?? currentMetrics.overdue,
             waitingCount: projectUpdate.waitingCount ?? currentMetrics.waiting,
-          }, analysis),
-        ].slice(-20);
+          }, analysis);
+        const updates = applySafeAnalysisProjectUpdates({ historyEntry, project, projectUpdate });
 
         if (Object.keys(updates).length) {
           await updateProject(project.id, updates);
@@ -589,7 +588,11 @@ export function StudioOSApp({ navigate, routePath }) {
         analysisNotes.unshift(createAnalysisNote({ title: 'AI analysis summary', body: analysis.summary }));
       }
       if (analysisNotes.length) {
-        setContentItems((items) => [...analysisNotes, ...items]);
+        setContentItems((items) => {
+          const existingKeys = new Set(items.map((item) => `${String(item.title || '').trim()}::${String(item.captionEN || item.captionTH || '').trim()}`));
+          const uniqueNotes = analysisNotes.filter((note) => !existingKeys.has(`${String(note.title || '').trim()}::${String(note.captionEN || note.captionTH || '').trim()}`));
+          return uniqueNotes.length ? [...uniqueNotes, ...items] : items;
+        });
       }
 
       setPendingAnalysis(null);
@@ -603,6 +606,37 @@ export function StudioOSApp({ navigate, routePath }) {
   const cancelImportAnalysis = () => {
     setPendingAnalysis(null);
     showToast('AI analysis import cancelled.', 'info');
+  };
+
+  const restoreLastAiSnapshot = async () => {
+    const snapshot = getLatestAiImportSnapshot();
+    if (!snapshot) {
+      showToast('No AI import recovery snapshot found.', 'warning');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Restore last AI import snapshot from ${snapshot.createdAt}?\n\nAffected projects: ${snapshot.affectedProjectIds.join(', ') || 'none'}\n\nThis restores project records and local notes. Firebase task deletion is not automated.`,
+    );
+    if (!confirmed) return;
+
+    try {
+      if (studioUser && snapshot.records?.projects?.length) {
+        await Promise.all(snapshot.records.projects.map((project) => updateProject(project.id, project)));
+      }
+      if (Array.isArray(snapshot.records?.contentItems)) {
+        setContentItems(snapshot.records.contentItems);
+      }
+      if (!isFirebaseConfigured && Array.isArray(snapshot.records?.tasks)) {
+        replaceLocalTasks(snapshot.records.tasks);
+      }
+      downloadJson('be-blank-ai-import-recovery-snapshot.json', snapshot);
+      showToast('AI import snapshot restored and exported.');
+    } catch (error) {
+      console.error(error);
+      downloadJson('be-blank-ai-import-recovery-snapshot.json', snapshot);
+      showToast('Snapshot restore failed. Recovery snapshot was exported.', 'error');
+    }
   };
 
   const toggleDebugPanel = () => {
@@ -721,6 +755,7 @@ export function StudioOSApp({ navigate, routePath }) {
           onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
           onRequestAnalysisImport={requestAnalysisImport}
           onRequestBackupImport={requestBackupImport}
+          onRestoreLastAiSnapshot={restoreLastAiSnapshot}
           onToggleDebug={toggleDebugPanel}
         />
 
