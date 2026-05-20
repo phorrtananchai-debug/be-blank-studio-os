@@ -52,6 +52,7 @@ import {
   createAnalysisTask,
   parseStudioAnalysisJson,
 } from '../utils/studioIntelligence.js';
+import { mergeCriticalPathUpdates } from '../utils/criticalPath.js';
 
 export function StudioOSApp({ navigate, routePath }) {
   const {
@@ -526,6 +527,9 @@ export function StudioOSApp({ navigate, routePath }) {
         if (projectUpdate.nextDecision) updates.currentFocus = projectUpdate.nextDecision;
         if (projectUpdate.procurementStatus) updates.procurementStatus = projectUpdate.procurementStatus;
         if (projectUpdate.handoverReadiness) updates.handoverReadiness = projectUpdate.handoverReadiness;
+        if (Array.isArray(projectUpdate.criticalPath)) {
+          updates.criticalPath = mergeCriticalPathUpdates(project, projectUpdate.criticalPath);
+        }
         if (Array.isArray(projectUpdate.recommendedNextActions)) {
           updates.nextAction = projectUpdate.recommendedNextActions.join('\n');
         }

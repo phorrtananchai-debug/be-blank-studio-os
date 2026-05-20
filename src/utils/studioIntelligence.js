@@ -1,4 +1,5 @@
 import { createContentItem } from './dashboard.js';
+import { serializeCriticalPath } from './criticalPath.js';
 import {
   createOperationalTask,
   getOperationalTaskSummary,
@@ -131,6 +132,7 @@ export function buildStudioIntelligenceExport({ contentItems = [], portfolioItem
         dependencies: project.dependencies || '',
         procurementStatus: project.procurementStatus || '',
         handoverReadiness: project.handoverReadiness || '',
+        criticalPath: serializeCriticalPath(project),
         intelligenceHistory: Array.isArray(project.intelligenceHistory) ? project.intelligenceHistory : [],
         nextActions,
         blockedBy: [
@@ -231,6 +233,15 @@ Use this exact schema:
       "nextDecision": "...",
       "procurementStatus": "...",
       "handoverReadiness": "...",
+      "criticalPath": [
+        {
+          "id": "designFreeze | BOQApproval | contractorLock | procurementStart | siteHandover | constructionStart | storeReady | opening",
+          "targetDate": "YYYY-MM-DD",
+          "status": "NOT_STARTED | ACTIVE | WAITING | BLOCKED | DONE",
+          "notes": "...",
+          "riskLevel": "SAFE | WATCH | RISK | CRITICAL"
+        }
+      ],
       "pressureState": "SAFE | WATCH | RISK | CRITICAL"
     }
   ],
