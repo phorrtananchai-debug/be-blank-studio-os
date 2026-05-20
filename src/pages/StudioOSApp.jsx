@@ -799,6 +799,7 @@ export function StudioOSApp({ navigate, routePath }) {
           updatePortfolio={updatePortfolio}
           updateProject={updateProject}
           onOpenHomepageEditor={openHomepageEditor}
+          onToast={showToast}
           onUploadPortfolioImage={uploadPortfolioImage}
           tasks={tasks}
           onCompleteTask={completeTask}

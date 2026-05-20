@@ -370,6 +370,7 @@
   .public-work-item {
     position: absolute;
     min-width: 0;
+    will-change: transform;
   }
 
   .public-archive-canvas {
@@ -442,9 +443,42 @@
   }
 
   .public-edit-frame {
+    position: relative;
     outline: 1px solid rgba(17, 17, 17, 0.2);
     outline-offset: 0.35rem;
     cursor: move;
+  }
+
+  .public-edit-frame::before,
+  .public-edit-frame::after {
+    content: '';
+    position: absolute;
+    z-index: 20;
+    pointer-events: none;
+    background: rgba(240, 74, 35, 0.28);
+    opacity: 0;
+    transition: opacity 180ms ease;
+  }
+
+  .public-edit-frame::before {
+    left: 50%;
+    top: -999vh;
+    width: 1px;
+    height: 2000vh;
+  }
+
+  .public-edit-frame::after {
+    left: -999vw;
+    top: 50%;
+    width: 2000vw;
+    height: 1px;
+  }
+
+  .public-edit-item:hover .public-edit-frame::before,
+  .public-edit-item:hover .public-edit-frame::after,
+  .public-edit-item:focus-within .public-edit-frame::before,
+  .public-edit-item:focus-within .public-edit-frame::after {
+    opacity: 1;
   }
 
   .public-edit-item.is-highlighted .public-edit-frame {
@@ -469,6 +503,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    white-space: nowrap;
     font-family: Baskerville, Georgia, 'Times New Roman', serif;
     font-size: 0.6875rem;
     line-height: 1;

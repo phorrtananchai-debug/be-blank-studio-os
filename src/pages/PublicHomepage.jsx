@@ -122,7 +122,11 @@ function getArchiveCanvasHeight(items, draftLayouts = {}) {
     return Math.max(bottom, layout.y + layout.height + 18);
   }, 120);
 
-  return `${Math.max(118, maxBottom)}vw`;
+  return `max(118vh, ${Math.max(118, maxBottom)}vw)`;
+}
+
+function getArchiveImageHeight(layout) {
+  return `clamp(130px, ${Math.max(10, layout.height) * 0.72}vw, ${Math.max(10, layout.height) * 16}px)`;
 }
 
 function formatArea(areaSqm) {
@@ -229,7 +233,7 @@ function HomeArchiveItem({ editorSettings, index, item, navigate }) {
             sizes="(max-width: 768px) 92vw, 34vw"
             src={resolvePortfolioImageUrl(cover, ['mediumUrl', 'url', 'imageUrl', 'thumbnailUrl', 'fullUrl']) || item.imageUrl}
             style={{
-              height: `${layout.height * 10}px`,
+              height: getArchiveImageHeight(layout),
               ...getImageFocusStyle(cover),
             }}
             onError={(event) => {
@@ -297,7 +301,7 @@ function EditableArchiveItem({ editorSettings, highlighted, index, item, layout,
             sizes="(max-width: 768px) 92vw, 34vw"
             src={resolvePortfolioImageUrl(cover, ['mediumUrl', 'url', 'imageUrl', 'thumbnailUrl', 'fullUrl']) || item.imageUrl}
             style={{
-              height: `${layout.height * 10}px`,
+              height: getArchiveImageHeight(layout),
               ...getImageFocusStyle(cover),
             }}
             draggable={false}
@@ -332,9 +336,9 @@ function EditableArchiveItem({ editorSettings, highlighted, index, item, layout,
       </div>
 
       <div className="public-edit-layer-tools">
-        <button type="button" onClick={() => onLayer(item, layout.zIndex - 1)}>back</button>
+        <button type="button" onClick={() => onLayer(item, layout.zIndex - 1)}>send back</button>
         <span>{layout.zIndex}</span>
-        <button type="button" onClick={() => onLayer(item, layout.zIndex + 1)}>front</button>
+        <button type="button" onClick={() => onLayer(item, layout.zIndex + 1)}>bring forward</button>
       </div>
 
       <button
@@ -398,7 +402,7 @@ function EditableHomeArchive({ draftLayouts, editorSettings, highlightedItemId, 
   const handleLayer = (item, nextLayer) => {
     const index = items.findIndex((candidate) => candidate.id === item.id);
     const currentLayout = draftLayouts[item.id] || getArchiveLayout(item, index);
-    const nextLayout = { ...currentLayout, zIndex: Math.min(Math.max(nextLayer, 1), 20) };
+    const nextLayout = { ...currentLayout, zIndex: Math.min(Math.max(nextLayer, 1), 40) };
     onDraftLayout(item.id, nextLayout);
   };
 

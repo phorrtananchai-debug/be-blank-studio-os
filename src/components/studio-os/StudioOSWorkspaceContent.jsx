@@ -23,6 +23,7 @@ export function StudioOSWorkspaceContent({
   handleSelectArtwork,
   lastAddedPortfolioId,
   onOpenHomepageEditor,
+  onToast,
   onUploadPortfolioImage,
   portfolioItems,
   projects,
@@ -129,6 +130,7 @@ export function StudioOSWorkspaceContent({
             onDelete={deletePortfolio}
             onExport={exportPortfolio}
             onOpenHomepageEditor={onOpenHomepageEditor}
+            onToast={onToast}
             onUpdate={updatePortfolio}
             onUploadImage={onUploadPortfolioImage}
           />
