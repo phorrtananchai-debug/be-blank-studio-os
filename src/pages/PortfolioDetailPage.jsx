@@ -30,7 +30,7 @@ function Lightbox({ images, initialIndex, onClose }) {
 
   return (
     <div className="fixed inset-0 z-[500] grid bg-black text-white">
-      <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-white/70">
+      <div className="public-utility-meta absolute left-0 right-0 top-0 z-10 flex items-center justify-between px-5 py-4 uppercase text-white/70">
         <button className="transition hover:text-white" type="button" onClick={onClose}>close</button>
         <div className="flex items-center gap-5">
           <button className="transition hover:text-white" type="button" onClick={share}>share</button>
@@ -48,7 +48,7 @@ function Lightbox({ images, initialIndex, onClose }) {
       )}
       <figure className="grid h-screen place-items-center px-8 py-16">
         <img alt={image.alt || ''} className="max-h-full max-w-full object-contain" src={resolvePortfolioImageUrl(image)} />
-        {image.caption && <figcaption className="absolute bottom-5 max-w-xl text-center text-xs font-medium text-white/60">{image.caption}</figcaption>}
+        {image.caption && <figcaption className="public-project-meta absolute bottom-5 max-w-xl text-center text-white/60">{image.caption}</figcaption>}
       </figure>
     </div>
   );
@@ -108,7 +108,7 @@ export function PortfolioDetailPage({ item, navigate }) {
 
   return (
     <div className="min-h-screen bg-studio-paper text-studio-ink">
-      <header className="flex items-center justify-between border-b border-black/[0.08] px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-studio-muted md:px-8">
+      <header className="public-editorial-nav flex items-center justify-between border-b border-black/[0.08] px-5 py-4 uppercase text-studio-muted md:px-8">
         <button className="transition hover:text-studio-ink" type="button" onClick={() => navigate('/')}>
           projects
         </button>
@@ -122,7 +122,7 @@ export function PortfolioDetailPage({ item, navigate }) {
       <main className="mx-auto max-w-7xl">
         <section className="grid gap-12 px-5 py-20 md:grid-cols-2 md:px-8">
           <div className="space-y-6">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">{portfolioItem.category || 'Project'}</p>
+            <p className="public-project-meta uppercase text-studio-muted">{portfolioItem.category || 'Project'}</p>
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-studio-ink">
               {portfolioItem.title}
             </h1>
@@ -142,12 +142,12 @@ export function PortfolioDetailPage({ item, navigate }) {
         </section>
 
         <section className="grid gap-12 px-5 py-24 md:grid-cols-[1fr_2fr] md:px-8">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">Design story</p>
+          <p className="public-project-meta uppercase text-studio-muted">Design story</p>
           <div className="grid gap-8">
             <p className="max-w-4xl text-3xl font-bold leading-tight text-studio-ink md:text-4xl">{portfolioItem.description}</p>
             <p className="max-w-3xl text-lg font-medium text-studio-muted leading-relaxed">{portfolioItem.concept || portfolioItem.description}</p>
             {portfolioItem.credits && (
-              <p className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">{portfolioItem.credits}</p>
+              <p className="public-project-meta uppercase text-studio-muted">{portfolioItem.credits}</p>
             )}
           </div>
         </section>
@@ -161,7 +161,7 @@ export function PortfolioDetailPage({ item, navigate }) {
         </section>
       </main>
       {shareMessage && (
-        <div className="fixed bottom-5 left-1/2 z-[520] -translate-x-1/2 rounded-full bg-black px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
+        <div className="public-utility-meta fixed bottom-5 left-1/2 z-[520] -translate-x-1/2 rounded-full bg-black px-4 py-2 uppercase text-white">
           {shareMessage}
         </div>
       )}

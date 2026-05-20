@@ -24,13 +24,12 @@ const defaultEditorSettings = {
   projectMetaOpacity: 0.86,
   mastheadFont: 'grotesk',
   projectTitleFont: 'grotesk',
-  metadataFont: 'serif',
 };
 
 const fontStacks = {
   grotesk: "'Inter Tight', 'Helvetica Neue', Helvetica, Arial, sans-serif",
   serif: "Baskerville, Georgia, 'Times New Roman', serif",
-  mono: "'Courier New', Courier, monospace",
+  mono: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
 };
 
 const editorSettingsStorageKey = 'beBlankPublicEditorSettings';
@@ -251,7 +250,7 @@ function HomeArchiveItem({ editorSettings, index, item, navigate }) {
           <span className="public-project-title" style={{ fontFamily: fontStacks[editorSettings.projectTitleFont] }}>{item.title || 'Untitled Project'}</span>
           <span
             className="public-project-meta text-[#777777]"
-            style={{ fontFamily: fontStacks[editorSettings.metadataFont], opacity: editorSettings.projectMetaOpacity }}
+            style={{ opacity: editorSettings.projectMetaOpacity }}
           >
             {summary}
             {area && <span className="public-utility-meta ml-1 text-[#8a8a8a]">{area}</span>}
@@ -327,7 +326,7 @@ function EditableArchiveItem({ editorSettings, highlighted, index, item, layout,
           <span className="public-project-title" style={{ fontFamily: fontStacks[editorSettings.projectTitleFont] }}>{item.title || 'Untitled Project'}</span>
           <span
             className="public-project-meta text-[#777777]"
-            style={{ fontFamily: fontStacks[editorSettings.metadataFont], opacity: editorSettings.projectMetaOpacity }}
+            style={{ opacity: editorSettings.projectMetaOpacity }}
           >
             {summary}
             {area && <span className="public-utility-meta ml-1 text-[#8a8a8a]">{area}</span>}
@@ -542,12 +541,6 @@ function PublicEditorControls({ editorSettings, gridVisible, onExit, onReflow, o
         <label>
           title
           <select value={editorSettings.projectTitleFont} onChange={(event) => onUpdateSettings({ projectTitleFont: event.target.value })}>
-            {fonts.map((font) => <option key={font.value} value={font.value}>{font.label}</option>)}
-          </select>
-        </label>
-        <label>
-          meta
-          <select value={editorSettings.metadataFont} onChange={(event) => onUpdateSettings({ metadataFont: event.target.value })}>
             {fonts.map((font) => <option key={font.value} value={font.value}>{font.label}</option>)}
           </select>
         </label>
