@@ -27,6 +27,7 @@ export function StudioOSToolbar({
   onOpenCommandPalette,
   onRequestAnalysisImport,
   onRequestBackupImport,
+  onRestoreLastAiSnapshot,
   onToggleDebug,
   projectsError,
   studioUser,
@@ -83,6 +84,10 @@ export function StudioOSToolbar({
         <Button variant="secondary" onClick={onRequestAnalysisImport}>
           <Upload size={14} strokeWidth={2.5} />
           Import Analysis
+        </Button>
+        <Button variant="secondary" onClick={onRestoreLastAiSnapshot}>
+          <FileJson size={14} strokeWidth={2.5} />
+          Restore AI Snapshot
         </Button>
         <Button variant="secondary" onClick={onRequestBackupImport}>
           <Upload size={14} strokeWidth={2.5} />
