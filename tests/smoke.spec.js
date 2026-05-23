@@ -45,10 +45,13 @@ test.describe('Studio OS Smoke Tests', () => {
     await expect(page.locator('text=Strategic Notes')).toBeVisible();
   });
 
-  test('verify project creation workflow', async ({ page }) => {
+  test('verify project creation and edit workflow', async ({ page }) => {
     await page.goto('http://localhost:5173/os/projects');
     await page.click('text=New Project');
     await expect(page.locator('input[value="Untitled Project"]')).toBeVisible();
+    await page.fill('input[value="Untitled Project"]', 'New Studio Project');
+    await page.click('text=Open Detail');
+    await expect(page.locator('h1:has-text("New Studio Project")')).toBeVisible();
   });
 
   test('verify material approval entry', async ({ page }) => {
