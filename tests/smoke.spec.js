@@ -29,26 +29,60 @@ test.describe('Studio OS Smoke Tests', () => {
 
   test('verify client mode projection safety', async ({ page }) => {
     await page.goto('http://localhost:5173/os/projects');
-
-    // Open the first project
     await page.click('text=Open Detail');
 
-    // Check internal data is visible in internal mode
     await page.click('text=Notes & Logs');
     await expect(page.locator('text=Strategic Notes')).toBeVisible();
     await expect(page.locator('text=Critical Blockers')).toBeVisible();
 
-    // Toggle Client Mode
     await page.click('text=Client Mode');
-
-    // Verify internal tabs and data are hidden
     await expect(page.locator('text=Strategic Notes')).not.toBeVisible();
     await expect(page.locator('text=Critical Blockers')).not.toBeVisible();
     await expect(page.locator('text=Deliverables')).not.toBeVisible();
     await expect(page.locator('text=AI Insights')).not.toBeVisible();
 
-    // Return to internal mode
     await page.click('text=Internal View');
     await expect(page.locator('text=Strategic Notes')).toBeVisible();
+  });
+
+  test('verify project creation workflow', async ({ page }) => {
+    await page.goto('http://localhost:5173/os/projects');
+    await page.click('text=New Project');
+    await expect(page.locator('input[value="Untitled Project"]')).toBeVisible();
+  });
+
+  test('verify material approval entry', async ({ page }) => {
+    await page.goto('http://localhost:5173/os/projects');
+    await page.click('text=Open Detail');
+    await page.click('text=Materials');
+    await page.click('text=Add Material');
+    await expect(page.locator('input[value="New Material"]')).toBeVisible();
+  });
+
+  test('verify billing milestone entry', async ({ page }) => {
+    await page.goto('http://localhost:5173/os/projects');
+    await page.click('text=Open Detail');
+    await page.click('text=Billing');
+    await page.click('text=Add Milestone');
+    await expect(page.locator('input[value="New Milestone"]')).toBeVisible();
+  });
+
+  test('verify site log entry', async ({ page }) => {
+    await page.goto('http://localhost:5173/os/projects');
+    await page.click('text=Open Detail');
+    await page.click('text=Notes & Logs');
+    await page.click('text=New Entry');
+    // Expect multiple observation fields (legacy vs new)
+    await expect(page.locator('text=Observations').first()).toBeVisible();
+  });
+
+  test('verify artwork space access', async ({ page }) => {
+    await page.goto('http://localhost:5173/os/artwork');
+    await expect(page.locator('text=Studio Spaces')).toBeVisible();
+  });
+
+  test('verify gallery manager access', async ({ page }) => {
+    await page.goto('http://localhost:5173/os/portfolio');
+    await expect(page.locator('text=Portfolio Asset Manager')).toBeVisible();
   });
 });
