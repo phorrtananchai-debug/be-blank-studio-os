@@ -9,4 +9,15 @@ export default defineConfig({
     'import.meta.env.VERCEL': JSON.stringify(isWebDeployment),
   },
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-ui': ['lucide-react'],
+          'vendor-export': ['html-to-image', 'jspdf']
+        }
+      }
+    }
+  }
 });

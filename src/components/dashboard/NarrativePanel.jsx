@@ -8,7 +8,7 @@ const energies = [
   { id: 'rest', icon: Moon, label: 'Quiet / Reflection' },
 ];
 
-export function NarrativePanel({ project, onUpdate }) {
+export function NarrativePanel({ project, onUpdate, isClientView }) {
   const [isEditing, setIsEditing] = useState(false);
 
   const handleUpdate = (field, value) => {
@@ -29,12 +29,14 @@ export function NarrativePanel({ project, onUpdate }) {
             {project.name || 'Atmospheric Essence'}
           </p>
         </div>
-        <button
-          onClick={() => setIsEditing(!isEditing)}
-          className="rounded-full border border-black/[0.1] px-5 py-2 text-[12px] font-bold uppercase tracking-wide text-studio-muted transition hover:bg-studio-ink hover:text-white"
-        >
-          {isEditing ? 'Save' : 'Edit'}
-        </button>
+        {!isClientView && (
+          <button
+            onClick={() => setIsEditing(!isEditing)}
+            className="rounded-full border border-black/[0.1] px-5 py-2 text-[12px] font-bold uppercase tracking-wide text-studio-muted transition hover:bg-studio-ink hover:text-white"
+          >
+            {isEditing ? 'Save' : 'Edit'}
+          </button>
+        )}
       </header>
 
       <div className="grid gap-16 lg:grid-cols-2">
@@ -90,7 +92,8 @@ export function NarrativePanel({ project, onUpdate }) {
                 return (
                   <button
                     key={energy.id}
-                    onClick={() => handleUpdate('timelineEnergy', energy.id)}
+                    disabled={isClientView}
+                    onClick={() => !isClientView && handleUpdate('timelineEnergy', energy.id)}
                     className={`flex items-center gap-4 rounded-2xl border p-4 transition-all duration-500 ${
                       isActive
                         ? 'border-studio-orange bg-studio-orange/5 text-studio-ink'

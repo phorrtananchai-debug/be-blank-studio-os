@@ -162,6 +162,8 @@ export function createProject() {
     drawingVersion: '',
     drawingStatus: 'draft',
     siteLogs: [],
+    materialApprovals: [],
+    billingMilestones: [],
     // Narrative Layer
     mood: '',
     currentFocus: '',

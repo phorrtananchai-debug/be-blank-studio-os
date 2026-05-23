@@ -1,33 +1,45 @@
 import { formatDate } from './dashboard.js';
 
 export function getTimelinePhases(project, timeline) {
-  return [
+  const designDays = timeline.designDays;
+  const constructionDays = timeline.constructionDays;
+  const handoverToOpeningDays = timeline.handoverToOpeningDays;
+
+  // Cinematic / Extended phases as per PR 2
+  const phases = [
     {
       name: 'Design',
-      duration: timeline.designDays,
-      range: formatPhaseRange(project.startDate, project.designCompleteDate),
+      duration: Math.ceil(designDays * 0.6) || 0,
+      range: 'Initial concept & spatial story',
+    },
+    {
+      name: 'Client Review',
+      duration: Math.ceil(designDays * 0.2) || 0,
+      range: 'Feedback loops & alignment',
+    },
+    {
+      name: 'Revision',
+      duration: Math.ceil(designDays * 0.2) || 0,
+      range: 'Finalizing architectural intent',
+    },
+    {
+      name: 'Procurement',
+      duration: Math.ceil(constructionDays * 0.3) || 0,
+      range: 'Material & FF&E coordination',
     },
     {
       name: 'Construction',
-      duration: timeline.constructionDays,
-      range: formatPhaseRange(project.designCompleteDate, project.handoverDate),
+      duration: Math.ceil(constructionDays * 0.6) || 0,
+      range: 'On-site execution & management',
     },
     {
-      name: 'Handover',
-      duration: project.handoverDate ? 1 : 0,
-      range: project.handoverDate ? formatDate(project.handoverDate) : 'TBD',
-    },
-    {
-      name: 'Training / Setup',
-      duration: timeline.handoverToOpeningDays,
-      range: formatPhaseRange(project.handoverDate, project.openingDate),
-    },
-    {
-      name: 'Opening',
-      duration: project.openingDate ? 1 : 0,
-      range: project.openingDate ? formatDate(project.openingDate) : 'TBD',
-    },
+      name: 'Styling / Handover',
+      duration: Math.ceil(constructionDays * 0.1) + handoverToOpeningDays || 0,
+      range: 'Final details & slow arrival',
+    }
   ];
+
+  return phases;
 }
 
 export function formatPhaseRange(startDate, endDate) {
