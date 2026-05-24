@@ -5,12 +5,11 @@ import { useStudioAuth } from '../hooks/useStudioAuth.js';
 import {
   getNextInteractionLayout,
   getNormalizedPortfolioLayouts,
-  getPortfolioImageObjectPosition,
   getPortfolioLayout,
   hasExplicitPortfolioLayout,
   stringifyLayout,
 } from '../utils/layout.js';
-import { getCoverImage } from '../utils/portfolioImages.js';
+import { getCoverImage, getImageFocusStyle, resolvePortfolioImageUrl } from '../utils/portfolioImages.js';
 
 const defaultEditorSettings = {
   titleOffsetY: 0,
@@ -25,13 +24,12 @@ const defaultEditorSettings = {
   projectMetaOpacity: 0.86,
   mastheadFont: 'grotesk',
   projectTitleFont: 'grotesk',
-  metadataFont: 'serif',
 };
 
 const fontStacks = {
   grotesk: "'Inter Tight', 'Helvetica Neue', Helvetica, Arial, sans-serif",
   serif: "Baskerville, Georgia, 'Times New Roman', serif",
-  mono: "'Courier New', Courier, monospace",
+  mono: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
 };
 
 const editorSettingsStorageKey = 'beBlankPublicEditorSettings';
@@ -123,7 +121,11 @@ function getArchiveCanvasHeight(items, draftLayouts = {}) {
     return Math.max(bottom, layout.y + layout.height + 18);
   }, 120);
 
-  return `${Math.max(118, maxBottom)}vw`;
+  return `max(118vh, ${Math.max(118, maxBottom)}vw)`;
+}
+
+function getArchiveImageHeight(layout) {
+  return `clamp(130px, ${Math.max(10, layout.height) * 0.72}vw, ${Math.max(10, layout.height) * 16}px)`;
 }
 
 function formatArea(areaSqm) {
@@ -222,16 +224,16 @@ function HomeArchiveItem({ editorSettings, index, item, navigate }) {
       }}
     >
       <button className="group block w-full text-left" type="button" onClick={() => navigate(`/portfolio/${encodeURIComponent(item.id)}`)}>
-        <span className="block overflow-hidden bg-[#f1f1ee]">
+        <span className="relative block overflow-hidden bg-[#f1f1ee]">
           <img
             alt={item.title}
             className="w-full object-cover transition duration-[1200ms] ease-studio-out group-hover:scale-[1.012] group-hover:opacity-95"
             loading="lazy"
             sizes="(max-width: 768px) 92vw, 34vw"
-            src={cover?.mediumUrl || item.imageUrl}
+            src={resolvePortfolioImageUrl(cover, ['mediumUrl', 'url', 'imageUrl', 'thumbnailUrl', 'fullUrl']) || item.imageUrl}
             style={{
-              height: `${layout.height * 10}px`,
-              objectPosition: getPortfolioImageObjectPosition(index),
+              height: getArchiveImageHeight(layout),
+              ...getImageFocusStyle(cover),
             }}
             onError={(event) => {
               event.currentTarget.style.display = 'none';
@@ -248,7 +250,7 @@ function HomeArchiveItem({ editorSettings, index, item, navigate }) {
           <span className="public-project-title" style={{ fontFamily: fontStacks[editorSettings.projectTitleFont] }}>{item.title || 'Untitled Project'}</span>
           <span
             className="public-project-meta text-[#777777]"
-            style={{ fontFamily: fontStacks[editorSettings.metadataFont], opacity: editorSettings.projectMetaOpacity }}
+            style={{ opacity: editorSettings.projectMetaOpacity }}
           >
             {summary}
             {area && <span className="public-utility-meta ml-1 text-[#8a8a8a]">{area}</span>}
@@ -332,14 +334,21 @@ function EditableArchiveItem({ editorSettings, highlighted, index, item, layout,
             className="w-full object-cover"
             loading="lazy"
             sizes="(max-width: 768px) 92vw, 34vw"
-            src={cover?.mediumUrl || item.imageUrl}
+            src={resolvePortfolioImageUrl(cover, ['mediumUrl', 'url', 'imageUrl', 'thumbnailUrl', 'fullUrl']) || item.imageUrl}
             style={{
-              height: `${layout.height * 10}px`,
-              objectPosition: getPortfolioImageObjectPosition(index),
+              height: getArchiveImageHeight(layout),
+              ...getImageFocusStyle(cover),
             }}
             draggable={false}
             onError={(event) => {
               event.currentTarget.style.display = 'none';
+            }}
+          />
+          <span
+            className={`pointer-events-none absolute size-2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white bg-studio-orange transition ${highlighted ? 'opacity-70' : 'opacity-0 group-hover:opacity-70'}`}
+            style={{
+              left: `${cover?.focusX ?? 50}%`,
+              top: `${cover?.focusY ?? 50}%`,
             }}
           />
         </span>
@@ -353,7 +362,7 @@ function EditableArchiveItem({ editorSettings, highlighted, index, item, layout,
           <span className="public-project-title" style={{ fontFamily: fontStacks[editorSettings.projectTitleFont] }}>{item.title || 'Untitled Project'}</span>
           <span
             className="public-project-meta text-[#777777]"
-            style={{ fontFamily: fontStacks[editorSettings.metadataFont], opacity: editorSettings.projectMetaOpacity }}
+            style={{ opacity: editorSettings.projectMetaOpacity }}
           >
             {summary}
             {area && <span className="public-utility-meta ml-1 text-[#8a8a8a]">{area}</span>}
@@ -362,9 +371,9 @@ function EditableArchiveItem({ editorSettings, highlighted, index, item, layout,
       </div>
 
       <div className="public-edit-layer-tools">
-        <button type="button" onClick={() => onLayer(item, layout.zIndex - 1)}>back</button>
+        <button type="button" onClick={() => onLayer(item, layout.zIndex - 1)}>send back</button>
         <span>{layout.zIndex}</span>
-        <button type="button" onClick={() => onLayer(item, layout.zIndex + 1)}>front</button>
+        <button type="button" onClick={() => onLayer(item, layout.zIndex + 1)}>bring forward</button>
       </div>
 
       <button
@@ -428,7 +437,7 @@ function EditableHomeArchive({ draftLayouts, editorSettings, highlightedItemId, 
   const handleLayer = (item, nextLayer) => {
     const index = items.findIndex((candidate) => candidate.id === item.id);
     const currentLayout = draftLayouts[item.id] || getArchiveLayout(item, index);
-    const nextLayout = { ...currentLayout, zIndex: Math.min(Math.max(nextLayer, 1), 20) };
+    const nextLayout = { ...currentLayout, zIndex: Math.min(Math.max(nextLayer, 1), 40) };
     onDraftLayout(item.id, nextLayout);
   };
 
@@ -568,12 +577,6 @@ function PublicEditorControls({ editorSettings, gridVisible, onExit, onReflow, o
         <label>
           title
           <select value={editorSettings.projectTitleFont} onChange={(event) => onUpdateSettings({ projectTitleFont: event.target.value })}>
-            {fonts.map((font) => <option key={font.value} value={font.value}>{font.label}</option>)}
-          </select>
-        </label>
-        <label>
-          meta
-          <select value={editorSettings.metadataFont} onChange={(event) => onUpdateSettings({ metadataFont: event.target.value })}>
             {fonts.map((font) => <option key={font.value} value={font.value}>{font.label}</option>)}
           </select>
         </label>

@@ -9,7 +9,7 @@ export function easeOutCubic(value) {
 
 export function normalizeLayoutPercent(value, fallback) {
   const number = Number(value);
-  return Number.isFinite(number) && number >= 0 && number <= 100 ? number : fallback;
+  return Number.isFinite(number) ? number : fallback;
 }
 
 export function toLayoutNumber(value, fallback) {
@@ -19,10 +19,10 @@ export function toLayoutNumber(value, fallback) {
 
 export function getPortfolioLayout(item, index) {
   const defaultLayouts = [
-    { x: 7, y: 8, width: 24, height: 34, zIndex: 3 },
-    { x: 70, y: 18, width: 18, height: 26, zIndex: 3 },
-    { x: 18, y: 58, width: 15, height: 19, zIndex: 2 },
-    { x: 57, y: 62, width: 22, height: 20, zIndex: 2 },
+    { x: -8, y: -22, width: 28, height: 38, zIndex: 3 },
+    { x: 72, y: -6, width: 24, height: 30, zIndex: 4 },
+    { x: 16, y: 42, width: 17, height: 22, zIndex: 2 },
+    { x: 56, y: 34, width: 26, height: 24, zIndex: 2 },
   ];
   const scatteredLayout = defaultLayouts[index % defaultLayouts.length];
   const defaultLayout = {
@@ -35,13 +35,17 @@ export function getPortfolioLayout(item, index) {
   const rawWidth = hasLegacyPixelLayout ? defaultLayout.width : normalizeLayoutPercent(item.width, defaultLayout.width);
   const rawHeight = hasLegacyPixelLayout ? defaultLayout.height : normalizeLayoutPercent(item.height, defaultLayout.height);
   const rawZIndex = hasLegacyPixelLayout ? defaultLayout.zIndex : toLayoutNumber(item.zIndex, defaultLayout.zIndex);
+  const width = clampNumber(rawWidth, 10, 58);
+  const height = clampNumber(rawHeight, 10, 70);
+  const visibleX = Math.min(14, width * 0.62);
+  const visibleY = Math.min(18, height * 0.62);
 
   return {
-    x: clampNumber(rawX, 2, 84),
-    y: clampNumber(rawY, 4, 320),
-    width: clampNumber(rawWidth, 14, 42),
-    height: clampNumber(rawHeight, 14, 48),
-    zIndex: clampNumber(Math.round(rawZIndex), 1, 20),
+    x: clampNumber(rawX, -width + visibleX, 100 - visibleX),
+    y: clampNumber(rawY, -height + visibleY, 520),
+    width,
+    height,
+    zIndex: clampNumber(Math.round(rawZIndex), 1, 40),
   };
 }
 
@@ -56,15 +60,15 @@ export function getAutoPortfolioLayout(existingItems = []) {
   const isLeft = index % 2 === 0;
   const verticalBase = lastLayout ? lastLayout.y + lastLayout.height + 18 : 8;
   const rhythmOffset = index % 4 === 1 ? 10 : index % 4 === 2 ? 4 : 0;
-  const width = isLeft ? 24 : 20;
-  const height = isLeft ? 34 : 28;
+  const width = isLeft ? 28 : 23;
+  const height = isLeft ? 38 : 30;
 
   return {
-    x: isLeft ? 8 + (index % 3) * 5 : 63 - (index % 3) * 4,
-    y: Math.max(8, verticalBase + rhythmOffset),
+    x: isLeft ? -6 + (index % 3) * 7 : 66 - (index % 3) * 5,
+    y: Math.max(-18, verticalBase + rhythmOffset),
     width,
     height,
-    zIndex: clampNumber((lastLayout?.zIndex || 2) + 1, 1, 20),
+    zIndex: clampNumber((lastLayout?.zIndex || 2) + 1, 1, 40),
   };
 }
 
@@ -84,46 +88,65 @@ export function getNormalizedPortfolioLayouts(items = []) {
 }
 
 export function getNextInteractionLayout(mode, initial, dxPercent, dyPercent) {
-  if (mode === 'resize-se') {
+  const constrain = (layout) => {
+    const width = clampNumber(layout.width ?? initial.width, 10, 58);
+    const height = clampNumber(layout.height ?? initial.height, 10, 70);
+    const visibleX = Math.min(14, width * 0.62);
+    const visibleY = Math.min(18, height * 0.62);
     return {
-      width: clampNumber(initial.width + dxPercent, 14, 42),
-      height: clampNumber(initial.height + dyPercent, 14, 48),
+      ...layout,
+      width,
+      height,
+      x: clampNumber(layout.x ?? initial.x, -width + visibleX, 100 - visibleX),
+      y: clampNumber(layout.y ?? initial.y, -height + visibleY, 520),
     };
+  };
+
+  if (mode === 'resize-se') {
+    return constrain({
+      ...initial,
+      width: initial.width + dxPercent,
+      height: initial.height + dyPercent,
+    });
   }
 
   if (mode === 'resize-sw') {
-    const width = clampNumber(initial.width - dxPercent, 14, 42);
-    return {
-      x: clampNumber(initial.x + (initial.width - width), 2, 84),
+    const width = clampNumber(initial.width - dxPercent, 10, 58);
+    return constrain({
+      ...initial,
+      x: initial.x + (initial.width - width),
       width,
-      height: clampNumber(initial.height + dyPercent, 14, 48),
-    };
+      height: initial.height + dyPercent,
+    });
   }
 
   if (mode === 'resize-ne') {
-    const height = clampNumber(initial.height - dyPercent, 14, 48);
-    return {
-      y: clampNumber(initial.y + (initial.height - height), 5, 78),
-      width: clampNumber(initial.width + dxPercent, 14, 42),
+    const height = clampNumber(initial.height - dyPercent, 10, 70);
+    return constrain({
+      ...initial,
+      y: initial.y + (initial.height - height),
+      width: initial.width + dxPercent,
       height,
-    };
+    });
   }
 
   if (mode === 'resize-nw') {
-    const width = clampNumber(initial.width - dxPercent, 14, 42);
-    const height = clampNumber(initial.height - dyPercent, 14, 48);
-    return {
-      x: clampNumber(initial.x + (initial.width - width), 2, 84),
-      y: clampNumber(initial.y + (initial.height - height), 5, 78),
+    const width = clampNumber(initial.width - dxPercent, 10, 58);
+    const height = clampNumber(initial.height - dyPercent, 10, 70);
+    return constrain({
+      ...initial,
+      x: initial.x + (initial.width - width),
+      y: initial.y + (initial.height - height),
       width,
       height,
-    };
+    });
   }
 
-  return {
-    x: clampNumber(initial.x + dxPercent, 2, 84),
-    y: clampNumber(initial.y + dyPercent, 4, 320),
-  };
+  return constrain({
+    ...initial,
+    x: initial.x + dxPercent,
+    y: initial.y + dyPercent,
+  });
 }
 
 export function getPortfolioImageObjectPosition(index) {
@@ -136,7 +159,7 @@ export function stringifyLayout(layout) {
     y: String(Math.round(layout.y * 10) / 10),
     width: String(Math.round(layout.width * 10) / 10),
     height: String(Math.round(layout.height * 10) / 10),
-    zIndex: String(Math.round(layout.zIndex)),
+    zIndex: String(clampNumber(Math.round(layout.zIndex), 1, 40)),
   };
 }
 

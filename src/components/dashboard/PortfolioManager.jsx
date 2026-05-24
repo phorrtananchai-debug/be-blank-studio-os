@@ -1,4 +1,5 @@
 import {
+  ArrowLeft,
   ArrowDown,
   ArrowUp,
   ExternalLink,
@@ -15,20 +16,26 @@ import { useMemo, useState } from 'react';
 import { Button } from '../Button.jsx';
 import { Field } from '../Field.jsx';
 import { SectionCard } from '../SectionCard.jsx';
+import { createImageRecordDefaults, getImageFocusStyle, resolvePortfolioImageUrl } from '../../utils/portfolioImages.js';
 
 function normalizeImageRecord(image, fallbackAlt = '') {
   if (!image) return null;
   if (typeof image === 'string') {
-    return { alt: fallbackAlt, caption: '', fullUrl: image, mediumUrl: image, thumbnailUrl: image, url: image };
+    return createImageRecordDefaults({ alt: fallbackAlt, caption: '', fullUrl: image, mediumUrl: image, thumbnailUrl: image, url: image });
   }
 
-  const url = image.url || image.fullUrl || image.mediumUrl || image.thumbnailUrl || '';
+  const url = resolvePortfolioImageUrl(image);
   if (!url) return null;
 
-  return {
+  return createImageRecordDefaults({
     alt: image.alt || fallbackAlt,
+    aspectIntent: image.aspectIntent,
     blurhash: image.blurhash || '',
     caption: image.caption || '',
+    cropMode: image.cropMode,
+    cropNotes: image.cropNotes || '',
+    focusX: image.focusX,
+    focusY: image.focusY,
     fullUrl: image.fullUrl || url,
     height: image.height || null,
     mediumUrl: image.mediumUrl || image.fullUrl || url,
@@ -40,7 +47,7 @@ function normalizeImageRecord(image, fallbackAlt = '') {
     thumbnailUrl: image.thumbnailUrl || image.mediumUrl || image.fullUrl || url,
     url,
     width: image.width || null,
-  };
+  });
 }
 
 function getCoverImage(item) {
@@ -58,6 +65,13 @@ function getGalleryImages(item) {
 
 function getImageKey(image, index = 0) {
   return image?.path || image?.url || image?.fullUrl || `image-${index}`;
+}
+
+function formatMediaDate(value) {
+  if (!value) return 'Not recorded';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not recorded';
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function getOrientation(width, height) {
@@ -96,7 +110,69 @@ function UploadControl({ accept = 'image/*', children, disabled = false, multipl
   );
 }
 
-function CoverPreview({ coverImage, isUploading, item, onPreview, onRemove, onUploadImage }) {
+function FocusPicker({ image, label, onChange }) {
+  const focus = createImageRecordDefaults(image || {});
+  const imageUrl = resolvePortfolioImageUrl(image, ['mediumUrl', 'thumbnailUrl', 'url', 'imageUrl', 'fullUrl']);
+  const setFocus = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const focusX = Math.round(((event.clientX - rect.left) / rect.width) * 100);
+    const focusY = Math.round(((event.clientY - rect.top) / rect.height) * 100);
+    onChange({ focusX: Math.min(100, Math.max(0, focusX)), focusY: Math.min(100, Math.max(0, focusY)) });
+  };
+
+  return (
+    <div className="grid gap-3">
+      <p className="type-label text-studio-muted">{label}</p>
+      <button className="relative block overflow-hidden rounded-md border border-black/[0.07] bg-studio-bone/35" type="button" onClick={setFocus}>
+        {imageUrl ? (
+          <img
+            alt={image?.alt || label}
+            className="aspect-[16/10] w-full"
+            loading="lazy"
+            src={imageUrl}
+            style={getImageFocusStyle(image)}
+          />
+        ) : (
+          <span className="grid aspect-[16/10] w-full place-items-center text-studio-muted/35">
+            <Image size={28} strokeWidth={1} />
+          </span>
+        )}
+        <span
+          className="absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white bg-studio-orange shadow-[0_0_0_1px_rgba(0,0,0,0.25)]"
+          style={{ left: `${focus.focusX}%`, top: `${focus.focusY}%` }}
+        />
+      </button>
+      <div className="flex flex-wrap gap-2">
+        <button className="type-control rounded-md border border-black/[0.08] px-3 py-2 text-studio-muted transition hover:text-studio-ink" type="button" onClick={() => onChange({ focusX: 50, focusY: 50 })}>
+          Reset focus
+        </button>
+        <span className="type-caption self-center text-studio-muted">Focus point</span>
+      </div>
+      <details className="border-t border-black/[0.05] pt-3">
+        <summary className="type-control cursor-pointer text-studio-muted transition hover:text-studio-ink">Advanced Framing</summary>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="type-control mb-2 block text-studio-muted/60">Crop mode</span>
+            <select className="type-field min-h-11 w-full rounded-md border border-black/[0.07] bg-studio-bone/55 px-4 py-3 text-[#111111] outline-none" value={focus.cropMode} onChange={(event) => onChange({ cropMode: event.target.value })}>
+              {['cover', 'contain', 'natural'].map((option) => <option key={option} value={option}>{option}</option>)}
+            </select>
+          </label>
+          <label className="block">
+            <span className="type-control mb-2 block text-studio-muted/60">Aspect intent</span>
+            <select className="type-field min-h-11 w-full rounded-md border border-black/[0.07] bg-studio-bone/55 px-4 py-3 text-[#111111] outline-none" value={focus.aspectIntent} onChange={(event) => onChange({ aspectIntent: event.target.value })}>
+              {['auto', 'portrait', 'landscape', 'square', 'wide'].map((option) => <option key={option} value={option}>{option}</option>)}
+            </select>
+          </label>
+          <div className="sm:col-span-2">
+            <Field label="Crop notes" value={focus.cropNotes || ''} onChange={(value) => onChange({ cropNotes: value })} />
+          </div>
+        </div>
+      </details>
+    </div>
+  );
+}
+
+function CoverPreview({ coverImage, isUploading, item, onFocusChange, onPreview, onRemove, onUploadImage }) {
   return (
     <section>
       <div className="mb-3 flex items-center justify-between gap-4">
@@ -114,7 +190,8 @@ function CoverPreview({ coverImage, isUploading, item, onPreview, onRemove, onUp
                 alt={coverImage.alt || item.title}
                 className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.015]"
                 loading="lazy"
-                src={coverImage.mediumUrl || coverImage.thumbnailUrl || coverImage.url}
+                src={resolvePortfolioImageUrl(coverImage, ['mediumUrl', 'thumbnailUrl', 'url', 'imageUrl', 'fullUrl'])}
+                style={getImageFocusStyle(coverImage)}
               />
             </button>
           ) : (
@@ -146,6 +223,11 @@ function CoverPreview({ coverImage, isUploading, item, onPreview, onRemove, onUp
           </>
         )}
       </div>
+      {coverImage && (
+        <div className="mt-5">
+          <FocusPicker image={coverImage} label="Cover focus" onChange={onFocusChange} />
+        </div>
+      )}
     </section>
   );
 }
@@ -174,7 +256,8 @@ function GalleryImageCard({
           alt={image.alt || `Gallery image ${index + 1}`}
           className={`w-full object-cover transition duration-500 group-hover:scale-[1.02] ${orientation === 'portrait' ? 'aspect-[4/5]' : 'aspect-[4/3]'}`}
           loading="lazy"
-          src={image.thumbnailUrl || image.mediumUrl || image.url}
+          src={resolvePortfolioImageUrl(image, ['thumbnailUrl', 'mediumUrl', 'url', 'imageUrl', 'fullUrl'])}
+          style={getImageFocusStyle(image)}
           onLoad={(event) => onImageLoad(index, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)}
         />
         <div className="absolute left-3 top-3 flex gap-2">
@@ -210,6 +293,7 @@ function GalleryImageCard({
           value={image.alt || ''}
           onChange={(value) => onUpdate(index, { alt: value })}
         />
+        <FocusPicker image={image} label="Image focus" onChange={(updates) => onUpdate(index, updates)} />
       </div>
     </article>
   );
@@ -249,9 +333,10 @@ function GalleryManager({ galleryImages, isUploading, item, onPreview, onUpdate,
     commitGallery(galleryImages.filter((_, imageIndex) => imageIndex !== index));
   };
   const setCover = (image) => {
+    const url = resolvePortfolioImageUrl(image);
     onUpdate(item.id, {
       coverImage: { ...image, relationship: 'cover' },
-      imageUrl: image.fullUrl || image.url,
+      imageUrl: url,
     });
   };
   const recordDimensions = (index, width, height) => {
@@ -329,27 +414,81 @@ function GalleryManager({ galleryImages, isUploading, item, onPreview, onUpdate,
 
 function MediaPreviewModal({ image, onClose }) {
   if (!image) return null;
+  const imageUrl = image.previewUrl || resolvePortfolioImageUrl(image);
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black p-6">
+    <div className="fixed inset-0 z-[500] grid min-h-screen place-items-center bg-black p-6">
       <button
         aria-label="Close media preview"
-        className="absolute right-5 top-5 grid size-10 place-items-center rounded-full border border-white/20 text-white/75 transition hover:text-white"
+        className="absolute right-5 top-5 z-20 grid size-10 place-items-center rounded-full border border-white/20 text-white/75 transition hover:text-white"
         type="button"
         onClick={onClose}
       >
         <X size={18} />
       </button>
-      <img
-        alt={image.alt || image.caption || 'Portfolio media preview'}
-        className="max-h-[88vh] max-w-[92vw] object-contain"
-        src={image.fullUrl || image.mediumUrl || image.url}
-      />
+      {imageUrl ? (
+        <img
+          alt={image.alt || image.caption || 'Portfolio media preview'}
+          className="relative z-10 block max-h-[88vh] max-w-[92vw] object-contain"
+          src={imageUrl}
+        />
+      ) : (
+        <div className="grid min-h-56 min-w-80 place-items-center rounded-md border border-white/15 text-center text-white/60">
+          <div>
+            <Image className="mx-auto text-white/35" size={36} strokeWidth={1} />
+            <p className="type-caption mt-3 text-white/60">No valid image URL found.</p>
+          </div>
+        </div>
+      )}
       {(image.caption || image.alt) && (
         <p className="type-caption absolute bottom-5 left-1/2 max-w-xl -translate-x-1/2 text-center text-white/70">
           {image.caption || image.alt}
         </p>
       )}
+    </div>
+  );
+}
+
+function PortfolioProjectIndex({ items, lastAddedPortfolioId, onManage }) {
+  return (
+    <div className="grid gap-4">
+      {items.map((item) => {
+        const coverImage = getCoverImage(item);
+        const galleryImages = getGalleryImages(item);
+        const imageUrl = resolvePortfolioImageUrl(coverImage, ['thumbnailUrl', 'mediumUrl', 'url', 'imageUrl', 'fullUrl']) || item.imageUrl;
+        const mediaCount = (coverImage ? 1 : 0) + galleryImages.length;
+        const isNew = item.id === lastAddedPortfolioId;
+
+        return (
+          <article key={item.id} className="grid gap-4 border-t border-black/[0.06] py-5 md:grid-cols-[8rem_minmax(0,1fr)_auto] md:items-center">
+            <button className="relative aspect-[4/3] overflow-hidden rounded-md border border-black/[0.06] bg-studio-bone/45 text-studio-muted/35" type="button" onClick={() => onManage(item.id)}>
+              {imageUrl ? (
+                <img alt={item.title || 'Portfolio cover'} className="h-full w-full object-cover" loading="lazy" src={imageUrl} style={getImageFocusStyle(coverImage)} />
+              ) : (
+                <span className="grid h-full place-items-center"><Image size={26} strokeWidth={1} /></span>
+              )}
+              {isNew && <span className="absolute right-2 top-2 size-2 rounded-full bg-studio-orange" />}
+            </button>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="truncate text-lg font-semibold tracking-normal text-studio-ink">{item.title || 'Untitled Project'}</h3>
+                {coverImage && <span className="type-control rounded-full border border-black/[0.08] px-2 py-1 text-studio-muted">Cover ready</span>}
+              </div>
+              <p className="type-caption mt-2 text-studio-muted">
+                {[item.category, item.location, item.year].filter(Boolean).join(' / ') || 'Portfolio item'}
+              </p>
+              <div className="type-control mt-3 flex flex-wrap gap-3 text-studio-muted/70">
+                <span>{mediaCount} media</span>
+                <span>{coverImage ? 'cover assigned' : 'no cover'}</span>
+                <span>updated {formatMediaDate(item.updatedAt || item.createdAt)}</span>
+              </div>
+            </div>
+            <Button variant="secondary" onClick={() => onManage(item.id)}>
+              Manage Media
+            </Button>
+          </article>
+        );
+      })}
     </div>
   );
 }
@@ -360,11 +499,13 @@ export function PortfolioManager({
   onDelete,
   onExport,
   onOpenHomepageEditor,
+  onToast,
   onUpdate,
   onUploadImage,
   portfolioItems,
 }) {
   const [previewImage, setPreviewImage] = useState(null);
+  const [selectedItemId, setSelectedItemId] = useState('');
   const [uploadingKeys, setUploadingKeys] = useState({});
   const uploadMedia = async (itemId, file, relationship) => {
     const key = `${itemId}-${relationship}`;
@@ -376,6 +517,15 @@ export function PortfolioManager({
     }
   };
   const items = useMemo(() => portfolioItems || [], [portfolioItems]);
+  const selectedItem = items.find((item) => item.id === selectedItemId) || null;
+  const openPreview = (image) => {
+    const previewUrl = resolvePortfolioImageUrl(image);
+    if (!previewUrl) {
+      onToast?.('No preview image available.', 'warning');
+      return;
+    }
+    setPreviewImage({ ...image, previewUrl });
+  };
 
   return (
     <SectionCard
@@ -406,8 +556,21 @@ export function PortfolioManager({
           </Button>
         </div>
       )}
-      <div className="grid gap-10">
-        {items.map((item) => {
+      {!selectedItem ? (
+        <PortfolioProjectIndex items={items} lastAddedPortfolioId={lastAddedPortfolioId} onManage={setSelectedItemId} />
+      ) : (
+        <div className="grid gap-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-black/[0.06] pt-5">
+            <button className="type-control inline-flex items-center gap-2 text-studio-muted transition hover:text-studio-ink" type="button" onClick={() => setSelectedItemId('')}>
+              <ArrowLeft size={14} />
+              Back to portfolio index
+            </button>
+            <Button variant="secondary" onClick={() => onOpenHomepageEditor?.(selectedItem.id)}>
+              <ExternalLink size={14} />
+              Adjust layout on homepage
+            </Button>
+          </div>
+          {[selectedItem].map((item) => {
           const coverImage = getCoverImage(item);
           const galleryImages = getGalleryImages(item);
           const hasUploadedMedia = Boolean(item.coverImage || galleryImages.length);
@@ -421,7 +584,8 @@ export function PortfolioManager({
                     coverImage={coverImage}
                     isUploading={isCoverUploading}
                     item={item}
-                    onPreview={setPreviewImage}
+                    onFocusChange={(updates) => onUpdate(item.id, { coverImage: { ...coverImage, ...updates } })}
+                    onPreview={openPreview}
                     onRemove={() => onUpdate(item.id, { coverImage: null, imageUrl: '' })}
                     onUploadImage={uploadMedia}
                   />
@@ -462,7 +626,7 @@ export function PortfolioManager({
                     galleryImages={galleryImages}
                     isUploading={isGalleryUploading}
                     item={item}
-                    onPreview={setPreviewImage}
+                    onPreview={openPreview}
                     onUpdate={onUpdate}
                     onUploadImage={uploadMedia}
                   />
@@ -498,7 +662,8 @@ export function PortfolioManager({
             </article>
           );
         })}
-      </div>
+        </div>
+      )}
       <MediaPreviewModal image={previewImage} onClose={() => setPreviewImage(null)} />
     </SectionCard>
   );

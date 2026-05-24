@@ -1,6 +1,6 @@
 import { initialPortfolioItems } from '../data/seed.js';
 import { ProjectFact } from '../utils/portfolio.jsx';
-import { getCoverImage, getGalleryImageObjects } from '../utils/portfolioImages.js';
+import { getCoverImage, getGalleryImageObjects, getImageFocusStyle, resolvePortfolioImageUrl } from '../utils/portfolioImages.js';
 import { useEffect, useMemo, useState } from 'react';
 
 function upsertMeta(selector, attributes) {
@@ -30,7 +30,7 @@ function Lightbox({ images, initialIndex, onClose }) {
 
   return (
     <div className="fixed inset-0 z-[500] grid bg-black text-white">
-      <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-white/70">
+      <div className="public-utility-meta absolute left-0 right-0 top-0 z-10 flex items-center justify-between px-5 py-4 uppercase text-white/70">
         <button className="transition hover:text-white" type="button" onClick={onClose}>close</button>
         <div className="flex items-center gap-5">
           <button className="transition hover:text-white" type="button" onClick={share}>share</button>
@@ -47,8 +47,8 @@ function Lightbox({ images, initialIndex, onClose }) {
         </>
       )}
       <figure className="grid h-screen place-items-center px-8 py-16">
-        <img alt={image.alt || ''} className="max-h-full max-w-full object-contain" src={image.fullUrl || image.url} />
-        {image.caption && <figcaption className="absolute bottom-5 max-w-xl text-center text-xs font-medium text-white/60">{image.caption}</figcaption>}
+        <img alt={image.alt || ''} className="max-h-full max-w-full object-contain" src={resolvePortfolioImageUrl(image)} />
+        {image.caption && <figcaption className="public-project-meta absolute bottom-5 max-w-xl text-center text-white/60">{image.caption}</figcaption>}
       </figure>
     </div>
   );
@@ -63,7 +63,7 @@ export function PortfolioDetailPage({ item, navigate }) {
     const combined = [...coverImage, ...gallery];
     const seen = new Set();
     return combined.filter((image) => {
-      const url = image.fullUrl || image.url;
+      const url = resolvePortfolioImageUrl(image);
       if (!url || seen.has(url)) return false;
       seen.add(url);
       return true;
@@ -76,7 +76,7 @@ export function PortfolioDetailPage({ item, navigate }) {
     const title = `${portfolioItem.title || 'Project'} | Be Blank to Behind Studio`;
     const description = portfolioItem.subtitle || portfolioItem.description || portfolioItem.location || 'Be Blank to Behind Studio project archive.';
     const url = window.location.href;
-    const image = cover?.mediumUrl || cover?.fullUrl || cover?.url || '';
+    const image = resolvePortfolioImageUrl(cover, ['mediumUrl', 'fullUrl', 'url', 'imageUrl', 'thumbnailUrl']);
     document.title = title;
     upsertMeta('meta[property="og:title"]', { property: 'og:title', content: title });
     upsertMeta('meta[property="og:description"]', { property: 'og:description', content: description });
@@ -108,7 +108,7 @@ export function PortfolioDetailPage({ item, navigate }) {
 
   return (
     <div className="min-h-screen bg-studio-paper text-studio-ink">
-      <header className="flex items-center justify-between border-b border-black/[0.08] px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-studio-muted md:px-8">
+      <header className="public-editorial-nav flex items-center justify-between border-b border-black/[0.08] px-5 py-4 uppercase text-studio-muted md:px-8">
         <button className="transition hover:text-studio-ink" type="button" onClick={() => navigate('/')}>
           projects
         </button>
@@ -122,7 +122,7 @@ export function PortfolioDetailPage({ item, navigate }) {
       <main className="mx-auto max-w-7xl">
         <section className="grid gap-12 px-5 py-20 md:grid-cols-2 md:px-8">
           <div className="space-y-6">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">{portfolioItem.category || 'Project'}</p>
+            <p className="public-project-meta uppercase text-studio-muted">{portfolioItem.category || 'Project'}</p>
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-studio-ink">
               {portfolioItem.title}
             </h1>
@@ -137,31 +137,31 @@ export function PortfolioDetailPage({ item, navigate }) {
 
         <section className="px-5 md:px-8">
           <button className="block w-full text-left" type="button" onClick={() => setLightboxIndex(0)}>
-            <img alt={portfolioItem.title} className="w-full rounded-xl object-cover shadow-studio" loading="eager" src={cover?.mediumUrl || portfolioItem.imageUrl} />
+            <img alt={portfolioItem.title} className="w-full rounded-xl object-cover shadow-studio" loading="eager" src={resolvePortfolioImageUrl(cover, ['mediumUrl', 'fullUrl', 'url', 'imageUrl', 'thumbnailUrl']) || portfolioItem.imageUrl} style={getImageFocusStyle(cover)} />
           </button>
         </section>
 
         <section className="grid gap-12 px-5 py-24 md:grid-cols-[1fr_2fr] md:px-8">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">Design story</p>
+          <p className="public-project-meta uppercase text-studio-muted">Design story</p>
           <div className="grid gap-8">
             <p className="max-w-4xl text-3xl font-bold leading-tight text-studio-ink md:text-4xl">{portfolioItem.description}</p>
             <p className="max-w-3xl text-lg font-medium text-studio-muted leading-relaxed">{portfolioItem.concept || portfolioItem.description}</p>
             {portfolioItem.credits && (
-              <p className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">{portfolioItem.credits}</p>
+              <p className="public-project-meta uppercase text-studio-muted">{portfolioItem.credits}</p>
             )}
           </div>
         </section>
 
         <section className="grid gap-8 px-5 pb-24 md:grid-cols-2 md:px-8">
           {gallery.map((image, index) => (
-            <button key={`${image.fullUrl || image.url}-${index}`} className="text-left" type="button" onClick={() => setLightboxIndex(allImages.findIndex((candidate) => (candidate.fullUrl || candidate.url) === (image.fullUrl || image.url)))}>
-              <img alt={image.alt || portfolioItem.title} className="aspect-[4/3] w-full rounded-xl object-cover shadow-studioSoft" loading="lazy" sizes="(max-width: 768px) 100vw, 50vw" src={image.mediumUrl || image.url} />
+            <button key={`${resolvePortfolioImageUrl(image)}-${index}`} className="text-left" type="button" onClick={() => setLightboxIndex(allImages.findIndex((candidate) => resolvePortfolioImageUrl(candidate) === resolvePortfolioImageUrl(image)))}>
+              <img alt={image.alt || portfolioItem.title} className="aspect-[4/3] w-full rounded-xl object-cover shadow-studioSoft" loading="lazy" sizes="(max-width: 768px) 100vw, 50vw" src={resolvePortfolioImageUrl(image, ['mediumUrl', 'url', 'imageUrl', 'thumbnailUrl', 'fullUrl'])} style={getImageFocusStyle(image)} />
             </button>
           ))}
         </section>
       </main>
       {shareMessage && (
-        <div className="fixed bottom-5 left-1/2 z-[520] -translate-x-1/2 rounded-full bg-black px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
+        <div className="public-utility-meta fixed bottom-5 left-1/2 z-[520] -translate-x-1/2 rounded-full bg-black px-4 py-2 uppercase text-white">
           {shareMessage}
         </div>
       )}
