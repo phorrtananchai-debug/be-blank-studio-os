@@ -114,6 +114,44 @@ export function calculatePhaseDays(startDate, endDate) {
   return Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)) || 1);
 }
 
+export function analyzeTimelineRealism(phases = []) {
+  const phaseById = Object.fromEntries(phases.map((phase) => [phase.id, phase]));
+  const procurementDays = Number(phaseById.procurement?.duration) || 0;
+  const constructionDays = Number(phaseById.construction?.duration) || 0;
+  const handoverDays = Number(phaseById.handover?.duration) || 0;
+  const designDays = Number(phaseById.design?.duration) || 0;
+  const clientReviewDays = Number(phaseById.clientReview?.duration) || 0;
+  const revisionDays = Number(phaseById.revision?.duration) || 0;
+
+  const warnings = [];
+  let severity = 0;
+
+  if (procurementDays > 0 && constructionDays > 0 && procurementDays > constructionDays * 1.25) {
+    warnings.push('Procurement is longer than construction. Confirm lead times and site sequencing.');
+    severity += 1;
+  }
+
+  if (constructionDays > 0 && handoverDays > 0 && constructionDays < handoverDays) {
+    warnings.push('Construction is shorter than styling/handover. Re-check practical build duration.');
+    severity += 1;
+  }
+
+  if (constructionDays > 0 && constructionDays < 10) {
+    warnings.push('Construction duration looks very short for a built project.');
+    severity += 2;
+  }
+
+  if (designDays > 0 && (clientReviewDays + revisionDays) > designDays * 1.5) {
+    warnings.push('Client review and revision time outweigh core design duration.');
+    severity += 1;
+  }
+
+  return {
+    severity,
+    warnings,
+  };
+}
+
 function getLegacyPhaseDuration(phaseId, project, timeline) {
   if (phaseId === 'design') return timeline.designDays;
   if (phaseId === 'construction') return timeline.constructionDays;

@@ -12,6 +12,7 @@ import { Field } from '../Field.jsx';
 import { SectionCard } from '../SectionCard.jsx';
 import { calculateTimeline, formatDate } from '../../utils/dashboard.js';
 import {
+  analyzeTimelineRealism,
   getProjectTimelineDateRange,
   getTimelinePhases,
   parseTimelineDate,
@@ -86,6 +87,13 @@ function formatDaysLabel(days) {
   return `${days}d left`;
 }
 
+function getConfidenceTone(basePressure, realism) {
+  if (!realism.warnings.length) return basePressure;
+  if (basePressure === 'critical') return 'critical';
+  if (realism.severity >= 3) return 'critical';
+  return 'tight';
+}
+
 function TimelineAxis({ bounds }) {
   const ticks = useMemo(() => {
     const count = 6;
@@ -113,10 +121,10 @@ function PhaseBand({ bounds, phase }) {
   const layout = getPhaseLayout(phase, bounds);
   return (
     <div
-      className={`absolute top-5 h-14 rounded-sm border ${phaseToneClasses[phase.id] || phaseToneClasses.design} transition-colors duration-500 hover:bg-studio-bone/62`}
+      className={`absolute top-7 h-16 rounded-sm border ${phaseToneClasses[phase.id] || phaseToneClasses.design} transition-colors duration-500 hover:bg-studio-bone/62`}
       style={{ left: `${layout.left}%`, width: `${layout.width}%` }}
     >
-      <div className="flex h-full min-w-0 flex-col justify-between px-3 py-2">
+      <div className="flex h-full min-w-0 flex-col justify-between px-3 py-2.5">
         <span className="type-control truncate text-studio-ink">{phase.name}</span>
         <span className="type-caption truncate text-studio-muted">{phase.duration || 0}d / {phase.range}</span>
       </div>
@@ -165,6 +173,8 @@ function DependencyThread({ bounds, milestones }) {
 function PlanningWall({ project }) {
   const timeline = calculateTimeline(project);
   const phases = getTimelinePhases(project, timeline);
+  const realism = analyzeTimelineRealism(phases);
+  const confidenceTone = getConfidenceTone(timeline.deliveryPressure, realism);
   const milestones = normalizeCriticalPath(project);
   const bounds = getProjectTimelineBounds(project);
   const blockedDependencies = getBlockedCriticalDependencies(milestones).filter(({ milestone }) => milestone.status !== 'DONE');
@@ -176,21 +186,22 @@ function PlanningWall({ project }) {
 
   return (
     <div className="min-w-[920px]">
-      <div className="grid grid-cols-[15rem_1fr] border-b border-black/[0.06]">
+      <div className="grid grid-cols-[16rem_1fr] border-b border-black/[0.06]">
         <aside className="border-r border-black/[0.06] pr-6">
           <p className="type-label text-studio-muted">{project.status || 'active'}</p>
           <h3 className="type-section-title mt-2 truncate">{project.name}</h3>
           <p className="type-caption mt-2 text-studio-muted">{project.client || 'Client TBD'} / {project.location || 'Location TBD'}</p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Badge tone={timeline.deliveryPressure}>{timeline.deliveryPressure}</Badge>
+          <div className="mt-5 flex flex-wrap gap-2.5">
+            <Badge tone={confidenceTone}>{confidenceTone}</Badge>
             {delayed.length > 0 && <Badge tone="risk">{delayed.length} delayed</Badge>}
+            {realism.warnings.length > 0 && <Badge tone="watch">{realism.warnings.length} realism checks</Badge>}
           </div>
         </aside>
 
-        <section className="pl-6">
+        <section className="pl-7">
           <TimelineAxis bounds={bounds} />
           {hasTimelineData ? (
-            <div className="relative h-36 bg-[linear-gradient(90deg,rgba(33,33,33,0.045)_1px,transparent_1px),linear-gradient(rgba(33,33,33,0.035)_1px,transparent_1px)] bg-[length:80px_100%,100%_28px]">
+            <div className="relative h-40 bg-[linear-gradient(90deg,rgba(33,33,33,0.045)_1px,transparent_1px),linear-gradient(rgba(33,33,33,0.03)_1px,transparent_1px)] bg-[length:84px_100%,100%_30px]">
               {phases.map((phase) => (
                 <PhaseBand key={phase.id} bounds={bounds} phase={phase} />
               ))}
@@ -200,11 +211,11 @@ function PlanningWall({ project }) {
               ))}
             </div>
           ) : (
-            <div className="grid h-36 place-items-center border-t border-black/[0.06] bg-studio-bone/24">
+            <div className="grid h-40 place-items-center border-t border-black/[0.06] bg-studio-bone/24">
               <p className="type-caption text-studio-muted">Timeline dates are not set yet. Add key dates to reveal the planning wall.</p>
             </div>
           )}
-          <div className="flex flex-wrap items-center gap-4 border-t border-black/[0.06] py-4">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-black/[0.06] py-4">
             <p className="type-control flex items-center gap-2 text-studio-muted">
               <GitBranch size={13} />
               {milestones.length} milestones
@@ -218,6 +229,18 @@ function PlanningWall({ project }) {
               Horizontal planning wall
             </p>
           </div>
+          {realism.warnings.length > 0 && (
+            <div className="border-t border-black/[0.06] py-4">
+              <p className="type-label text-studio-muted">Schedule realism notes</p>
+              <div className="mt-2 grid gap-1.5">
+                {realism.warnings.map((warning) => (
+                  <p key={warning} className="type-caption text-studio-muted">
+                    {warning}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
       </div>
     </div>
@@ -314,6 +337,8 @@ export function TimelineDetail({ expandedProjectIds, projects, onToggleExpanded,
         const isExpanded = expandedProjectIds.has(project.id);
         const timeline = calculateTimeline(project);
         const phases = getTimelinePhases(project, timeline);
+        const realism = analyzeTimelineRealism(phases);
+        const confidenceTone = getConfidenceTone(timeline.deliveryPressure, realism);
         const milestones = normalizeCriticalPath(project);
         const delayed = milestones.filter((milestone) => {
           const days = getCriticalDaysUntil(milestone.targetDate);
@@ -341,14 +366,15 @@ export function TimelineDetail({ expandedProjectIds, projects, onToggleExpanded,
               <div className="flex shrink-0 flex-wrap gap-3 sm:justify-end">
                 <Badge tone={project.status}>{project.status}</Badge>
                 <Badge tone={timeline.riskLevel.toLowerCase()}>{timeline.riskLevel} Risk</Badge>
-                <Badge tone={timeline.deliveryPressure}>{timeline.deliveryPressure}</Badge>
+                <Badge tone={confidenceTone}>{confidenceTone}</Badge>
                 {delayed.length > 0 && <Badge tone="risk">{delayed.length} delayed</Badge>}
+                {realism.warnings.length > 0 && <Badge tone="watch">{realism.warnings.length} realism checks</Badge>}
               </div>
             </button>
 
             {isExpanded && (
               <div className="border-t border-black/[0.06] bg-studio-paper/30 p-6 animate-in fade-in duration-500 lg:p-8">
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-6">
                   {phases.map((phase) => (
                     <div
                       key={phase.id}
@@ -361,7 +387,18 @@ export function TimelineDetail({ expandedProjectIds, projects, onToggleExpanded,
                   ))}
                 </div>
 
-                <div className="mt-8 grid gap-8 border-t border-black/[0.06] pt-8 lg:grid-cols-3">
+                {realism.warnings.length > 0 && (
+                  <div className="mt-8 border-t border-black/[0.06] pt-7">
+                    <p className="type-label text-studio-muted">Schedule realism notes</p>
+                    <div className="mt-2 grid gap-1.5">
+                      {realism.warnings.map((warning) => (
+                        <p key={`${project.id}-${warning}`} className="type-caption text-studio-muted">{warning}</p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-8 grid gap-7 border-t border-black/[0.06] pt-8 lg:grid-cols-3">
                   <Field
                     label="Schedule Notes"
                     multiline
