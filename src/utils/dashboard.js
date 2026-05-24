@@ -136,6 +136,8 @@ export function createProject() {
     owner: '',
     startDate: '',
     designCompleteDate: '',
+    clientReviewDate: '',
+    revisionCompleteDate: '',
     handoverDate: '',
     openingDate: '',
     notes: '',

@@ -19,6 +19,14 @@ service cloud.firestore {
       allow read, write: if isStudioOwner();
     }
 
+    match /tasks/{taskId} {
+      allow read, write: if isStudioOwner();
+    }
+
+    match /notes/{noteId} {
+      allow read, write: if isStudioOwner();
+    }
+
     match /agentInbox/{itemId} {
       allow read, write: if isStudioOwner();
     }

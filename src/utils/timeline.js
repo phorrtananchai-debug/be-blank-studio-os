@@ -1,33 +1,71 @@
 import { formatDate } from './dashboard.js';
+import { normalizeCriticalPath } from './criticalPath.js';
+
+export const timelinePhaseDefinitions = [
+  {
+    id: 'design',
+    name: 'Design',
+    startField: 'startDate',
+    endField: 'designCompleteDate',
+    milestoneIds: ['designFreeze'],
+  },
+  {
+    id: 'clientReview',
+    name: 'Client Review',
+    startField: 'designCompleteDate',
+    endField: 'clientReviewDate',
+    fallbackEndField: 'designCompleteDate',
+    milestoneIds: ['BOQApproval'],
+  },
+  {
+    id: 'revision',
+    name: 'Revision',
+    startField: 'clientReviewDate',
+    fallbackStartField: 'designCompleteDate',
+    endField: 'revisionCompleteDate',
+    fallbackEndField: 'designCompleteDate',
+    milestoneIds: ['contractorLock'],
+  },
+  {
+    id: 'procurement',
+    name: 'Procurement',
+    startField: 'revisionCompleteDate',
+    fallbackStartField: 'designCompleteDate',
+    endField: 'handoverDate',
+    milestoneIds: ['procurementStart', 'siteHandover'],
+  },
+  {
+    id: 'construction',
+    name: 'Construction',
+    startField: 'handoverDate',
+    endField: 'openingDate',
+    milestoneIds: ['constructionStart', 'storeReady'],
+  },
+  {
+    id: 'handover',
+    name: 'Styling / Handover',
+    startField: 'handoverDate',
+    endField: 'openingDate',
+    milestoneIds: ['opening'],
+  },
+];
 
 export function getTimelinePhases(project, timeline) {
-  return [
-    {
-      name: 'Design',
-      duration: timeline.designDays,
-      range: formatPhaseRange(project.startDate, project.designCompleteDate),
-    },
-    {
-      name: 'Construction',
-      duration: timeline.constructionDays,
-      range: formatPhaseRange(project.designCompleteDate, project.handoverDate),
-    },
-    {
-      name: 'Handover',
-      duration: project.handoverDate ? 1 : 0,
-      range: project.handoverDate ? formatDate(project.handoverDate) : 'TBD',
-    },
-    {
-      name: 'Training / Setup',
-      duration: timeline.handoverToOpeningDays,
-      range: formatPhaseRange(project.handoverDate, project.openingDate),
-    },
-    {
-      name: 'Opening',
-      duration: project.openingDate ? 1 : 0,
-      range: project.openingDate ? formatDate(project.openingDate) : 'TBD',
-    },
-  ];
+  return timelinePhaseDefinitions.map((phase) => {
+    const startDate = getProjectPhaseDate(project, phase.startField, phase.fallbackStartField);
+    const endDate = getProjectPhaseDate(project, phase.endField, phase.fallbackEndField);
+    const duration = startDate || endDate
+      ? calculatePhaseDays(startDate, endDate)
+      : getLegacyPhaseDuration(phase.id, project, timeline);
+
+    return {
+      ...phase,
+      duration,
+      endDate,
+      range: formatPhaseRange(startDate, endDate),
+      startDate,
+    };
+  });
 }
 
 export function formatPhaseRange(startDate, endDate) {
@@ -35,5 +73,50 @@ export function formatPhaseRange(startDate, endDate) {
     return 'TBD';
   }
 
-  return `${startDate ? formatDate(startDate) : 'TBD'} — ${endDate ? formatDate(endDate) : 'TBD'}`;
+  return `${startDate ? formatDate(startDate) : 'TBD'} - ${endDate ? formatDate(endDate) : 'TBD'}`;
+}
+
+export function getProjectTimelineDateRange(project = {}) {
+  const dates = [
+    project.startDate,
+    project.designCompleteDate,
+    project.clientReviewDate,
+    project.revisionCompleteDate,
+    project.handoverDate,
+    project.openingDate,
+    ...normalizeCriticalPath(project).map((milestone) => milestone.targetDate),
+  ]
+    .map(parseTimelineDate)
+    .filter(Boolean)
+    .sort((left, right) => left - right);
+
+  return {
+    end: dates[dates.length - 1] || null,
+    start: dates[0] || null,
+  };
+}
+
+export function getProjectPhaseDate(project = {}, field, fallbackField = '') {
+  return project[field] || (fallbackField ? project[fallbackField] : '') || '';
+}
+
+export function parseTimelineDate(value) {
+  if (!value) return null;
+  const date = new Date(`${String(value).slice(0, 10)}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export function calculatePhaseDays(startDate, endDate) {
+  const start = parseTimelineDate(startDate);
+  const end = parseTimelineDate(endDate);
+  if (!start && !end) return 0;
+  if (!start || !end) return 1;
+  return Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)) || 1);
+}
+
+function getLegacyPhaseDuration(phaseId, project, timeline) {
+  if (phaseId === 'design') return timeline.designDays;
+  if (phaseId === 'construction') return timeline.constructionDays;
+  if (phaseId === 'handover') return project.openingDate ? Math.max(1, timeline.handoverToOpeningDays) : 0;
+  return 0;
 }

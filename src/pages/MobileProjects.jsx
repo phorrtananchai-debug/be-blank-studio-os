@@ -1,6 +1,7 @@
 import { Briefcase, CalendarDays, CheckCircle, Clock } from 'lucide-react';
 import { useState } from 'react';
 import { DEMO_MODE } from './mobileConfig.js';
+import { createSiteVisitDraft, normalizeSiteVisits, serializeSiteVisits } from '../utils/siteVisits.js';
 import { ProgressBar } from './mobileComponents.jsx';
 import {
   formatDaysLeftFromEnd,
@@ -216,7 +217,7 @@ function ProjectCard({ onSelect, project, tasks }) {
   );
 }
 
-function ProjectDetail({ notes, onBack, project, tasks }) {
+function ProjectDetail({ canEdit = false, notes, onBack, onUpdateProject, onToast, project, tasks }) {
   const projectTasks = getDisplayTasks(project, tasks);
   const projectNotes = notes.filter((note) => note.projectId === project.id || note.projectName === project.name);
   const phase = getPhaseLabel(project);
@@ -233,6 +234,30 @@ function ProjectDetail({ notes, onBack, project, tasks }) {
     ['Opening', project.openingDate],
     ['End', project.endDate],
   ].filter((item) => item[1]);
+
+  const handleAddSiteNote = async () => {
+    if (!canEdit) {
+      onToast?.('Preview data is read-only.', 'info');
+      return;
+    }
+
+    const title = window.prompt('Site visit title', 'Site Visit');
+    if (title === null) return;
+    const note = window.prompt('Site note', '');
+    if (note === null) return;
+
+    const visits = normalizeSiteVisits(project.siteLogs);
+    const nextVisits = [
+      createSiteVisitDraft({
+        title: title || 'Site Visit',
+        notes: note || '',
+      }),
+      ...visits,
+    ];
+
+    const saved = await onUpdateProject?.(project.id, { siteLogs: serializeSiteVisits(nextVisits) });
+    onToast?.(saved ? 'Site note added.' : 'Could not add site note.', saved ? 'success' : 'error');
+  };
 
   return (
     <div className="page-fade pb-28">
@@ -281,6 +306,13 @@ function ProjectDetail({ notes, onBack, project, tasks }) {
 
       <section className="mt-6">
         <h3 className="mb-2 px-1 text-[11px] font-medium uppercase tracking-tight text-[#777777]">Notes</h3>
+        <button
+          className="mb-3 rounded-full border border-black/5 bg-white px-4 py-2 text-[11px] font-medium uppercase tracking-tight text-[#777777] transition duration-[120ms] ease-out active:scale-95"
+          type="button"
+          onClick={handleAddSiteNote}
+        >
+          Add site note
+        </button>
         {projectNotes.map((note) => (
           <p key={note.id} className="mb-3 rounded-[24px] border border-black/5 bg-white px-4 py-4 text-sm leading-6 text-[#777777] shadow-sm">
             {note.body || note.text || note.title}
@@ -320,7 +352,7 @@ function getGroupedProjects(projects, tasks) {
   return groups;
 }
 
-export function MobileProjects({ notes, onSelectProject, projects, selectedProjectId, tasks }) {
+export function MobileProjects({ canEdit = false, notes, onSelectProject, onToast, onUpdateProject, projects, selectedProjectId, tasks }) {
   const [localSelectedProjectId, setLocalSelectedProjectId] = useState('');
   const currentSelectedProjectId = selectedProjectId ?? localSelectedProjectId;
   const setSelectedProjectId = onSelectProject || setLocalSelectedProjectId;
@@ -331,7 +363,10 @@ export function MobileProjects({ notes, onSelectProject, projects, selectedProje
   if (selectedProject) {
     return (
       <ProjectDetail
+        canEdit={canEdit}
         notes={notes}
+        onToast={onToast}
+        onUpdateProject={onUpdateProject}
         project={selectedProject}
         tasks={tasks}
         onBack={() => setSelectedProjectId('')}

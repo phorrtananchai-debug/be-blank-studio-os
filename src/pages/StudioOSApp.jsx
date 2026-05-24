@@ -30,7 +30,6 @@ import {
 } from '../services/firebaseProjects.js';
 import {
   initialContentItems,
-  initialPortfolioItems,
   projectStatuses,
 } from '../data/seed.js';
 import {
