@@ -76,7 +76,7 @@ export function StudioOSApp({ navigate, routePath }) {
 
   // Derive active tab and project ID from routePath
   const activeTab = useMemo(() => {
-    if (routePath.startsWith('/os/artwork/')) return 'artwork';
+    if (routePath.startsWith('/os/artwork')) return 'artwork';
     if (routePath.startsWith('/os/projects')) return 'projects';
     if (routePath.startsWith('/os/timeline')) return 'timeline';
     if (routePath.startsWith('/os/content')) return 'content';
@@ -105,7 +105,7 @@ export function StudioOSApp({ navigate, routePath }) {
   };
 
   const handleBackToGallery = () => {
-    navigate('/os/artwork');
+    navigate('/os');
   };
   const [contentItems, setContentItems] = useLocalStorage('beBlank.content', initialContentItems);
   const { portfolioItems, setPortfolioItems } = usePortfolioItems({ enabled: Boolean(studioUser), seedWhenEmpty: true });

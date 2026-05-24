@@ -10,6 +10,8 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined;
+          if (id.includes('react-dom') || id.includes('/react/')) return 'vendor-react';
+          if (id.includes('lucide-react')) return 'vendor-ui';
           if (id.includes('firebase')) return 'vendor-firebase';
           if (id.includes('html2canvas') || id.includes('jspdf')) return 'vendor-export';
           return undefined;
