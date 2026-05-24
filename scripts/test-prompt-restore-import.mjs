@@ -14,9 +14,12 @@ try {
   const reviewText = await page.locator('text=Prompt packages:').textContent();
   if (!reviewText) throw new Error('Import review did not show prompt package info');
   await page.getByRole('button', { name: 'Import as New Project' }).click();
-  await page.getByRole('button', { name: 'ai-prompt' }).click();
-  const optionCount = await page.locator('select').nth(1).locator('option').count();
-  if (optionCount < 2) throw new Error('Prompt history was not restored');
+  await page.getByRole('button', { name: 'AI Prompt' }).click();
+  await page.waitForSelector('[data-testid="prompt-package-selector"]');
+  const optionCount = await page.getByTestId('prompt-package-selector').locator('option').count();
+  if (optionCount < 1) throw new Error('Prompt history was not restored');
+  const fullPrompt = await page.locator('[data-testid="full-render-prompt-content"]').inputValue();
+  if (!fullPrompt) throw new Error('Restored package did not render Full Render Prompt');
   console.log('PASS');
 } finally {
   await browser.close();

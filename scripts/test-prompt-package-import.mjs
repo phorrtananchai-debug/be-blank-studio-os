@@ -31,11 +31,18 @@ const page = await ctx.newPage();
 
 try {
   await page.goto('http://127.0.0.1:5173', { waitUntil: 'networkidle' });
-  await page.getByRole('button', { name: 'ai-prompt' }).click();
+  await page.getByRole('button', { name: 'AI Prompt', exact: true }).click();
   await page.locator('textarea[placeholder="Paste visual-brief-ai-import-v1 JSON"]').fill(JSON.stringify(sample, null, 2));
   await page.getByRole('button', { name: 'Validate' }).click();
   await page.getByRole('button', { name: 'Import into current scene' }).click();
   await page.waitForTimeout(200);
+  await page.getByRole('button', { name: /JSON Package/i }).click();
+  await page.getByTestId('open-ai-prompt').click();
+  await page.waitForSelector('[data-testid="full-render-prompt-content"]');
+  const fullPrompt = await page.locator('[data-testid="full-render-prompt-content"]').inputValue();
+  if (!fullPrompt.includes('Full render prompt text')) throw new Error('Full Render Prompt was not visible in AI Prompt viewer');
+  const copyFullBtn = page.getByRole('button', { name: 'Copy Full Render Prompt' });
+  if (!(await copyFullBtn.isVisible())) throw new Error('Copy Full Render Prompt button not found');
   const dlPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export Draft ZIP' }).click();
   const dl = await dlPromise;

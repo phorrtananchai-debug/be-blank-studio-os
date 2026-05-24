@@ -132,7 +132,7 @@ export async function generateBoards(scene: Scene, projectName: string, health: 
   const files: Record<string, string> = {};
   const mapCanvas = makeCanvas(1600, 1000);
   const mapCtx = mapCanvas.getContext('2d')!;
-  mapCtx.fillStyle = '#101215';
+  mapCtx.fillStyle = '#f8fafc';
   mapCtx.fillRect(0, 0, 1600, 1000);
   if (scene.baseImage) {
     try {
@@ -142,6 +142,11 @@ export async function generateBoards(scene: Scene, projectName: string, health: 
       const h = img.height * scale;
       const ox = 40;
       const oy = 100;
+      mapCtx.fillStyle = '#ffffff';
+      mapCtx.fillRect(ox - 10, oy - 10, w + 20, h + 20);
+      mapCtx.strokeStyle = '#cbd5e1';
+      mapCtx.lineWidth = 2;
+      mapCtx.strokeRect(ox - 10, oy - 10, w + 20, h + 20);
       mapCtx.drawImage(img, ox, oy, w, h);
       scene.slots.forEach((s) => {
         s.regions.forEach((r) => {
@@ -158,21 +163,25 @@ export async function generateBoards(scene: Scene, projectName: string, health: 
           mapCtx.beginPath();
           mapCtx.arc(x, y, 7, 0, Math.PI * 2);
           mapCtx.fill();
-          mapCtx.fillStyle = '#0b0d10cc';
-          mapCtx.fillRect(x + 8, y - 20, 42, 16);
-          mapCtx.fillStyle = '#fff';
+          mapCtx.fillStyle = '#ffffffee';
+          mapCtx.strokeStyle = s.color;
+          mapCtx.lineWidth = 2;
+          mapCtx.fillRect(x + 8, y - 22, 48, 20);
+          mapCtx.strokeRect(x + 8, y - 22, 48, 20);
+          mapCtx.fillStyle = '#0f172a';
           mapCtx.font = '800 13px Inter, sans-serif';
-          mapCtx.fillText(s.code, x + 12, y - 8);
+          mapCtx.fillText(s.code, x + 14, y - 8);
         });
       });
     } catch {
       // ignore
     }
   }
-  mapCtx.fillStyle = '#f3f4f6';
+  mapCtx.fillStyle = '#0f172a';
   mapCtx.font = '700 32px Inter, sans-serif';
   mapCtx.fillText('Mapping Overlay Board', 40, 54);
   mapCtx.font = '500 20px Inter, sans-serif';
+  mapCtx.fillStyle = '#334155';
   mapCtx.fillText(`${projectName} / ${scene.name}`, 40, 82);
   mapCtx.fillText('Legend: Materials / Props / Lighting / Environment', 980, 70);
   const mapping = mapCanvas.toDataURL('image/png');
@@ -270,4 +279,291 @@ export async function generateBoards(scene: Scene, projectName: string, health: 
   files['boards/package_summary.png'] = sum.toDataURL('image/png');
 
   return { generatedAt: new Date().toISOString(), boardStatus: 'generated', files };
+}
+
+function formatSlotTitle(slot: Slot) {
+  const fallback = {
+    materials: 'Untitled Material',
+    props: 'Untitled Prop',
+    lighting: 'Untitled Lighting',
+    environment: 'Untitled Environment',
+  } as const;
+  const name = slot.name?.trim();
+  if (!name || /^untitled\s+/i.test(name) || /^(materials|props|lighting|environment)\s+\d+$/i.test(name)) {
+    return fallback[slot.category];
+  }
+  return name;
+}
+
+async function drawSingleThumb(ctx: CanvasRenderingContext2D, refs: string[], x: number, y: number, w: number, h: number) {
+  if (!refs?.length) {
+    ctx.fillStyle = '#f1f5f9';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.strokeRect(x, y, w, h);
+    ctx.fillStyle = '#64748b';
+    ctx.font = '600 12px Inter, sans-serif';
+    ctx.fillText('No ref', x + 8, y + h / 2 + 4);
+    return;
+  }
+  try {
+    const img = await loadImage(refs[0]);
+    ctx.drawImage(img, x, y, w, h);
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.strokeRect(x, y, w, h);
+  } catch {
+    ctx.fillStyle = '#f1f5f9';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.strokeRect(x, y, w, h);
+  }
+}
+
+async function drawSlotPlates(
+  ctx: CanvasRenderingContext2D,
+  title: string,
+  slots: Slot[],
+  x: number,
+  y: number,
+  w: number,
+) {
+  ctx.fillStyle = '#0f172a';
+  ctx.font = '800 17px Inter, sans-serif';
+  ctx.fillText(title, x, y);
+  let cursorY = y + 14;
+  const maxSlots = Math.min(4, slots.length);
+
+  if (maxSlots === 0) {
+    ctx.fillStyle = '#f8fafc';
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.fillRect(x, cursorY, w, 48);
+    ctx.strokeRect(x, cursorY, w, 48);
+    ctx.fillStyle = '#64748b';
+    ctx.font = '600 12px Inter, sans-serif';
+    ctx.fillText(`No ${title.toLowerCase()} configured.`, x + 12, cursorY + 29);
+    return cursorY + 60;
+  }
+
+  for (let i = 0; i < maxSlots; i += 1) {
+    const slot = slots[i];
+    const plateH = 124;
+    const thumbW = 76;
+    const thumbH = 56;
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#dbe4ee';
+    ctx.fillRect(x, cursorY, w, plateH);
+    ctx.strokeRect(x, cursorY, w, plateH);
+
+    ctx.fillStyle = slot.color;
+    ctx.fillRect(x + 10, cursorY + 10, 6, plateH - 20);
+    ctx.fillStyle = '#0f172a';
+    ctx.font = '800 12px Inter, sans-serif';
+    ctx.fillText(slot.code, x + 24, cursorY + 22);
+    ctx.font = '700 13px Inter, sans-serif';
+    wrapText(ctx, formatSlotTitle(slot), x + 66, cursorY + 22, w - 152, 15, 2);
+
+    await drawSingleThumb(ctx, slot.referenceImages || [], x + w - thumbW - 10, cursorY + 10, thumbW, thumbH);
+
+    ctx.fillStyle = '#334155';
+    ctx.font = '500 11px Inter, sans-serif';
+    const lines: string[] = [];
+    if (slot.descriptionThai?.trim()) lines.push(`TH: ${slot.descriptionThai.trim()}`);
+    if (slot.category === 'materials') {
+      if (slot.finish?.trim()) lines.push(`finish: ${slot.finish.trim()}`);
+      if (slot.texture?.trim()) lines.push(`texture: ${slot.texture.trim()}`);
+      if (slot.avoid?.length) lines.push(`avoid: ${slot.avoid.join(', ')}`);
+    }
+    if (slot.category === 'lighting') {
+      lines.push(`dir/quality/intensity: ${slot.direction || '-'} / ${slot.quality || '-'} / ${slot.intensity || '-'}`);
+    }
+    if (slot.category === 'props' || slot.category === 'environment') {
+      if (slot.creativeFreedom) lines.push(`creative freedom: ${slot.creativeFreedom}`);
+    }
+    if (slot.englishPromptNote?.trim()) lines.push(`note: ${slot.englishPromptNote.trim()}`);
+    if (slot.aiSuggested || slot.inferredByAi) {
+      lines.push(`AI inferred${slot.aiSuggestionConfidence ? ` (${slot.aiSuggestionConfidence})` : ''}`);
+      if (slot.aiSuggestionBasis) lines.push(`basis: ${slot.aiSuggestionBasis}`);
+    }
+    if (!lines.length && slot.referenceImages?.length) {
+      lines.push('Image-only ref: approximate guidance');
+    }
+    if (!lines.length) lines.push('No description yet');
+
+    let textY = cursorY + 44;
+    for (const line of lines.slice(0, 3)) {
+      textY = wrapText(ctx, line, x + 24, textY, w - 116, 14, 2) + 2;
+    }
+    cursorY += plateH + 8;
+  }
+  return cursorY;
+}
+
+export async function generateRenderHandoffBoard(scene: Scene, projectName: string): Promise<string> {
+  const WIDTH = 2200;
+  const HEIGHT = 1400;
+  const canvas = document.createElement('canvas');
+  canvas.width = WIDTH;
+  canvas.height = HEIGHT;
+  const ctx = canvas.getContext('2d')!;
+
+  ctx.fillStyle = '#f4f6f8';
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(18, 18, WIDTH - 36, HEIGHT - 36);
+  ctx.strokeStyle = '#dbe4ee';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(18, 18, WIDTH - 36, HEIGHT - 36);
+
+  ctx.fillStyle = '#0f172a';
+  ctx.font = '900 40px Inter, sans-serif';
+  ctx.fillText('VISUAL INSTRUCTION BOARD', 48, 76);
+  ctx.fillStyle = '#334155';
+  ctx.font = '600 18px Inter, sans-serif';
+  ctx.fillText(`${projectName} / ${scene.name} / ${scene.type}`, 48, 108);
+  ctx.fillText(`Output: ${scene.outputSpec.outputPreset} | ${scene.outputSpec.aspectRatio} | ${scene.outputSpec.targetWidth}x${scene.outputSpec.targetHeight}`, 48, 136);
+  ctx.fillText(`Preserve Rules: ${scene.preserveRules || '-'}`, 48, 162);
+
+  const hasDirectorNotes = Boolean(
+    scene.directorNotes?.overallSceneDirection?.trim() ||
+    scene.directorNotes?.materialInterpretationNotes?.trim() ||
+    scene.directorNotes?.lightingAtmosphereNotes?.trim() ||
+    scene.directorNotes?.preserveDoNotChangeNotes?.trim(),
+  );
+  if (hasDirectorNotes) {
+    ctx.fillStyle = '#fff7ed';
+    ctx.strokeStyle = '#fdba74';
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(44, 170, WIDTH - 88, 95);
+    ctx.strokeRect(44, 170, WIDTH - 88, 95);
+    ctx.fillStyle = '#9a5000';
+    ctx.font = '800 15px Inter, sans-serif';
+    ctx.fillText(`Director Notes (${(scene.directorNotes?.inferenceMode || 'balanced').toUpperCase()})`, 58, 192);
+    ctx.fillStyle = '#7c2d12';
+    ctx.font = '600 13px Inter, sans-serif';
+    wrapText(ctx, scene.directorNotes?.overallSceneDirection || scene.directorNotes?.materialInterpretationNotes || scene.directorNotes?.lightingAtmosphereNotes || '-', 58, 214, WIDTH - 120, 18, 2);
+    wrapText(ctx, scene.directorNotes?.preserveDoNotChangeNotes ? `Preserve: ${scene.directorNotes.preserveDoNotChangeNotes}` : '', 58, 250, WIDTH - 120, 16, 1);
+  }
+
+  const leftX = 44;
+  const leftY = hasDirectorNotes ? 278 : 188;
+  const leftW = 1360;
+  const leftH = hasDirectorNotes ? 890 : 980;
+  ctx.fillStyle = '#f8fafc';
+  ctx.fillRect(leftX, leftY, leftW, leftH);
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.strokeRect(leftX, leftY, leftW, leftH);
+
+  if (scene.baseImage) {
+    try {
+      const base = await loadImage(scene.baseImage);
+      const fitScale = Math.min((leftW - 20) / base.width, (leftH - 20) / base.height);
+      const drawW = base.width * fitScale;
+      const drawH = base.height * fitScale;
+      const imgX = leftX + (leftW - drawW) / 2;
+      const imgY = leftY + (leftH - drawH) / 2;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(imgX - 6, imgY - 6, drawW + 12, drawH + 12);
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.strokeRect(imgX - 6, imgY - 6, drawW + 12, drawH + 12);
+      ctx.drawImage(base, imgX, imgY, drawW, drawH);
+
+      scene.slots.forEach((slot) => {
+        slot.regions.forEach((region) => {
+          const x = imgX + region.x * drawW;
+          const y = imgY + region.y * drawH;
+          const rw = region.width * drawW;
+          const rh = region.height * drawH;
+          ctx.fillStyle = `${slot.color}33`;
+          ctx.strokeStyle = slot.color;
+          ctx.lineWidth = 2.5;
+          ctx.fillRect(x, y, rw, rh);
+          ctx.strokeRect(x, y, rw, rh);
+          ctx.fillStyle = '#ffffff';
+          ctx.strokeStyle = slot.color;
+          ctx.lineWidth = 1.5;
+          ctx.fillRect(x + 6, y + 6, 48, 22);
+          ctx.strokeRect(x + 6, y + 6, 48, 22);
+          ctx.fillStyle = '#0f172a';
+          ctx.font = '800 13px Inter, sans-serif';
+          ctx.fillText(slot.code, x + 14, y + 21);
+        });
+        slot.pins.forEach((pin) => {
+          const x = imgX + pin.x * drawW;
+          const y = imgY + pin.y * drawH;
+          ctx.fillStyle = slot.color;
+          ctx.beginPath();
+          ctx.arc(x, y, 8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.fillStyle = '#ffffff';
+          ctx.strokeStyle = slot.color;
+          ctx.lineWidth = 1.5;
+          ctx.fillRect(x + 10, y - 16, 54, 22);
+          ctx.strokeRect(x + 10, y - 16, 54, 22);
+          ctx.fillStyle = '#0f172a';
+          ctx.font = '800 13px Inter, sans-serif';
+          ctx.fillText(slot.code, x + 18, y);
+        });
+      });
+    } catch {
+      ctx.fillStyle = '#64748b';
+      ctx.font = '600 18px Inter, sans-serif';
+      ctx.fillText('Base image could not be rendered.', leftX + 28, leftY + 44);
+    }
+  } else {
+    ctx.fillStyle = '#64748b';
+    ctx.font = '600 18px Inter, sans-serif';
+    ctx.fillText('No base image loaded.', leftX + 28, leftY + 44);
+  }
+
+  const rightX = 1424;
+  const rightY = hasDirectorNotes ? 278 : 188;
+  const rightW = 732;
+  const categories = {
+    materials: scene.slots.filter((slot) => slot.category === 'materials'),
+    props: scene.slots.filter((slot) => slot.category === 'props'),
+    lighting: scene.slots.filter((slot) => slot.category === 'lighting'),
+    environment: scene.slots.filter((slot) => slot.category === 'environment'),
+  };
+
+  let panelY = rightY + 14;
+  panelY = await drawSlotPlates(ctx, 'Materials', categories.materials, rightX, panelY, rightW);
+  panelY = await drawSlotPlates(ctx, 'Props', categories.props, rightX, panelY, rightW);
+  panelY = await drawSlotPlates(ctx, 'Lighting', categories.lighting, rightX, panelY, rightW);
+  await drawSlotPlates(ctx, 'Environment', categories.environment, rightX, panelY, rightW);
+
+  const stripY = 1186;
+  const appliedSuggestions = (scene.aiEnrichmentSuggestions || []).filter((item) => item.status === 'applied').length;
+  const pendingSuggestions = (scene.aiEnrichmentSuggestions || []).filter((item) => item.status !== 'applied' && item.status !== 'ignored').length;
+  ctx.fillStyle = '#fff7ed';
+  ctx.strokeStyle = '#fdba74';
+  ctx.lineWidth = 1.5;
+  ctx.fillRect(44, stripY, WIDTH - 88, 170);
+  ctx.strokeRect(44, stripY, WIDTH - 88, 170);
+  ctx.fillStyle = '#9a5000';
+  ctx.font = '800 18px Inter, sans-serif';
+  ctx.fillText('Key Instructions', 62, stripY + 28);
+  ctx.fillStyle = '#7c2d12';
+  ctx.font = '600 15px Inter, sans-serif';
+  const keyLines = [
+    'Preserve original geometry and camera.',
+    'Apply mapped materials only to tagged/region areas.',
+    'Use image-only refs as approximate visual guidance.',
+    'Do not redesign the space.',
+    'Avoid CGI/plastic material look.',
+  ];
+  keyLines.forEach((line, idx) => {
+    ctx.fillText(`• ${line}`, 64 + (idx >= 3 ? 1040 : 0), stripY + 62 + (idx % 3) * 30);
+  });
+  ctx.fillStyle = '#7c2d12';
+  ctx.font = '700 13px Inter, sans-serif';
+  ctx.fillText(`AI suggestions: ${appliedSuggestions} applied, ${pendingSuggestions} pending`, 64, stripY + 154);
+
+  ctx.fillStyle = '#ff8800';
+  ctx.fillRect(44, 174, WIDTH - 88, 4);
+
+  return canvas.toDataURL('image/png');
 }

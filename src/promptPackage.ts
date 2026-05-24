@@ -17,6 +17,8 @@ export function validatePromptImportJson(input: string): { status: 'valid' | 'wa
   }
   if (!parsed.assistantNotes) warnings.push('assistantNotes missing.');
   if (!parsed.qualityChecklist) warnings.push('qualityChecklist missing.');
+  if (parsed.slotEnrichment && !Array.isArray(parsed.slotEnrichment)) warnings.push('slotEnrichment should be an array when provided.');
+  if (parsed.aiEnrichmentSuggestions && !Array.isArray(parsed.aiEnrichmentSuggestions)) warnings.push('aiEnrichmentSuggestions should be an array when provided.');
   const status = errors.length ? 'error' : warnings.length ? 'warning' : 'valid';
   return { status, parsed, errors, warnings };
 }

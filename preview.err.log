@@ -3,7 +3,7 @@ X [ERROR] Cannot read directory "../..": Access is denied.
 X [ERROR] Could not resolve "C:\\Users\\UsEr\\Documents\\New project\\vite.config.mjs"
 
 [31mfailed to load config from C:\Users\UsEr\Documents\New project\vite.config.mjs[39m
-[31merror when starting dev server:
+[31merror when starting preview server:
 Error: Build failed with 2 errors:
 error: Cannot read directory "../..": Access is denied.
 error: Could not resolve "C:\\Users\\UsEr\\Documents\\New project\\vite.config.mjs"

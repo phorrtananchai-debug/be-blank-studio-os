@@ -25,15 +25,15 @@ async function setTopNames() {
 }
 
 async function addSlot(tab, slotName, thaiText, withRef = false) {
-  await page.getByRole('button', { name: tab }).click();
-  await page.getByRole('button', { name: 'Add Slot' }).click();
+  await page.getByRole('button', { name: tab, exact: true }).click();
+  await page.getByRole('button', { name: /Add Slot|Add Material|Add Prop|Add Lighting|Add Environment/i }).first().click();
   const inspector = page.locator('aside').last();
   const inspectorName = inspector.locator('input').first();
   await inspectorName.fill(slotName);
   const thaiArea = inspector.locator('textarea[placeholder="Thai description"]');
   await thaiArea.fill(thaiText);
   if (withRef) {
-    await page.locator('label:has-text("Upload reference") input[type=file]').setInputFiles(baseImagePath);
+    await page.locator('label:has-text("Upload Reference") input[type=file]').setInputFiles(baseImagePath);
   }
 }
 
@@ -44,6 +44,17 @@ async function exportZip(filename) {
   const zipPath = path.join(downloadsDir, filename);
   await dl.saveAs(zipPath);
   return zipPath;
+}
+
+async function reassignSelectedObjectToCode(code) {
+  const select = page.getByTestId('mapped-object-slot-select');
+  await select.waitFor({ state: 'visible', timeout: 3000 });
+  const value = await select.evaluate((el, targetCode) => {
+    const option = Array.from(el.options).find((item) => item.textContent?.trim().startsWith(`${targetCode} `) || item.textContent?.trim().startsWith(`${targetCode} -`));
+    return option?.value || '';
+  }, code);
+  if (!value) throw new Error(`Could not find mapped object reassignment option for ${code}`);
+  await select.selectOption(value);
 }
 
 async function parseZip(zipPath) {
@@ -64,6 +75,12 @@ async function parseZip(zipPath) {
   return { scene, project, mapping, outputSpec, localPrompt, refs, boards, fileCount: Object.keys(zip.files).length };
 }
 
+function invalidRegionsFromMapping(mapping = []) {
+  return (mapping || [])
+    .flatMap((m) => m?.regions || [])
+    .filter((r) => !r || r.width <= 0 || r.height <= 0 || r.width < 0.015 || r.height < 0.015 || r.x < 0 || r.y < 0 || r.x > 1 || r.y > 1);
+}
+
 try {
   await page.goto('http://127.0.0.1:5173', { waitUntil: 'networkidle' });
   ok('open_app');
@@ -71,40 +88,117 @@ try {
   await setTopNames();
   ok('set_project_scene_names');
 
-  await page.locator('label:has-text("Base Image") input[type=file]').setInputFiles(baseImagePath);
+  const baseInput = page.getByTestId('base-image-input');
+  if ((await baseInput.count()) !== 1) throw new Error('Expected exactly one base-image input');
+  const toolbarUploadBtn = page.locator('header').getByRole('button', { name: 'Upload Base Image' });
+  const emptyUploadBtn = page.locator('main section').getByRole('button', { name: 'Upload Base Image' });
+  if (!(await toolbarUploadBtn.isVisible())) throw new Error('Toolbar Upload Base Image button is not visible');
+  if (!(await emptyUploadBtn.isVisible())) throw new Error('Empty-state Upload Base Image button is not visible');
+  if (!(await page.getByText(/Drag and drop an image here, or paste from clipboard\./i).isVisible())) {
+    throw new Error('Empty-state drag/drop or paste helper text is not visible');
+  }
+  ok('verify_base_upload_controls');
+  for (const label of ['Materials', 'Props', 'Lighting', 'Environment', 'People', 'Output', 'Boards', 'AI Prompt']) {
+    if (!(await page.getByRole('button', { name: label, exact: true }).isVisible())) {
+      throw new Error(`Mode tab label is not visible: ${label}`);
+    }
+  }
+  const activeModeStyle = await page.getByRole('button', { name: 'Materials', exact: true }).evaluate((el) => {
+    const style = getComputedStyle(el);
+    return { border: style.borderColor, background: style.backgroundColor, color: style.color };
+  });
+  report.checks.activeModeStyle = activeModeStyle;
+  if (!activeModeStyle.border.includes('255, 136, 0')) throw new Error(`Expected active Materials mode to use orange border, got ${activeModeStyle.border}`);
+  ok('verify_mode_tab_labels');
+  await baseInput.setInputFiles(baseImagePath);
+  await page.locator('header').getByRole('button', { name: 'Replace Base Image' }).waitFor({ state: 'visible', timeout: 5000 });
   ok('upload_base_image', baseImagePath);
 
-  await addSlot('materials', 'Warm Oak Wood', 'ไม้โอ๊คโทนอุ่น ผิวกึ่งด้าน ลายไม้ธรรมชาติ', true);
-  await addSlot('materials', 'White Painted Brick', 'อิฐทาสีขาว โทนสะอาด เรียบแต่มีผิวสัมผัส');
-  await addSlot('props', 'Ceramic Vase', 'แจกันเซรามิกทรงโมเดิร์น โทนขาวนวล วางเป็นจุดเด่น');
-  await addSlot('lighting', 'Daylight Left', 'แสงธรรมชาติเข้าจากซ้าย นุ่มนวล เงาไม่แข็ง');
-  await addSlot('environment', 'Residential Garden / Mountain Retreat', 'พื้นหลังสวนที่พักอาศัย ผ่อนคลาย กลิ่นอายรีสอร์ตภูเขา');
+  await addSlot('Materials', 'Warm Oak Wood', 'ไม้โอ๊คโทนอุ่น ผิวกึ่งด้าน ลายไม้ธรรมชาติ', true);
+  await addSlot('Materials', 'White Painted Brick', 'อิฐทาสีขาว โทนสะอาด เรียบแต่มีผิวสัมผัส');
+  await addSlot('Props', 'Ceramic Vase', 'แจกันเซรามิกทรงโมเดิร์น โทนขาวนวล วางเป็นจุดเด่น');
+  await addSlot('Lighting', 'Daylight Left', 'แสงธรรมชาติเข้าจากซ้าย นุ่มนวล เงาไม่แข็ง');
+  await addSlot('Environment', 'Residential Garden / Mountain Retreat', 'พื้นหลังสวนที่พักอาศัย ผ่อนคลาย กลิ่นอายรีสอร์ตภูเขา');
   ok('add_slots_with_thai_descriptions');
 
-  await page.getByRole('button', { name: 'materials' }).click();
-  await page.getByRole('button', { name: 'M01 Warm Oak Wood' }).click();
+  await page.getByRole('button', { name: 'Materials', exact: true }).click();
+  await page.getByRole('button', { name: /M01.*Warm Oak Wood/i }).click();
 
-  await page.getByTestId('tool-pin').click();
   const stageHost = page.locator('.konvajs-content').first();
   await stageHost.scrollIntoViewIfNeeded();
   const box = await stageHost.boundingBox();
   if (!box) throw new Error('Konva stage not found');
-  await page.mouse.click(box.x + 180, box.y + 130);
-  await page.mouse.click(box.x + 320, box.y + 200);
-  ok('add_2_pins');
+
+  await page.getByTestId('tool-move').click();
+  const beforeMoveBox = await stageHost.boundingBox();
+  await page.mouse.move(box.x + 120, box.y + 80, { steps: 4 });
+  await page.mouse.down();
+  await page.mouse.move(box.x + 260, box.y + 150, { steps: 12 });
+  await page.mouse.up();
+  const afterMoveBox = await stageHost.boundingBox();
+  if (!beforeMoveBox || !afterMoveBox || Math.abs(beforeMoveBox.x - afterMoveBox.x) > 1 || Math.abs(beforeMoveBox.y - afterMoveBox.y) > 1) {
+    throw new Error('Move mode moved the base/stage frame');
+  }
+  await page.getByTestId('reset-view').click();
+  ok('verify_move_mode_and_reset_view');
+
+  const toolStyle = await page.getByTestId('tool-move').evaluate((el) => {
+    const style = getComputedStyle(el);
+    return { border: style.borderColor, background: style.backgroundColor, color: style.color };
+  });
+  report.checks.activeToolStyle = toolStyle;
+  if (!toolStyle.border.includes('255, 136, 0')) throw new Error(`Expected active Move tool to use orange border, got ${toolStyle.border}`);
+
+  const chip = page.getByTestId('slot-drag-chip-M01').first();
+  const chipBox = await chip.boundingBox();
+  if (!chipBox) throw new Error('M01 slot drag chip not found');
+  await page.mouse.move(chipBox.x + chipBox.width / 2, chipBox.y + chipBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 180, box.y + 130, { steps: 16 });
+  await page.mouse.up();
+  await page.getByText('M01 pin added').waitFor({ state: 'visible', timeout: 3000 });
+  ok('drag_slot_chip_to_canvas');
+
+  await reassignSelectedObjectToCode('M02');
+  await page.getByText('Pin reassigned to M02').waitFor({ state: 'visible', timeout: 3000 });
+  await reassignSelectedObjectToCode('M01');
+  await page.getByText('Pin reassigned to M01').waitFor({ state: 'visible', timeout: 3000 });
+  ok('reassign_pin_to_slot');
+
+  await page.getByTestId('mapping-undo').click();
+  await page.getByTestId('mapping-redo').click();
+  ok('undo_redo_mapping');
+
+  await page.getByTestId('tool-pin').click();
+  const boxAfterReset = await stageHost.boundingBox();
+  if (!boxAfterReset) throw new Error('Konva stage not found after reset view');
+  await page.mouse.click(boxAfterReset.x + 320, boxAfterReset.y + 200);
+  ok('add_2_pins', 'one chip-dropped pin plus one Pin tool click');
 
   await page.getByTestId('tool-rect').click();
-  await page.mouse.move(box.x + 220, box.y + 220, { steps: 5 });
+  await page.waitForTimeout(100);
+  await page.mouse.move(boxAfterReset.x + 220, boxAfterReset.y + 220, { steps: 5 });
   await page.mouse.down();
-  await page.mouse.move(box.x + 420, box.y + 320, { steps: 24 });
+  await page.mouse.move(boxAfterReset.x + 420, boxAfterReset.y + 320, { steps: 24 });
   await page.mouse.up();
   await page.waitForTimeout(120);
   ok('draw_1_rectangle_region_attempt');
+
+  await reassignSelectedObjectToCode('M02');
+  await page.getByText('Region reassigned to M02').waitFor({ state: 'visible', timeout: 3000 });
+  await reassignSelectedObjectToCode('M01');
+  await page.getByText('Region reassigned to M01').waitFor({ state: 'visible', timeout: 3000 });
+  ok('reassign_region_to_slot');
 
   await page.getByRole('button', { name: /Generate Local Prompt/i }).click();
   const promptText = await page.locator('aside').last().locator('textarea').last().inputValue();
   if (!promptText || promptText.length < 30) throw new Error('Generated prompt is empty or too short');
   ok('generate_local_prompt', `prompt_length=${promptText.length}`);
+
+  await page.getByRole('button', { name: 'Boards', exact: true }).click();
+  await page.getByRole('button', { name: 'Generate Boards' }).first().click();
+  await page.getByText('Boards generated').waitFor({ state: 'visible', timeout: 3000 });
+  ok('generate_boards_updates_ui');
 
   await page.getByRole('button', { name: /Save Local Draft/i }).click();
   ok('save_local_draft');
@@ -116,11 +210,23 @@ try {
   const beforeRects = m01Before?.regions?.length ?? 0;
   const beforePins = m01Before?.pins?.length ?? 0;
   const exportedRects = (before.mapping || []).find((m) => m.slotId === m01Before?.id)?.regions?.length ?? beforeRects;
+  const invalidBeforeRegions = invalidRegionsFromMapping(before.mapping);
   report.checks.pinsM01 = beforePins;
   report.checks.rectsM01 = beforeRects;
   report.checks.exportedRectsM01 = exportedRects;
+  report.checks.invalidExportRegions = invalidBeforeRegions.length;
   if (beforeRects < 1) throw new Error(`Expected at least 1 M01 region before export verification, got ${beforeRects}`);
   if (exportedRects < 1) throw new Error(`Expected at least 1 exported M01 region in mapping.json, got ${exportedRects}`);
+  if (invalidBeforeRegions.length > 0) throw new Error(`Expected no invalid exported regions, found ${invalidBeforeRegions.length}`);
+  const m01Line = (before.localPrompt || '').split('\n').find((line) => /^M01\b/.test(line));
+  if (!m01Line) throw new Error('Expected M01 line in local prompt');
+  const mappingMatch = /mapped with (\d+) pin[s]? and (\d+) region[s]?/i.exec(m01Line);
+  if (!mappingMatch) throw new Error('Expected mapping count text for M01 in local prompt');
+  const promptPins = Number(mappingMatch[1]);
+  const promptRegions = Number(mappingMatch[2]);
+  if (promptPins !== beforePins || promptRegions !== exportedRects) {
+    throw new Error(`Prompt mapping count mismatch for M01. prompt=${promptPins}/${promptRegions}, data=${beforePins}/${exportedRects}`);
+  }
   ok('assert_m01_region_before_export', `pins=${beforePins}, rects=${beforeRects}, exportedRects=${exportedRects}`);
 
   await page.locator('label:has-text("Import ZIP") input[type=file]').setInputFiles(zip1);
@@ -138,11 +244,24 @@ try {
   const m01After = after.scene?.slots?.find((s) => s.code === 'M01');
   const importedRects = m01After?.regions?.length ?? 0;
   const reExportedRects = (after.mapping || []).find((m) => m.slotId === m01After?.id)?.regions?.length ?? importedRects;
+  const invalidAfterRegions = invalidRegionsFromMapping(after.mapping);
   report.checks.importedRectsM01 = importedRects;
   report.checks.reExportedRectsM01 = reExportedRects;
+  report.checks.invalidReExportRegions = invalidAfterRegions.length;
   if (importedRects < 1) throw new Error(`Expected at least 1 M01 region after import, got ${importedRects}`);
   if (reExportedRects < 1) throw new Error(`Expected at least 1 M01 region after re-export mapping.json, got ${reExportedRects}`);
+  if (invalidAfterRegions.length > 0) throw new Error(`Expected no invalid re-exported regions, found ${invalidAfterRegions.length}`);
   ok('assert_m01_region_after_import', `importedRects=${importedRects}, reExportedRects=${reExportedRects}`);
+
+  await page.getByTestId('reset-mapping').click();
+  const zip3 = await exportZip('smoke-export-3-after-reset.zip');
+  const reset = await parseZip(zip3);
+  const resetPins = reset.scene?.slots?.reduce((sum, slot) => sum + (slot.pins?.length || 0), 0) ?? 0;
+  const resetRegions = reset.scene?.slots?.reduce((sum, slot) => sum + (slot.regions?.length || 0), 0) ?? 0;
+  report.checks.resetPins = resetPins;
+  report.checks.resetRegions = resetRegions;
+  if (resetPins !== 0 || resetRegions !== 0) throw new Error(`Reset Mapping did not clear mappings. pins=${resetPins}, regions=${resetRegions}`);
+  ok('reset_mapping_clears_mappings', `pins=${resetPins}, regions=${resetRegions}`);
 
   report.comparison = {
     before: {
@@ -182,3 +301,4 @@ try {
 const reportPath = path.join(downloadsDir, 'smoke-visual-brief-report.json');
 await fs.writeFile(reportPath, JSON.stringify(report, null, 2), 'utf8');
 console.log(reportPath);
+

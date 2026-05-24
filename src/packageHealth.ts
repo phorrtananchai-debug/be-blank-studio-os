@@ -25,6 +25,7 @@ export function sceneHealth(scene: Scene): PackageHealth {
   let regions = 0;
   const warnings: string[] = [];
   const errors: string[] = [];
+  let imageOnlySlots = 0;
 
   scene.slots.forEach((s) => {
     byType[s.category] += 1;
@@ -32,10 +33,23 @@ export function sceneHealth(scene: Scene): PackageHealth {
     pins += s.pins.length;
     regions += s.regions.length;
     if (!s.descriptionThai.trim() && s.referenceImages.length > 0) {
+      imageOnlySlots += 1;
       warnings.push(`${s.code}: image-only reference, prompt should allow moderate interpretation.`);
     }
   });
   if (!scene.baseImage) errors.push('Base image is missing.');
+  const hasDirectorNotes = Boolean(
+    scene.directorNotes?.overallSceneDirection?.trim() ||
+    scene.directorNotes?.materialInterpretationNotes?.trim() ||
+    scene.directorNotes?.lightingAtmosphereNotes?.trim() ||
+    scene.directorNotes?.preserveDoNotChangeNotes?.trim(),
+  );
+  if (imageOnlySlots >= 2 && hasDirectorNotes) {
+    warnings.push('Image-only slots will use Director Notes for inference.');
+  }
+  if (imageOnlySlots >= 2 && !hasDirectorNotes) {
+    warnings.push('Add Director Notes or Thai descriptions for better prompt control.');
+  }
 
   return {
     status: errors.length ? 'error' : warnings.length ? 'warning' : 'healthy',
