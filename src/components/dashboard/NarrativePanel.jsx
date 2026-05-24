@@ -115,12 +115,12 @@ export function NarrativePanel({ project, tasks = [], onUpdate }) {
             {isEditing ? (
               <textarea
                 className="type-body mt-2 min-h-24 w-full resize-y rounded-md border border-black/[0.07] bg-studio-bone/35 p-3 text-studio-ink outline-none focus:border-studio-ink/20"
-                onChange={(event) => handleUpdate('mood', event.target.value)}
+                onChange={(event) => handleUpdate('currentFocus', event.target.value)}
                 placeholder="Delivery strategy, approvals, procurement, contractor coordination..."
-                value={project.mood || ''}
+                value={project.currentFocus || ''}
               />
             ) : (
-              <p className="type-body mt-2 text-studio-ink">{project.mood || 'Delivery strategy and approval coordination.'}</p>
+              <p className="type-body mt-2 text-studio-ink">{project.currentFocus || project.nextAction || 'Delivery strategy and approval coordination.'}</p>
             )}
           </div>
 
@@ -181,6 +181,12 @@ export function NarrativePanel({ project, tasks = [], onUpdate }) {
             value={project.phaseNotes}
             empty="No delivery constraints recorded."
           />
+          <div className="border-t border-black/[0.06] pt-4">
+            <p className="type-label text-studio-muted">Atmospheric Metadata</p>
+            <p className="type-caption mt-2 text-studio-muted">
+              {[compact(project.mood), compact(project.timelineEnergy)].filter(Boolean).join(' / ') || 'Atmospheric mood and energy not recorded.'}
+            </p>
+          </div>
         </div>
       </div>
 

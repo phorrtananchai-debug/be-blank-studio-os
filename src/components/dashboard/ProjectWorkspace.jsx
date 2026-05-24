@@ -429,6 +429,31 @@ function BillingMilestonePanel({ milestones, onUpdate }) {
   );
 }
 
+function ProjectTaskPanel({ tasks }) {
+  const visibleTasks = tasks.slice(0, 6);
+
+  return (
+    <SectionCard title="Project Tasks" eyebrow="Operational Queue">
+      {visibleTasks.length ? (
+        <div className="divide-y divide-black/[0.06] border-y border-black/[0.06]">
+          {visibleTasks.map((task) => (
+            <article key={task.id || task.title} className="grid gap-3 py-4 md:grid-cols-[1fr_8rem_8rem]">
+              <div>
+                <p className="type-card-title">{task.title || 'Untitled Task'}</p>
+                {(task.notes || task.detail) && <p className="type-caption mt-1 line-clamp-2 text-studio-muted">{task.notes || task.detail}</p>}
+              </div>
+              <p className="type-caption text-studio-muted">{task.dueDate || task.date || 'No date'}</p>
+              <p className="type-control text-studio-muted md:text-right">{task.status || 'OPEN'}</p>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <EmptyState message="No project tasks are attached yet." />
+      )}
+    </SectionCard>
+  );
+}
+
 function MaterialApprovalArchive({ materials, onUpdate }) {
   const addMaterial = () => {
     onUpdate([createMaterialApprovalDraft(), ...materials]);
@@ -772,6 +797,7 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
   const [isClientViewOpen, setIsClientViewOpen] = useState(false);
   const timeline = calculateTimeline(project);
   const financials = calculateProjectFinancials(project);
+  const projectTasks = useMemo(() => tasks.filter((task) => task.projectId === project.id), [project.id, tasks]);
   const siteVisits = useMemo(() => normalizeSiteVisits(project.siteLogs), [project.siteLogs]);
   const materialApprovals = useMemo(() => normalizeMaterialApprovals(project.materialApprovals), [project.materialApprovals]);
   const billingMilestones = useMemo(() => normalizeBillingMilestones(project.billingMilestones), [project.billingMilestones]);
@@ -963,6 +989,8 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
               </SectionCard>
 
               <BillingMilestonePanel milestones={billingMilestones} onUpdate={updateBillingMilestones} />
+
+              <ProjectTaskPanel tasks={projectTasks} />
             </div>
 
             <div className="lg:col-span-4 space-y-8">
