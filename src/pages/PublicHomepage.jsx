@@ -271,6 +271,42 @@ function HomeArchive({ editorSettings, items, navigate }) {
   );
 }
 
+function EditorialHeroLayer({ items, navigate }) {
+  const leadItem = items.find((item) => getCoverImage(item)?.mediumUrl || item.imageUrl);
+  if (!leadItem) return null;
+
+  const cover = getCoverImage(leadItem);
+  const imageUrl = cover?.fullUrl || cover?.mediumUrl || leadItem.imageUrl;
+
+  return (
+    <section className="mb-24 grid min-h-[46vh] items-end gap-8 border-b border-black/[0.08] pb-10 md:grid-cols-12">
+      <button
+        className="group block overflow-hidden bg-[#f1f1ee] text-left md:col-span-7"
+        type="button"
+        onClick={() => navigate(`/portfolio/${encodeURIComponent(leadItem.id)}`)}
+      >
+        <img
+          alt={leadItem.title || 'Featured project'}
+          className="aspect-[16/10] w-full object-cover transition duration-[1200ms] ease-studio-out group-hover:scale-[1.01] group-hover:opacity-95"
+          src={imageUrl}
+          onError={(event) => {
+            event.currentTarget.style.display = 'none';
+          }}
+        />
+      </button>
+      <div className="md:col-span-4 md:col-start-9">
+        <p className="public-project-meta text-[#777777]">selected archive</p>
+        <button className="mt-5 block text-left transition hover:opacity-60" type="button" onClick={() => navigate(`/portfolio/${encodeURIComponent(leadItem.id)}`)}>
+          <h2 className="public-project-title text-3xl leading-tight text-[#111111] md:text-5xl">{leadItem.title || 'Untitled Project'}</h2>
+          <p className="public-project-meta mt-4 text-[#777777]">
+            {[leadItem.category, leadItem.location, leadItem.year].filter(Boolean).join(' / ') || 'archive composition'}
+          </p>
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function EditableArchiveItem({ editorSettings, highlighted, index, item, layout, onLayer, onPointerStart }) {
   const cover = getCoverImage(item);
   const summary = item.category || item.subtitle || item.location || 'Archive';
@@ -706,7 +742,10 @@ export function PublicHomepage({ portfolioItems, navigate, updatePortfolioItem }
             onDraftLayout={updateDraftLayout}
           />
         ) : (
-          <HomeArchive editorSettings={editorSettings} items={archiveItems} navigate={navigate} />
+          <>
+            <EditorialHeroLayer items={archiveItems} navigate={navigate} />
+            <HomeArchive editorSettings={editorSettings} items={archiveItems} navigate={navigate} />
+          </>
         )}
       </main>
 

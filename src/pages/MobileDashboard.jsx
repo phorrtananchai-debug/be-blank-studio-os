@@ -32,7 +32,7 @@ export function MobileDashboard({ onSignOut, user }) {
     return () => window.removeEventListener('mobile-open-quick-add', handleOpenQuickAdd);
   }, []);
 
-  const projects = useMobileProjects(user);
+  const { projects, updateProject } = useMobileProjects(user);
   const notes = useMobileNotes();
   const {
     clearCompletedTasks,
@@ -94,6 +94,9 @@ export function MobileDashboard({ onSignOut, user }) {
         projects={displayProjects}
         selectedProjectId={selectedProjectId}
         tasks={displayTasks}
+        canEdit={!useDemoData}
+        onUpdateProject={updateProject}
+        onToast={showToast}
         onSelectProject={setSelectedProjectId}
       />
     ),

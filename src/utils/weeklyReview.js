@@ -18,10 +18,6 @@ const pressureWeight = {
   CRITICAL: 3,
 };
 
-function compact(value) {
-  return String(value || '').trim();
-}
-
 function formatDate(value) {
   const date = value ? new Date(value) : null;
   if (!date || Number.isNaN(date.getTime())) return '';

@@ -78,7 +78,7 @@ export function getNormalizedPortfolioLayouts(items = []) {
       return { ...layouts, [item.id]: getPortfolioLayout(item, index) };
     }
 
-    const previousItems = items.slice(0, index).map((previousItem, previousIndex) => ({
+    const previousItems = items.slice(0, index).map((previousItem) => ({
       ...previousItem,
       ...(layouts[previousItem.id] ? stringifyLayout(layouts[previousItem.id]) : {}),
     }));

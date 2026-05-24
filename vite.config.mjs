@@ -5,6 +5,20 @@ const isWebDeployment = process.env.VERCEL === '1' || process.env.VITE_WEB_BUILD
 
 export default defineConfig({
   base: isWebDeployment ? '/' : './',
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (id.includes('react-dom') || id.includes('/react/')) return 'vendor-react';
+          if (id.includes('lucide-react')) return 'vendor-ui';
+          if (id.includes('firebase')) return 'vendor-firebase';
+          if (id.includes('html2canvas') || id.includes('jspdf')) return 'vendor-export';
+          return undefined;
+        },
+      },
+    },
+  },
   define: {
     'import.meta.env.VERCEL': JSON.stringify(isWebDeployment),
   },

@@ -227,6 +227,8 @@ export function ProjectDashboard({ projects, statusCounts, tasks = [], onAdd, on
   );
 }
 
+// Legacy detail surface retained for reference while ProjectWorkspace owns all
+// active project-level modules and future project workflow extensions.
 export function ProjectDetailView({ project, tasks = [], onBack, onDelete, onUpdate, onOpenSpace }) {
   const timeline = calculateTimeline(project);
   const financials = calculateProjectFinancials(project);

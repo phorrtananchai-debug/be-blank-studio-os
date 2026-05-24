@@ -46,7 +46,7 @@ function CriticalMilestoneRow({ dependencies, milestone, onUpdate }) {
   const tone = getTone(milestone);
 
   return (
-    <article className="studio-accent-left border-b border-black/[0.06] py-5 pl-4 last:border-b-0" data-tone={tone}>
+    <article className="studio-accent-left border-b border-black/[0.06] py-5 pl-4 transition-colors duration-500 hover:bg-studio-bone/22 last:border-b-0" data-tone={tone}>
       <div className="grid gap-5 xl:grid-cols-[1fr_12rem_12rem]">
         <div>
           <div className="flex flex-wrap items-center gap-3">
@@ -154,6 +154,12 @@ export function CriticalPathPanel({ project, onUpdate }) {
           </div>
         ))}
       </div>
+
+      {!milestones.some((milestone) => milestone.targetDate) && (
+        <div className="mt-4 rounded-md border border-dashed border-black/[0.08] bg-studio-bone/28 p-4">
+          <p className="type-caption text-studio-muted">No milestone dates yet. Set target dates to activate critical path pacing and delay indicators.</p>
+        </div>
+      )}
 
       <div className="mt-2">
         {milestones.map((milestone) => (

@@ -1,17 +1,23 @@
 import {
   ArrowLeft,
+  Camera,
+  CheckCircle2,
+  Circle,
   Layout,
   Calendar,
   Layers,
   FileText,
   Link,
   Presentation,
+  ScreenShare,
   CheckSquare,
   Sparkles,
+  UserRound,
   Trash2,
   Plus,
+  SwatchBook,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Badge } from '../Badge.jsx';
 import { Button } from '../Button.jsx';
 import { Field } from '../Field.jsx';
@@ -22,12 +28,35 @@ import {
   calculateProjectFinancials,
   formatTHB,
 } from '../../utils/dashboard.js';
+import {
+  billingMilestoneStatuses,
+  billingVisibilityOptions,
+  createBillingMilestoneDraft,
+  normalizeBillingMilestones,
+  serializeBillingMilestones,
+} from '../../utils/billingMilestones.js';
 import { KeyDate, FinanceStat } from './ProjectFinancials.jsx';
 import { NarrativePanel } from './NarrativePanel.jsx';
 import { CriticalPathPanel } from './CriticalPathPanel.jsx';
 import { ArtworkSpace } from '../artwork/ArtworkSpace.jsx';
 import { EmptyState } from '../EmptyState.jsx';
 import { PresentationOverlay } from './PresentationOverlay.jsx';
+import { createClientProjectProjection } from '../../utils/clientPresentation.js';
+import {
+  createSiteIssueDraft,
+  createSiteVisitDraft,
+  normalizeSiteVisits,
+  serializeSiteVisits,
+  siteVisitStatuses,
+  siteVisibilityOptions,
+} from '../../utils/siteVisits.js';
+import {
+  createMaterialApprovalDraft,
+  materialApprovalStates,
+  materialVisibilityOptions,
+  normalizeMaterialApprovals,
+  serializeMaterialApprovals,
+} from '../../utils/materialApprovals.js';
 
 const drawingStatuses = ['draft', 'review', 'approved', 'issued'];
 
@@ -45,18 +74,741 @@ function EditorialEntry({ children, emptyText, tone = 'neutral' }) {
   );
 }
 
+function ClientPresentationView({ project }) {
+  const leadImage = project.gallery[0];
+  const visibleMilestones = project.milestones.filter((milestone) => milestone.targetDate).slice(0, 6);
+  const visibleDocuments = project.documents.slice(0, 4);
+  const decisions = project.decisionsNeeded.slice(0, 4);
+  const approvedMaterials = project.approvedMaterials.slice(0, 4);
+  const clientSiteVisits = project.siteVisits.slice(0, 4);
+  const billingMilestones = project.billingMilestones.slice(0, 4);
+  const hasClientContent = Boolean(
+    visibleMilestones.length
+    || decisions.length
+    || visibleDocuments.length
+    || approvedMaterials.length
+    || clientSiteVisits.length
+    || billingMilestones.length
+    || project.publicNotes.length,
+  );
+
+  return (
+    <div className="h-full overflow-y-auto px-8 pb-32 pt-32 lg:px-16">
+      <div className="mx-auto grid max-w-7xl gap-14">
+        <section className="grid min-h-[58vh] gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+          <div className="space-y-10">
+            <div>
+              <p className="type-label text-studio-muted">Client Presentation View</p>
+              <h1 className="mt-4 text-6xl font-bold leading-[0.95] tracking-normal text-studio-ink lg:text-8xl">
+                {project.name}
+              </h1>
+              <p className="type-body mt-6 max-w-2xl text-studio-muted">
+                {[project.status, project.location].filter(Boolean).join(' / ')}
+              </p>
+            </div>
+            <p className="max-w-3xl text-2xl font-semibold leading-tight text-studio-ink lg:text-3xl">
+              {project.overview}
+            </p>
+          </div>
+
+          <div className="overflow-hidden rounded-sm border border-black/[0.07] bg-studio-paper shadow-studioSoft">
+            {leadImage ? (
+              <img
+                alt={leadImage.alt || project.name}
+                className="aspect-[4/3] w-full object-cover"
+                src={leadImage.mediumUrl || leadImage.fullUrl || leadImage.url}
+              />
+            ) : (
+              <div className="grid aspect-[4/3] place-items-center bg-studio-bone/45">
+                <p className="type-caption text-studio-muted">Visual reference will appear here when shared.</p>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="grid gap-8 border-y border-black/[0.07] py-8 md:grid-cols-3">
+          <ClientMetric label="Status" value={project.status} />
+          <ClientMetric label="Progress" value={`${project.progressPercent}%`} />
+          <ClientMetric label="Area" value={project.areaSqm ? `${project.areaSqm} sqm` : 'TBD'} />
+        </section>
+
+        <section className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr]">
+          <div>
+            <p className="type-label text-studio-muted">Timeline</p>
+            <h2 className="type-section-title mt-2">Milestones</h2>
+          </div>
+          <div className="grid gap-0 border-y border-black/[0.06]">
+            {visibleMilestones.length ? visibleMilestones.map((milestone) => (
+              <div key={milestone.id} className="grid gap-4 border-b border-black/[0.05] py-4 last:border-b-0 md:grid-cols-[1fr_8rem_8rem]">
+                <p className="type-card-title">{milestone.label}</p>
+                <p className="type-caption text-studio-muted">{milestone.targetDate}</p>
+                <p className="type-control text-studio-muted md:text-right">{milestone.status}</p>
+              </div>
+            )) : (
+              <p className="type-caption py-5 text-studio-muted">Milestones will be confirmed in the next presentation issue.</p>
+            )}
+          </div>
+        </section>
+
+        <section className="grid gap-10 lg:grid-cols-2">
+          <ClientList title="Decisions Needed" empty="No client decisions are currently listed." items={decisions} />
+          <ClientDocumentList documents={visibleDocuments} />
+        </section>
+
+        {!hasClientContent && (
+          <section className="rounded-sm border border-dashed border-black/[0.08] bg-studio-bone/25 p-8">
+            <p className="type-label text-studio-muted">Client View</p>
+            <p className="type-body mt-3 text-studio-ink">Client-safe content has not been curated yet. Mark materials, site notes, and billing milestones as client visible when ready to share.</p>
+          </section>
+        )}
+
+        <section className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr]">
+          <div>
+            <p className="type-label text-studio-muted">Approved Materials</p>
+            <h2 className="type-section-title mt-2">Material Archive</h2>
+          </div>
+          <div className="grid gap-5 md:grid-cols-2">
+            {approvedMaterials.length ? approvedMaterials.map((material) => (
+              <article key={`${material.name}-${material.area}`} className="rounded-sm border border-black/[0.06] bg-studio-bone/35 p-5 transition-colors duration-500 hover:bg-studio-bone/45">
+                {material.image && (
+                  <img
+                    alt={material.image.alt || material.name}
+                    className="mb-5 aspect-[4/3] w-full rounded-sm object-cover"
+                    src={material.image.thumbnailUrl || material.image.mediumUrl || material.image.url}
+                  />
+                )}
+                <p className="type-card-title">{material.name}</p>
+                <p className="type-caption mt-2 text-studio-muted">
+                  {[material.category, material.area, material.supplier].filter(Boolean).join(' / ') || 'Approved selection'}
+                </p>
+                {material.notes && <p className="type-body mt-3 text-studio-ink">{material.notes}</p>}
+              </article>
+            )) : (
+              <div className="rounded-sm border border-dashed border-black/[0.08] bg-studio-bone/25 p-8">
+                <p className="type-caption text-studio-muted">Approved materials will appear here when selections are ready to share.</p>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {!!project.publicNotes.length && (
+          <section className="grid gap-10 border-t border-black/[0.07] pt-8 lg:grid-cols-[0.85fr_1.15fr]">
+            <p className="type-label text-studio-muted">Notes</p>
+            <div className="grid gap-4">
+              {project.publicNotes.map((note) => (
+                <p key={note} className="type-body text-studio-ink">{note}</p>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {!!clientSiteVisits.length && (
+          <section className="grid gap-10 border-t border-black/[0.07] pt-8 lg:grid-cols-[0.85fr_1.15fr]">
+            <p className="type-label text-studio-muted">Site Visits</p>
+            <div className="grid gap-4">
+              {clientSiteVisits.map((visit) => (
+                <article key={`${visit.title}-${visit.date}`} className="rounded-sm border border-black/[0.06] bg-studio-bone/30 p-5 transition-colors duration-500 hover:bg-studio-bone/38">
+                  <p className="type-card-title">{visit.title}</p>
+                  <p className="type-caption mt-1 text-studio-muted">{visit.date || 'Undated'}</p>
+                  {visit.notes && <p className="type-body mt-3 text-studio-ink">{visit.notes}</p>}
+                  {!!visit.issues.length && (
+                    <div className="mt-3 grid gap-2 border-t border-black/[0.05] pt-3">
+                      {visit.issues.map((issue) => (
+                        <p key={`${issue.title}-${issue.deadline}`} className="type-caption text-studio-muted">
+                          {issue.title}{issue.deadline ? ` / ${issue.deadline}` : ''} / {issue.status.replace('_', ' ')}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {!!billingMilestones.length && (
+          <section className="grid gap-10 border-t border-black/[0.07] pt-8 lg:grid-cols-[0.85fr_1.15fr]">
+            <p className="type-label text-studio-muted">Billing Milestones</p>
+            <div className="grid gap-3 border-y border-black/[0.06]">
+              {billingMilestones.map((milestone) => (
+                <article key={`${milestone.label}-${milestone.dueDate}`} className="grid gap-3 border-b border-black/[0.05] py-4 transition-colors duration-500 hover:bg-studio-bone/24 last:border-b-0 md:grid-cols-[1fr_8rem_8rem]">
+                  <div>
+                    <p className="type-card-title">{milestone.label}</p>
+                    {milestone.amount && <p className="type-caption mt-1 text-studio-muted">{formatTHB(Number(milestone.amount || 0))}</p>}
+                    {milestone.notes && <p className="type-caption mt-1 text-studio-muted">{milestone.notes}</p>}
+                  </div>
+                  <p className="type-caption text-studio-muted">{milestone.dueDate || 'TBD'}</p>
+                  <p className="type-control text-studio-muted md:text-right">{milestone.status.replace('_', ' ')}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ClientMetric({ label, value }) {
+  return (
+    <div>
+      <p className="type-label text-studio-muted">{label}</p>
+      <p className="type-section-title mt-2">{value || 'TBD'}</p>
+    </div>
+  );
+}
+
+function ClientList({ empty, items, title }) {
+  return (
+    <section className="rounded-sm border border-black/[0.06] bg-studio-bone/32 p-6">
+      <p className="type-label text-studio-muted">{title}</p>
+      <div className="mt-5 grid gap-3">
+        {items.length ? items.map((item) => (
+          <p key={item} className="studio-accent-left type-body border-b border-black/[0.05] pb-3 pl-4 text-studio-ink last:border-b-0" data-tone="waiting">
+            {item}
+          </p>
+        )) : (
+          <p className="type-caption text-studio-muted">{empty}</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ClientDocumentList({ documents }) {
+  return (
+    <section className="rounded-sm border border-black/[0.06] bg-studio-bone/32 p-6">
+      <p className="type-label text-studio-muted">Key Documents</p>
+      <div className="mt-5 grid gap-3">
+        {documents.length ? documents.map((document) => (
+          <a
+            key={`${document.label}-${document.url}`}
+            className="grid gap-1 border-b border-black/[0.05] pb-3 text-studio-ink transition hover:text-studio-rust last:border-b-0"
+            href={document.url || undefined}
+            rel="noreferrer"
+            target={document.url ? '_blank' : undefined}
+          >
+            <span className="type-card-title">{document.label || document.url}</span>
+            {document.status && <span className="type-caption text-studio-muted">{document.status}</span>}
+          </a>
+        )) : (
+          <p className="type-caption text-studio-muted">Key documents will appear here when ready to share.</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+const issueStatuses = siteVisitStatuses;
+
+function getVisitTone(status) {
+  if (status === 'resolved') return 'safe';
+  if (status === 'in_progress') return 'watch';
+  if (status === 'deferred') return 'waiting';
+  return 'blocked';
+}
+
+function getIssueChipClass(status) {
+  if (status === 'resolved') return 'border-studio-olive/30 bg-studio-bone/45 text-studio-olive';
+  if (status === 'in_progress') return 'border-studio-ochre/30 bg-studio-bone/45 text-studio-ochre';
+  if (status === 'deferred') return 'border-studio-muted/25 bg-studio-bone/35 text-studio-muted';
+  return 'border-studio-rust/25 bg-studio-bone/45 text-studio-rust';
+}
+
+function getMaterialTone(state) {
+  if (state === 'approved') return 'safe';
+  if (state === 'waiting_review') return 'watch';
+  if (state === 'rejected') return 'blocked';
+  if (state === 'revised') return 'waiting';
+  return 'default';
+}
+
+function getMaterialImageUrl(material) {
+  const firstImage = (material.images || [])[0];
+  if (!firstImage) return '';
+  if (typeof firstImage === 'string') return firstImage;
+  return firstImage.thumbnailUrl || firstImage.mediumUrl || firstImage.fullUrl || firstImage.url || '';
+}
+
+function getBillingTone(status) {
+  if (status === 'paid') return 'safe';
+  if (status === 'sent') return 'watch';
+  if (status === 'overdue') return 'blocked';
+  return 'default';
+}
+
+function BillingMilestonePanel({ milestones, onUpdate }) {
+  const addMilestone = () => {
+    onUpdate([createBillingMilestoneDraft(), ...milestones]);
+  };
+
+  const updateMilestone = (id, updates) => {
+    onUpdate(milestones.map((item) => (item.id === id ? { ...item, ...updates } : item)));
+  };
+
+  const deleteMilestone = (id) => {
+    onUpdate(milestones.filter((item) => item.id !== id));
+  };
+
+  const summary = milestones.reduce(
+    (acc, item) => {
+      const amount = Number(item.amount || 0);
+      if (!Number.isFinite(amount)) return acc;
+      acc.total += amount;
+      if (item.status === 'paid') acc.paid += amount;
+      return acc;
+    },
+    { paid: 0, total: 0 },
+  );
+
+  return (
+    <SectionCard title="Billing Milestones" eyebrow="Payment Schedule">
+      <div className="grid gap-5">
+        <div className="flex items-center justify-between border-b border-black/[0.05] pb-4">
+          <div className="flex items-center gap-4">
+            <p className="type-caption text-studio-muted">{milestones.length} milestone(s)</p>
+            <p className="type-caption text-studio-muted">Visible total: {formatTHB(summary.total)}</p>
+            <p className="type-caption text-studio-muted">Paid: {formatTHB(summary.paid)}</p>
+          </div>
+          <Button variant="secondary" onClick={addMilestone}>
+            <Plus size={14} />
+            Add Milestone
+          </Button>
+        </div>
+
+        {!milestones.length && <EmptyState message="No billing milestones yet. Capture draft, sent, paid, or overdue checkpoints as needed." />}
+
+        <div className="grid gap-3">
+          {milestones.map((milestone) => (
+            <article key={milestone.id} className="rounded-sm border border-black/[0.07] bg-studio-bone/30 p-4 transition-colors duration-500 hover:bg-studio-bone/38">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Badge tone={getBillingTone(milestone.status)}>{milestone.status.replace('_', ' ')}</Badge>
+                  <Badge tone={milestone.visibility === 'client_visible' ? 'safe' : 'default'}>
+                    {milestone.visibility === 'client_visible' ? 'client visible' : 'internal'}
+                  </Badge>
+                </div>
+                <button
+                  onClick={() => deleteMilestone(milestone.id)}
+                  className="text-studio-muted transition-colors hover:text-studio-rust"
+                  aria-label="Delete billing milestone"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <Field label="Label" value={milestone.label || ''} onChange={(value) => updateMilestone(milestone.id, { label: value })} />
+                <Field label="Amount" type="number" value={milestone.amount || ''} onChange={(value) => updateMilestone(milestone.id, { amount: value })} />
+                <Field label="Due Date" type="date" value={milestone.dueDate || ''} onChange={(value) => updateMilestone(milestone.id, { dueDate: value })} />
+                <StatusSelect
+                  label="Status"
+                  options={billingMilestoneStatuses}
+                  value={milestone.status || 'draft'}
+                  onChange={(value) => updateMilestone(milestone.id, { status: value })}
+                />
+                <StatusSelect
+                  label="Visibility"
+                  options={billingVisibilityOptions}
+                  value={milestone.visibility || 'internal'}
+                  onChange={(value) => updateMilestone(milestone.id, { visibility: value })}
+                />
+                <Field
+                  label="Notes"
+                  multiline
+                  wrapperClassName="md:col-span-2"
+                  value={milestone.notes || ''}
+                  onChange={(value) => updateMilestone(milestone.id, { notes: value })}
+                />
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </SectionCard>
+  );
+}
+
+function ProjectTaskPanel({ tasks }) {
+  const visibleTasks = tasks.slice(0, 6);
+
+  return (
+    <SectionCard title="Project Tasks" eyebrow="Operational Queue">
+      {visibleTasks.length ? (
+        <div className="divide-y divide-black/[0.06] border-y border-black/[0.06]">
+          {visibleTasks.map((task) => (
+            <article key={task.id || task.title} className="grid gap-3 py-4 md:grid-cols-[1fr_8rem_8rem]">
+              <div>
+                <p className="type-card-title">{task.title || 'Untitled Task'}</p>
+                {(task.notes || task.detail) && <p className="type-caption mt-1 line-clamp-2 text-studio-muted">{task.notes || task.detail}</p>}
+              </div>
+              <p className="type-caption text-studio-muted">{task.dueDate || task.date || 'No date'}</p>
+              <p className="type-control text-studio-muted md:text-right">{task.status || 'OPEN'}</p>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <EmptyState message="No project tasks are attached yet." />
+      )}
+    </SectionCard>
+  );
+}
+
+function MaterialApprovalArchive({ materials, onUpdate }) {
+  const addMaterial = () => {
+    onUpdate([createMaterialApprovalDraft(), ...materials]);
+  };
+
+  const updateMaterial = (id, updates) => {
+    onUpdate(materials.map((material) => (material.id === id ? { ...material, ...updates } : material)));
+  };
+
+  const deleteMaterial = (id) => {
+    onUpdate(materials.filter((material) => material.id !== id));
+  };
+
+  const groupedMaterials = materials.reduce((acc, material) => {
+    const key = material.roomArea || 'Unassigned area';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(material);
+    return acc;
+  }, {});
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between border-b border-black/[0.05] pb-4">
+        <div>
+          <p className="type-label text-studio-muted">Material / FF&E</p>
+          <h3 className="type-section-title mt-2">Approval Archive</h3>
+        </div>
+        <Button variant="secondary" onClick={addMaterial}>
+          <Plus size={14} />
+          Add Material
+        </Button>
+      </div>
+
+      {!materials.length && <EmptyState message="No material approvals captured yet. Add proposed selections and move them through review states." />}
+
+      <div className="grid gap-8">
+        {Object.entries(groupedMaterials).map(([area, areaMaterials]) => (
+          <section key={area} className="space-y-4">
+            <div className="flex items-center justify-between border-b border-black/[0.05] pb-3">
+              <p className="type-label text-studio-muted">{area}</p>
+              <p className="type-caption text-studio-muted">{areaMaterials.length} item(s)</p>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              {areaMaterials.map((material) => {
+                const imageUrl = getMaterialImageUrl(material);
+                return (
+                  <article key={material.id} className="rounded-sm border border-black/[0.07] bg-studio-bone/35 p-5 transition-colors duration-500 hover:bg-studio-bone/42">
+                    <div className="mb-4 overflow-hidden rounded-sm border border-black/[0.06] bg-studio-paper">
+                      {imageUrl ? (
+                        <img alt={material.name || 'Material reference'} className="aspect-[4/3] w-full object-cover" src={imageUrl} />
+                      ) : (
+                        <div className="grid aspect-[4/3] place-items-center bg-studio-bone/45">
+                          <p className="type-caption text-studio-muted">Image reference pending</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <Badge tone={getMaterialTone(material.approvalState)}>{material.approvalState.replace('_', ' ')}</Badge>
+                        <Badge tone={material.visibility === 'client_visible' ? 'safe' : 'default'}>
+                          {material.visibility === 'client_visible' ? 'client visible' : 'internal'}
+                        </Badge>
+                      </div>
+                      <button
+                        onClick={() => deleteMaterial(material.id)}
+                        className="text-studio-muted transition-colors hover:text-studio-rust"
+                        aria-label="Delete material approval"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+
+                    <div className="grid gap-3">
+                      <Field label="Name" value={material.name || ''} onChange={(value) => updateMaterial(material.id, { name: value })} />
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <Field label="Category" value={material.category || ''} onChange={(value) => updateMaterial(material.id, { category: value })} />
+                        <Field label="Room / Area" value={material.roomArea || ''} onChange={(value) => updateMaterial(material.id, { roomArea: value })} />
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <Field label="Supplier" value={material.supplier || ''} onChange={(value) => updateMaterial(material.id, { supplier: value })} />
+                        <Field label="Lead Time" value={material.leadTime || ''} onChange={(value) => updateMaterial(material.id, { leadTime: value })} />
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <StatusSelect
+                          label="Approval State"
+                          options={materialApprovalStates}
+                          value={material.approvalState || 'proposed'}
+                          onChange={(value) => updateMaterial(material.id, { approvalState: value })}
+                        />
+                        <StatusSelect
+                          label="Visibility"
+                          options={materialVisibilityOptions}
+                          value={material.visibility || 'internal'}
+                          onChange={(value) => updateMaterial(material.id, { visibility: value })}
+                        />
+                      </div>
+                      <Field
+                        label="Image URL(s)"
+                        value={(material.images || []).map((img) => (typeof img === 'string' ? img : img.url || '')).filter(Boolean).join('\n')}
+                        onChange={(value) => updateMaterial(material.id, { images: value.split(/\n|,/).map((item) => item.trim()).filter(Boolean) })}
+                      />
+                      <Field
+                        label="Alternatives"
+                        value={(material.alternatives || []).join('\n')}
+                        onChange={(value) => updateMaterial(material.id, { alternatives: value.split(/\n|,/).map((item) => item.trim()).filter(Boolean) })}
+                      />
+                      <Field
+                        label="Notes"
+                        multiline
+                        value={material.notes || ''}
+                        onChange={(value) => updateMaterial(material.id, { notes: value })}
+                      />
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SiteVisitNotebook({ onUpdate, visits }) {
+  const addVisit = () => {
+    onUpdate([createSiteVisitDraft(), ...visits]);
+  };
+
+  const updateVisit = (id, updates) => {
+    onUpdate(visits.map((visit) => (visit.id === id ? { ...visit, ...updates } : visit)));
+  };
+
+  const deleteVisit = (id) => {
+    onUpdate(visits.filter((visit) => visit.id !== id));
+  };
+
+  const addIssue = (visit) => {
+    const nextIssues = [...(visit.issues || []), createSiteIssueDraft()];
+    updateVisit(visit.id, { issues: nextIssues });
+  };
+
+  const updateIssue = (visit, issueId, updates) => {
+    const nextIssues = (visit.issues || []).map((issue) => (issue.id === issueId ? { ...issue, ...updates } : issue));
+    updateVisit(visit.id, { issues: nextIssues });
+  };
+
+  const deleteIssue = (visit, issueId) => {
+    const nextIssues = (visit.issues || []).filter((issue) => issue.id !== issueId);
+    updateVisit(visit.id, { issues: nextIssues });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between border-b border-black/[0.05] pb-4">
+        <div>
+          <p className="type-label text-studio-muted">Field Notebook</p>
+          <h3 className="type-section-title mt-2">Site Visits & Issues</h3>
+        </div>
+        <Button variant="secondary" onClick={addVisit}>
+          <Plus size={14} />
+          Add Visit
+        </Button>
+      </div>
+
+      {!visits.length && <EmptyState message="No site visits captured yet. Add a quick field note to start the notebook." />}
+
+      <div className="grid gap-5">
+        {visits.map((visit, index) => (
+          <article key={visit.id} className="studio-accent-left rounded-lg border border-black/[0.07] bg-studio-bone/35 p-5 transition-colors duration-500 hover:bg-studio-bone/42" data-tone={getVisitTone(visit.status)}>
+            <div className="flex flex-wrap items-start justify-between gap-4 border-b border-black/[0.05] pb-4">
+              <div className="space-y-2">
+                <p className="type-label flex items-center gap-2 text-studio-muted">
+                  <span className="studio-signal-dot" data-tone={getVisitTone(visit.status)} />
+                  Visit {visits.length - index}
+                </p>
+                <Field
+                  label="Title"
+                  value={visit.title || ''}
+                  wrapperClassName="min-w-[16rem]"
+                  onChange={(value) => updateVisit(visit.id, { title: value })}
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone={getVisitTone(visit.status)}>{visit.status.replace('_', ' ')}</Badge>
+                  <Badge tone={visit.visibility === 'client_visible' ? 'safe' : 'default'}>
+                    {visit.visibility === 'client_visible' ? 'client visible' : 'internal'}
+                  </Badge>
+                </div>
+              </div>
+              <button
+                onClick={() => deleteVisit(visit.id)}
+                className="text-studio-muted transition-colors hover:text-studio-rust"
+                aria-label="Delete site visit"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-5 lg:grid-cols-3">
+              <Field
+                label="Date"
+                type="date"
+                value={visit.date || ''}
+                onChange={(value) => updateVisit(visit.id, { date: value })}
+              />
+              <StatusSelect
+                label="Status"
+                options={siteVisitStatuses}
+                value={visit.status || 'open'}
+                onChange={(value) => updateVisit(visit.id, { status: value })}
+              />
+              <StatusSelect
+                label="Visibility"
+                options={siteVisibilityOptions}
+                value={visit.visibility || 'internal'}
+                onChange={(value) => updateVisit(visit.id, { visibility: value })}
+              />
+              <Field
+                label="Contractor"
+                value={visit.contractor || ''}
+                onChange={(value) => updateVisit(visit.id, { contractor: value })}
+              />
+              <Field
+                label="Attendees"
+                value={visit.attendees || ''}
+                onChange={(value) => updateVisit(visit.id, { attendees: value })}
+              />
+              <Field
+                label="Assigned To"
+                value={visit.assignedTo || ''}
+                onChange={(value) => updateVisit(visit.id, { assignedTo: value })}
+              />
+              <Field
+                label="Deadline"
+                type="date"
+                value={visit.deadline || ''}
+                onChange={(value) => updateVisit(visit.id, { deadline: value })}
+              />
+              <Field
+                label="Photo Links"
+                value={(visit.photos || []).join('\n')}
+                wrapperClassName="lg:col-span-2"
+                onChange={(value) => updateVisit(visit.id, { photos: value.split(/\n|,/).map((item) => item.trim()).filter(Boolean) })}
+              />
+              <Field
+                label="Notes"
+                multiline
+                value={visit.notes || ''}
+                wrapperClassName="lg:col-span-3"
+                onChange={(value) => updateVisit(visit.id, { notes: value })}
+              />
+            </div>
+
+            <div className="mt-5 grid gap-3 border-y border-black/[0.05] py-4">
+              <p className="type-label text-studio-muted">Metadata</p>
+              <div className="flex flex-wrap items-center gap-4">
+                <span className="type-caption flex items-center gap-1.5 text-studio-muted"><UserRound size={13} />{visit.contractor || 'Contractor TBD'}</span>
+                <span className="type-caption flex items-center gap-1.5 text-studio-muted"><Calendar size={13} />{visit.deadline || 'No deadline'}</span>
+                <span className="type-caption flex items-center gap-1.5 text-studio-muted"><Camera size={13} />{(visit.photos || []).length} photo link(s)</span>
+              </div>
+            </div>
+
+            {!!visit.legacyIssuesText && (
+              <div className="mt-4">
+                <p className="type-caption text-studio-muted">Legacy issue note preserved:</p>
+                <p className="type-body mt-1 whitespace-pre-wrap text-studio-ink">{visit.legacyIssuesText}</p>
+              </div>
+            )}
+
+            <div className="mt-6">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="type-label text-studio-muted">Issues</p>
+                <Button variant="secondary" onClick={() => addIssue(visit)}>
+                  <Plus size={13} />
+                  Add Issue
+                </Button>
+              </div>
+
+              {!visit.issues.length && <p className="type-caption border border-dashed border-black/[0.08] bg-studio-bone/25 p-4 text-studio-muted">No issues logged yet.</p>}
+
+              <div className="grid gap-3">
+                {(visit.issues || []).map((issue) => (
+                  <div key={issue.id} className="rounded-md border border-black/[0.07] bg-studio-paper/40 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`type-control rounded-full border px-2 py-1 ${getIssueChipClass(issue.status)}`}>
+                          {issue.status.replace('_', ' ')}
+                        </span>
+                        <span className="type-control rounded-full border border-black/[0.08] px-2 py-1 text-studio-muted">
+                          {issue.visibility === 'client_visible' ? 'client visible' : 'internal'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => deleteIssue(visit, issue.id)}
+                        className="text-studio-muted transition-colors hover:text-studio-rust"
+                        aria-label="Delete issue"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
+                      <Field label="Title" value={issue.title || ''} onChange={(value) => updateIssue(visit, issue.id, { title: value })} />
+                      <StatusSelect label="Status" options={issueStatuses} value={issue.status || 'open'} onChange={(value) => updateIssue(visit, issue.id, { status: value })} />
+                      <Field label="Assigned To" value={issue.assignedTo || ''} onChange={(value) => updateIssue(visit, issue.id, { assignedTo: value })} />
+                      <Field label="Deadline" type="date" value={issue.deadline || ''} onChange={(value) => updateIssue(visit, issue.id, { deadline: value })} />
+                      <Field label="Linked Milestone" value={issue.linkedMilestone || ''} onChange={(value) => updateIssue(visit, issue.id, { linkedMilestone: value })} />
+                      <StatusSelect label="Visibility" options={siteVisibilityOptions} value={issue.visibility || 'internal'} onChange={(value) => updateIssue(visit, issue.id, { visibility: value })} />
+                      <Field
+                        label="Issue Notes"
+                        multiline
+                        wrapperClassName="md:col-span-2"
+                        value={issue.notes || ''}
+                        onChange={(value) => updateIssue(visit, issue.id, { notes: value })}
+                      />
+                    </div>
+                    {issue.legacyText && (
+                      <p className="type-caption mt-3 border-t border-black/[0.05] pt-3 text-studio-muted">
+                        Legacy text preserved: {issue.legacyText}
+                      </p>
+                    )}
+                    <div className="mt-3 flex items-center gap-2">
+                      {issue.status === 'resolved' ? <CheckCircle2 size={14} className="text-studio-olive" /> : <Circle size={14} className="text-studio-muted" />}
+                      <span className="type-caption text-studio-muted">{issue.notes ? 'Issue captured' : 'Add details to clarify field action.'}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpdate, user }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [isPresenting, setIsPresenting] = useState(false);
+  const [isClientViewOpen, setIsClientViewOpen] = useState(false);
   const timeline = calculateTimeline(project);
   const financials = calculateProjectFinancials(project);
-  const siteLogs = Array.isArray(project.siteLogs) ? project.siteLogs : [];
+  const projectTasks = useMemo(() => tasks.filter((task) => task.projectId === project.id), [project.id, tasks]);
+  const siteVisits = useMemo(() => normalizeSiteVisits(project.siteLogs), [project.siteLogs]);
+  const materialApprovals = useMemo(() => normalizeMaterialApprovals(project.materialApprovals), [project.materialApprovals]);
+  const billingMilestones = useMemo(() => normalizeBillingMilestones(project.billingMilestones), [project.billingMilestones]);
+  const clientProject = createClientProjectProjection(project);
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: Layout },
     { id: 'timeline', label: 'Timeline', icon: Calendar },
     { id: 'artwork', label: 'Artwork Space', icon: Layers },
     { id: 'notes', label: 'Notes & Logs', icon: FileText },
+    { id: 'materials', label: 'Materials', icon: SwatchBook },
     { id: 'assets', label: 'Assets', icon: Link },
     { id: 'deliverables', label: 'Deliverables', icon: CheckSquare },
     { id: 'presentation', label: 'Present', icon: Presentation },
@@ -73,18 +825,21 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
     });
   };
 
-  const addSiteLog = () => {
+  const updateSiteVisits = (nextVisits) => {
     onUpdate({
-      siteLogs: [
-        {
-          id: `site-${crypto.randomUUID()}`,
-          date: new Date().toISOString().slice(0, 10),
-          notes: '',
-          issues: '',
-          imageLink: '',
-        },
-        ...siteLogs,
-      ],
+      siteLogs: serializeSiteVisits(nextVisits),
+    });
+  };
+
+  const updateMaterialApprovals = (nextMaterials) => {
+    onUpdate({
+      materialApprovals: serializeMaterialApprovals(nextMaterials),
+    });
+  };
+
+  const updateBillingMilestones = (nextMilestones) => {
+    onUpdate({
+      billingMilestones: serializeBillingMilestones(nextMilestones),
     });
   };
 
@@ -122,6 +877,17 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
           )}
         </PresentationOverlay>
       )}
+      {isClientViewOpen && (
+        <PresentationOverlay
+          eyebrow="Client View"
+          footerLabel="CLIENT PRESENTATION"
+          title={clientProject.name}
+          subtitle={clientProject.status}
+          onExit={() => setIsClientViewOpen(false)}
+        >
+          <ClientPresentationView project={clientProject} />
+        </PresentationOverlay>
+      )}
       {/* Workspace Header */}
       <header className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between border-b border-black/[0.05] pb-8">
         <div className="flex items-center gap-4">
@@ -142,6 +908,10 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <Button variant="secondary" onClick={() => setIsClientViewOpen(true)}>
+            <ScreenShare size={16} />
+            Client View
+          </Button>
           <Button variant="secondary" onClick={() => setIsPresenting(true)}>
             <Presentation size={16} />
             Present
@@ -217,6 +987,10 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
                   </div>
                 </div>
               </SectionCard>
+
+              <BillingMilestonePanel milestones={billingMilestones} onUpdate={updateBillingMilestones} />
+
+              <ProjectTaskPanel tasks={projectTasks} />
             </div>
 
             <div className="lg:col-span-4 space-y-8">
@@ -329,71 +1103,13 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
               </SectionCard>
             </div>
             <div className="space-y-8 lg:col-span-7">
-              <div className="flex items-center justify-between border-b border-black/[0.05] pb-4">
-                <div>
-                  <p className="type-label text-studio-muted">Field Record</p>
-                  <h3 className="type-section-title mt-2">Site Logs</h3>
-                </div>
-                <Button variant="secondary" onClick={addSiteLog}>
-                  <Plus size={14} />
-                  New Entry
-                </Button>
-              </div>
-              <div className="grid gap-6">
-                {siteLogs.length === 0 ? (
-                  <EmptyState message="No site logs captured yet." />
-                ) : (
-                  siteLogs.map((log, index) => (
-                    <article key={log.id} className="studio-accent-left rounded-lg border border-black/[0.07] bg-studio-bone/35 p-6" data-tone={log.issues ? 'blocked' : 'neutral'}>
-                      <div className="flex items-start justify-between gap-4 border-b border-black/[0.05] pb-5">
-                        <div>
-                          <p className="type-label flex items-center gap-2 text-studio-muted">
-                            <span className="studio-signal-dot" data-tone={log.issues ? 'blocked' : 'neutral'} />
-                            Entry {siteLogs.length - index}
-                          </p>
-                          <p className="type-card-title mt-2">{log.date || 'Undated visit'}</p>
-                        </div>
-                        <button
-                          onClick={() => onUpdate({ siteLogs: siteLogs.filter(l => l.id !== log.id) })}
-                          className="text-studio-muted transition-colors hover:text-studio-rust"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-
-                      <div className="mt-6 grid gap-6">
-                        <EditorialEntry emptyText="No field observations saved yet.">{log.notes || ''}</EditorialEntry>
-                        {log.issues && <EditorialEntry emptyText="" tone="blocked">{log.issues}</EditorialEntry>}
-                        <Field
-                          label="Visit Date"
-                          type="date"
-                          value={log.date || ''}
-                          wrapperClassName="max-w-48"
-                          onChange={(value) => onUpdate({ siteLogs: siteLogs.map(l => l.id === log.id ? {...l, date: value} : l) })}
-                        />
-                        <div className="grid gap-5 lg:grid-cols-2">
-                          <Field
-                            inputClassName="min-h-40"
-                            label="Observations"
-                            multiline
-                            value={log.notes || ''}
-                            onChange={(value) => onUpdate({ siteLogs: siteLogs.map(l => l.id === log.id ? {...l, notes: value} : l) })}
-                          />
-                          <Field
-                            inputClassName="min-h-40"
-                            label="Issues / blockers"
-                            multiline
-                            value={log.issues || ''}
-                            onChange={(value) => onUpdate({ siteLogs: siteLogs.map(l => l.id === log.id ? {...l, issues: value} : l) })}
-                          />
-                        </div>
-                      </div>
-                    </article>
-                  ))
-                )}
-              </div>
+              <SiteVisitNotebook visits={siteVisits} onUpdate={updateSiteVisits} />
             </div>
           </div>
+        )}
+
+        {activeTab === 'materials' && (
+          <MaterialApprovalArchive materials={materialApprovals} onUpdate={updateMaterialApprovals} />
         )}
 
         {activeTab === 'assets' && (

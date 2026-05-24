@@ -18,6 +18,26 @@ async function expectStudioShell(page) {
   await expect(page.getByRole('button', { name: 'Commands' })).toBeVisible();
 }
 
+async function openAnyProjectWorkspace(page) {
+  const getOpenDetailCount = () => page.getByRole('button', { name: 'Open Detail' }).count();
+  let openDetailCount = await getOpenDetailCount();
+
+  if (!openDetailCount) {
+    await page.getByRole('button', { name: 'New Project' }).click();
+    await page.waitForTimeout(1200);
+    openDetailCount = await getOpenDetailCount();
+  }
+
+  if (!openDetailCount) {
+    await expect(page.getByText(/No projects/)).toBeVisible();
+    return false;
+  }
+
+  await page.getByRole('button', { name: 'Open Detail' }).first().click();
+  await expect(page.getByRole('button', { name: 'Client View' })).toBeVisible();
+  return true;
+}
+
 test.describe('route smoke checks', () => {
   test('loads key routes directly', async ({ page }) => {
     await page.goto('/');
@@ -208,5 +228,77 @@ test.describe('mobile shell smoke checks', () => {
     await page.getByRole('button', { name: 'Projects' }).click();
     await expect(page.getByRole('button', { name: 'Projects' })).toHaveAttribute('aria-current', 'page');
     await expect(page.getByText('Projects').first()).toBeVisible();
+  });
+});
+
+test.describe('studio upgrade hardening checks', () => {
+  test('client view hides internal operational data', async ({ page }) => {
+    const privateBlocker = 'INTERNAL_BLOCKER_SECRET';
+    const privateNote = 'INTERNAL_NOTE_SECRET';
+    const privateMaterial = 'INTERNAL_MATERIAL_SECRET';
+    const privateBilling = 'INTERNAL_BILLING_SECRET';
+
+    await page.addInitScript(() => {
+      window.localStorage.setItem('studio_mock_user', JSON.stringify({ email: 'studio@example.com', displayName: 'Studio QA' }));
+    });
+    await page.goto('/os/projects');
+    await expectStudioShell(page);
+    await expect(page.getByText('Studio Pipeline')).toBeVisible();
+    const opened = await openAnyProjectWorkspace(page);
+    if (!opened) return;
+
+    await page.getByRole('button', { name: 'Notes & Logs' }).click();
+    await page.getByLabel('Write / Edit').nth(0).fill(privateNote);
+    await page.getByLabel('Write / Edit').nth(1).fill(privateBlocker);
+
+    await page.getByRole('button', { name: 'Materials' }).click();
+    await page.getByRole('button', { name: 'Add Material' }).click();
+    await page.getByLabel('Name').first().fill(privateMaterial);
+
+    await page.getByRole('button', { name: 'Overview' }).click();
+    await page.getByRole('button', { name: 'Add Milestone' }).click();
+    await page.getByLabel('Label').first().fill(privateBilling);
+
+    await page.getByRole('button', { name: 'Client View' }).click();
+    await expect(page.getByText(privateBlocker)).toBeHidden();
+    await expect(page.getByText(privateNote)).toBeHidden();
+    await expect(page.getByText(privateMaterial)).toBeHidden();
+    await expect(page.getByText(privateBilling)).toBeHidden();
+
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('button', { name: 'Client View' })).toBeVisible();
+  });
+
+  test('project workspace create-edit flows for site logs, materials, and billing', async ({ page }) => {
+    const visitTitle = `Visit ${Date.now()}`;
+    const visitNote = 'Inspection notes captured from field';
+    const materialName = `Material ${Date.now()}`;
+    const billingLabel = `Milestone ${Date.now()}`;
+
+    await page.addInitScript(() => {
+      window.localStorage.setItem('studio_mock_user', JSON.stringify({ email: 'studio@example.com', displayName: 'Studio QA' }));
+    });
+    await page.goto('/os/projects');
+    await expectStudioShell(page);
+    const opened = await openAnyProjectWorkspace(page);
+    if (!opened) return;
+
+    await page.getByRole('button', { name: 'Notes & Logs' }).click();
+    await page.getByRole('button', { name: 'Add Visit' }).click();
+    await page.getByLabel('Title').first().fill(visitTitle);
+    await page.getByLabel('Notes').first().fill(visitNote);
+    await expect(page.getByDisplayValue(visitTitle)).toBeVisible();
+
+    await page.getByRole('button', { name: 'Materials' }).click();
+    await page.getByRole('button', { name: 'Add Material' }).click();
+    await page.getByLabel('Name').first().fill(materialName);
+    await page.getByLabel('Category').first().fill('Joinery');
+    await expect(page.getByDisplayValue(materialName)).toBeVisible();
+
+    await page.getByRole('button', { name: 'Overview' }).click();
+    await page.getByRole('button', { name: 'Add Milestone' }).click();
+    await page.getByLabel('Label').first().fill(billingLabel);
+    await page.getByLabel('Amount').first().fill('100000');
+    await expect(page.getByDisplayValue(billingLabel)).toBeVisible();
   });
 });

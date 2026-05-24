@@ -56,12 +56,12 @@ function App() {
   const location = useLocation();
   const routerNavigate = useNavigate();
   const isPublicPortfolioRoute = (
-    location.pathname === '/' ||
-    location.pathname === '/about' ||
-    location.pathname === '/journal' ||
-    location.pathname === '/work' ||
-    location.pathname === '/portfolio' ||
-    location.pathname.startsWith('/portfolio/')
+    location.pathname === '/'
+    || location.pathname === '/about'
+    || location.pathname === '/journal'
+    || location.pathname === '/work'
+    || location.pathname === '/portfolio'
+    || location.pathname.startsWith('/portfolio/')
   );
   const { portfolioItems: publicPortfolioItems, updatePortfolioItem } = usePortfolioItems({ enabled: isPublicPortfolioRoute });
 

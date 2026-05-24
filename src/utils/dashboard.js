@@ -136,6 +136,8 @@ export function createProject() {
     owner: '',
     startDate: '',
     designCompleteDate: '',
+    clientReviewDate: '',
+    revisionCompleteDate: '',
     handoverDate: '',
     openingDate: '',
     notes: '',
@@ -162,6 +164,8 @@ export function createProject() {
     drawingVersion: '',
     drawingStatus: 'draft',
     siteLogs: [],
+    materialApprovals: [],
+    billingMilestones: [],
     // Narrative Layer
     mood: '',
     currentFocus: '',

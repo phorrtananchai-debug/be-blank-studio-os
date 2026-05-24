@@ -239,17 +239,18 @@ export function ArtworkSpace({ projectId, user, isPresentation = false }) {
              <button
                onClick={handleExport}
                className="flex items-center gap-2 px-4 py-2 hover:bg-black/5 rounded-full transition-colors"
+               title="Download PNG/PDF"
              >
                 <Download size={14} className="text-studio-muted" />
                 <span className="text-[10px] font-bold uppercase tracking-widest">Export</span>
              </button>
              <div className="h-4 w-px bg-black/[0.08]" />
              <div className="flex items-center gap-1 px-2">
-                <button onClick={() => canvasRef.current?.zoomTo(canvasRef.current?.getScale() * 0.9)} className="p-2 hover:bg-black/5 rounded-full"><Minus size={14} /></button>
+                <button onClick={() => canvasRef.current?.zoomTo(canvasRef.current?.getScale() / 1.25)} className="p-2 hover:bg-black/5 rounded-full" title="Zoom Out"><Minus size={14} /></button>
                 <span className="text-[9px] font-bold font-mono min-w-[32px] text-center">
                   {Math.round((canvasRef.current?.getScale() || 1) * 100)}%
                 </span>
-                <button onClick={() => canvasRef.current?.zoomTo(canvasRef.current?.getScale() * 1.1)} className="p-2 hover:bg-black/5 rounded-full"><Plus size={14} /></button>
+                <button onClick={() => canvasRef.current?.zoomTo(canvasRef.current?.getScale() * 1.25)} className="p-2 hover:bg-black/5 rounded-full" title="Zoom In"><Plus size={14} /></button>
              </div>
           </div>
         </header>
@@ -257,15 +258,21 @@ export function ArtworkSpace({ projectId, user, isPresentation = false }) {
 
       {isEmpty && (
         <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center p-12 text-center">
-          <div className="max-w-md space-y-6 animate-in fade-in zoom-in duration-1000">
-            <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-white border border-black/5 shadow-studio text-studio-muted">
-              <Layers size={32} strokeWidth={1.5} />
+          <div className="max-w-md space-y-8 animate-in fade-in zoom-in duration-1000">
+            <div className="mx-auto grid h-24 w-24 place-items-center rounded-full bg-white border border-black/5 shadow-premium text-studio-muted">
+              <Layers size={40} strokeWidth={1} />
             </div>
-            <div className="space-y-2">
-              <h3 className="text-xl font-bold text-studio-ink">Start Your Composition</h3>
-              <p className="text-sm font-medium leading-relaxed text-studio-muted">
-                This is your infinite architectural desk. Double-click to start or drag files directly onto the surface.
-              </p>
+            <div className="space-y-4">
+              <h3 className="text-2xl font-bold tracking-tight text-studio-ink">Empty Design Surface</h3>
+              <div className="space-y-2 text-sm font-medium leading-relaxed text-studio-muted/70">
+                <p>Drop images, paste screenshots, or add notes to begin.</p>
+                <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 pt-4 text-[10px] font-bold uppercase tracking-widest text-studio-ink">
+                   <span>[Double Click] to add text</span>
+                   <span>[Space + Drag] to pan</span>
+                   <span>[Ctrl + Scroll] to zoom</span>
+                   <span>[Cmd + V] to paste images</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
