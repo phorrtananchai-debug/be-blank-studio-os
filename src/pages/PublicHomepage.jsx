@@ -33,6 +33,13 @@ const fontStacks = {
 };
 
 const editorSettingsStorageKey = 'beBlankPublicEditorSettings';
+const homepageTemplates = {
+  LARGE_LEFT_HERO: 'large-left-hero',
+  SPLIT_EDITORIAL: 'split-editorial',
+  VERTICAL_CINEMATIC_STACK: 'vertical-cinematic-stack',
+  OFFSET_ARCHIVE_GRID: 'offset-archive-grid',
+  FEATURE_ARCHIVE_RHYTHM: 'feature-archive-rhythm',
+};
 
 function useMastheadTransition() {
   const [transition, setTransition] = useState({ progress: 0, viewportHeight: 800 });
@@ -115,13 +122,64 @@ function getArchiveLayout(item, index) {
   return getPortfolioLayout(hasExplicitPortfolioLayout(item) ? item : {}, index);
 }
 
-function getArchiveCanvasHeight(items, draftLayouts = {}) {
+function useViewportWidth() {
+  const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1440);
+
+  useEffect(() => {
+    const update = () => setViewportWidth(window.innerWidth || 1440);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  return viewportWidth;
+}
+
+function overlaps(layoutA, layoutB) {
+  const ax2 = layoutA.x + layoutA.width;
+  const ay2 = layoutA.y + layoutA.height;
+  const bx2 = layoutB.x + layoutB.width;
+  const by2 = layoutB.y + layoutB.height;
+  return layoutA.x < bx2 && ax2 > layoutB.x && layoutA.y < by2 && ay2 > layoutB.y;
+}
+
+function buildComposedLayouts(items, draftLayouts = {}) {
+  const composed = {};
+  const placed = [];
+
+  items.forEach((item, index) => {
+    const source = draftLayouts[item.id] || getArchiveLayout(item, index);
+    const layout = {
+      ...source,
+      width: Math.min(Math.max(source.width, 14), 46),
+      height: Math.min(Math.max(source.height, 14), 56),
+    };
+
+    layout.x = Math.min(Math.max(layout.x, -6), 86);
+    layout.y = Math.max(layout.y, index < 2 ? -10 : 10);
+
+    let loopGuard = 0;
+    while (loopGuard < 32) {
+      const collisions = placed.filter((candidate) => overlaps(layout, candidate));
+      if (collisions.length <= 1) break;
+      layout.y += 16;
+      loopGuard += 1;
+    }
+
+    composed[item.id] = layout;
+    placed.push(layout);
+  });
+
+  return composed;
+}
+
+function getArchiveCanvasHeight(items, composedLayouts = {}) {
   const maxBottom = items.reduce((bottom, item, index) => {
-    const layout = draftLayouts[item.id] || getArchiveLayout(item, index);
+    const layout = composedLayouts[item.id] || getArchiveLayout(item, index);
     return Math.max(bottom, layout.y + layout.height + 18);
   }, 120);
 
-  return `max(118vh, ${Math.max(118, maxBottom)}vw)`;
+  return `max(122vh, ${Math.max(122, maxBottom)}vw)`;
 }
 
 function getArchiveImageHeight(layout) {
@@ -130,6 +188,10 @@ function getArchiveImageHeight(layout) {
 
 function formatArea(areaSqm) {
   return areaSqm ? `[${areaSqm}m\u00b2]` : '';
+}
+
+function getEditorialSummary(item) {
+  return item.category || item.subtitle || item.location || 'Archive';
 }
 
 function PublicMasthead({ editorSettings, editMode, navigate, routePath, transition }) {
@@ -144,8 +206,8 @@ function PublicMasthead({ editorSettings, editMode, navigate, routePath, transit
   const initialTop = isMobile ? viewportHeight * 0.18 : viewportHeight * 0.24;
   const finalTop = isMobile ? 60 : 70;
   const titleTop = initialTop + (finalTop - initialTop) * progress + (editMode ? editorSettings.titleOffsetY : 0);
-  const titleScale = ((isMobile ? 0.86 : 1) - progress * (isMobile ? 0.32 : 0.5)) * (editMode ? editorSettings.titleScale : 1);
-  const titleOpacity = (1 - progress * 0.28) * (editMode ? editorSettings.titleOpacity : 1);
+  const titleScale = ((isMobile ? 0.84 : 0.93) - progress * (isMobile ? 0.24 : 0.38)) * (editMode ? editorSettings.titleScale : 1);
+  const titleOpacity = (0.86 - progress * 0.22) * (editMode ? editorSettings.titleOpacity : 1);
   const navOpacity = 0.54 + progress * 0.46;
   const mastheadBackground = 0.08 + progress * 0.82;
 
@@ -179,7 +241,7 @@ function PublicMasthead({ editorSettings, editMode, navigate, routePath, transit
         </a>
       </nav>
       <div
-        className="pointer-events-none fixed left-0 right-0 z-[110] flex justify-center px-5 transition-[top,transform,opacity] duration-700 ease-studio-out md:px-8"
+        className="pointer-events-none fixed left-0 right-0 z-[105] flex justify-center px-5 transition-[top,transform,opacity] duration-700 ease-studio-out md:px-8"
         style={{
           opacity: titleOpacity,
           top: `${titleTop}px`,
@@ -189,11 +251,11 @@ function PublicMasthead({ editorSettings, editMode, navigate, routePath, transit
       >
         <button className="pointer-events-auto block" type="button" onClick={() => navigate('/')}>
           <h1
-            className="public-masthead-type max-w-[13ch] text-[13vw] text-[#111111] md:max-w-[14ch] md:text-[8vw]"
+            className="public-masthead-type max-w-[12ch] text-[10.5vw] text-[#111111] md:max-w-[13ch] md:text-[6.8vw]"
             style={{
               fontFamily: fontStacks[editorSettings.mastheadFont],
               ...(editMode ? {
-                fontSize: `clamp(3.25rem, ${editorSettings.titleFontSize}vw, 11rem)`,
+                fontSize: `clamp(2.9rem, ${editorSettings.titleFontSize}vw, 9.2rem)`,
               maxWidth: `${editorSettings.titleMaxWidth}ch`,
               textAlign: editorSettings.titleAlign,
               } : {}),
@@ -207,32 +269,31 @@ function PublicMasthead({ editorSettings, editMode, navigate, routePath, transit
   );
 }
 
-function HomeArchiveItem({ editorSettings, index, item, navigate }) {
-  const layout = getArchiveLayout(item, index);
+function CuratedArchiveCard({ editorSettings, item, navigate, size = 'medium' }) {
+  if (!item) return null;
   const cover = getCoverImage(item);
-  const summary = item.category || item.subtitle || item.location || 'Archive';
+  const summary = getEditorialSummary(item);
   const area = item.areaSqm ? formatArea(item.areaSqm) : '';
+  const imageUrl = resolvePortfolioImageUrl(cover, ['mediumUrl', 'url', 'imageUrl', 'thumbnailUrl', 'fullUrl']) || item.imageUrl;
+  const sizeClass = size === 'large'
+    ? 'aspect-[16/11] md:aspect-[16/10]'
+    : size === 'compact'
+      ? 'aspect-[4/5] md:aspect-[5/6]'
+      : 'aspect-[4/5] md:aspect-[4/3]';
 
   return (
     <article
-      className="public-work-item"
-      style={{
-        left: `${layout.x}%`,
-        top: `${layout.y}%`,
-        width: `${layout.width}%`,
-        zIndex: layout.zIndex,
-      }}
+      className="min-w-0"
     >
       <button className="group block w-full text-left" type="button" onClick={() => navigate(`/portfolio/${encodeURIComponent(item.id)}`)}>
         <span className="relative block overflow-hidden bg-[#f1f1ee]">
           <img
             alt={item.title}
-            className="w-full object-cover transition duration-[1200ms] ease-studio-out group-hover:scale-[1.012] group-hover:opacity-95"
+            className={`${sizeClass} w-full object-cover transition duration-[1200ms] ease-studio-out group-hover:scale-[1.012] group-hover:opacity-95`}
             loading="lazy"
-            sizes="(max-width: 768px) 92vw, 34vw"
-            src={resolvePortfolioImageUrl(cover, ['mediumUrl', 'url', 'imageUrl', 'thumbnailUrl', 'fullUrl']) || item.imageUrl}
+            sizes="(max-width: 768px) 92vw, (max-width: 1280px) 48vw, 36vw"
+            src={imageUrl}
             style={{
-              height: getArchiveImageHeight(layout),
               ...getImageFocusStyle(cover),
             }}
             onError={(event) => {
@@ -261,12 +322,219 @@ function HomeArchiveItem({ editorSettings, index, item, navigate }) {
   );
 }
 
-function HomeArchive({ editorSettings, items, navigate }) {
+function getCuratedArchiveSelection(items) {
+  const withHints = items.map((item, index) => {
+    const layout = getArchiveLayout(item, index);
+    const cover = getCoverImage(item);
+    const hasImage = Boolean(resolvePortfolioImageUrl(cover, ['mediumUrl', 'url', 'imageUrl', 'thumbnailUrl', 'fullUrl']) || item.imageUrl);
+    const featuredHint = Boolean(item.isFeatured || item.featured || item.featuredPriority || item.isHero);
+    const emphasis = (layout.width * layout.height) + (layout.zIndex * 16);
+    return { item, index, layout, hasImage, featuredHint, emphasis };
+  });
+
+  const hasFeaturedHint = withHints.some((entry) => entry.featuredHint);
+  const featuredEntry = withHints
+    .slice()
+    .sort((left, right) => {
+      const rightFeatured = Number(Boolean(right.featuredHint));
+      const leftFeatured = Number(Boolean(left.featuredHint));
+      if (rightFeatured !== leftFeatured) return rightFeatured - leftFeatured;
+      const rightImage = Number(Boolean(right.hasImage));
+      const leftImage = Number(Boolean(left.hasImage));
+      if (rightImage !== leftImage) return rightImage - leftImage;
+      return right.emphasis - left.emphasis;
+    })[0] || null;
+  const remainder = withHints
+    .filter((entry) => entry.item.id !== featuredEntry?.item?.id)
+    .sort((left, right) => right.emphasis - left.emphasis);
+
+  return {
+    hasFeaturedHint,
+    featured: featuredEntry?.item || null,
+    secondary: remainder.slice(0, 4).map((entry) => entry.item),
+    archive: remainder.slice(4).map((entry) => entry.item),
+  };
+}
+
+function pickHomepageTemplate({ count, hasFeaturedHint, viewportWidth }) {
+  if (count <= 1) return homepageTemplates.LARGE_LEFT_HERO;
+  if (count <= 3) {
+    if (viewportWidth >= 1680 && hasFeaturedHint) return homepageTemplates.SPLIT_EDITORIAL;
+    return homepageTemplates.VERTICAL_CINEMATIC_STACK;
+  }
+
+  if (viewportWidth >= 1760) return homepageTemplates.OFFSET_ARCHIVE_GRID;
+  if (hasFeaturedHint && viewportWidth >= 1320) return homepageTemplates.FEATURE_ARCHIVE_RHYTHM;
+  if (viewportWidth < 1260) return homepageTemplates.VERTICAL_CINEMATIC_STACK;
+  return homepageTemplates.SPLIT_EDITORIAL;
+}
+
+function CuratedArchiveComposition({ editorSettings, items, navigate, viewportWidth }) {
+  const selection = useMemo(() => getCuratedArchiveSelection(items), [items]);
+  const count = items.length;
+  const featured = selection.featured;
+  const secondary = selection.secondary;
+  const archive = selection.archive;
+  const template = pickHomepageTemplate({
+    count,
+    hasFeaturedHint: selection.hasFeaturedHint,
+    viewportWidth,
+  });
+
+  if (!featured) return null;
+
+  if (template === homepageTemplates.LARGE_LEFT_HERO) {
+    return (
+      <section className="grid gap-10 md:grid-cols-12 md:gap-12">
+        <div className="md:col-span-8">
+          <CuratedArchiveCard editorSettings={editorSettings} item={featured} navigate={navigate} size="large" />
+        </div>
+        <div className="grid content-end gap-5 md:col-span-4">
+          <p className="public-project-meta text-[#777777]">selected archive</p>
+          <h2 className="public-project-title text-3xl leading-tight text-[#111111] md:text-5xl">{featured.title || 'Untitled Project'}</h2>
+          <p className="public-project-meta text-[#777777]">
+            {[featured.category, featured.location, featured.year].filter(Boolean).join(' / ') || 'archive composition'}
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  if (template === homepageTemplates.SPLIT_EDITORIAL) {
+    return (
+      <section className="grid gap-10 md:grid-cols-12 md:gap-12">
+        <div className="md:col-span-7">
+          <CuratedArchiveCard editorSettings={editorSettings} item={featured} navigate={navigate} size="large" />
+        </div>
+        <div className="grid content-start gap-8 md:col-span-5">
+          <div className="grid gap-5 border-b border-black/[0.08] pb-7">
+            <p className="public-project-meta text-[#777777]">selected archive</p>
+            <h2 className="public-project-title text-3xl leading-tight text-[#111111] md:text-5xl">{featured.title || 'Untitled Project'}</h2>
+            <p className="public-project-meta text-[#777777]">
+              {[featured.category, featured.location, featured.year].filter(Boolean).join(' / ') || 'archive composition'}
+            </p>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2">
+            {secondary.map((item) => (
+              <CuratedArchiveCard key={item.id} editorSettings={editorSettings} item={item} navigate={navigate} size="compact" />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (template === homepageTemplates.VERTICAL_CINEMATIC_STACK) {
+    return (
+      <section className="grid gap-12">
+        <div className="grid gap-5 border-b border-black/[0.08] pb-8">
+          <p className="public-project-meta text-[#777777]">selected archive</p>
+          <h2 className="public-project-title text-3xl leading-tight text-[#111111] md:text-5xl">{featured.title || 'Untitled Project'}</h2>
+          <p className="public-project-meta text-[#777777]">
+            {[featured.category, featured.location, featured.year].filter(Boolean).join(' / ') || 'archive composition'}
+          </p>
+        </div>
+        <CuratedArchiveCard editorSettings={editorSettings} item={featured} navigate={navigate} size="large" />
+        <div className="grid gap-8 sm:grid-cols-2">
+          {secondary.slice(0, 2).map((item) => (
+            <CuratedArchiveCard key={item.id} editorSettings={editorSettings} item={item} navigate={navigate} size="medium" />
+          ))}
+        </div>
+        {archive.length > 0 && (
+          <div className="border-t border-black/[0.08] pt-8">
+            <p className="public-project-meta mb-4 text-[#777777]">archive index</p>
+            <div className="grid gap-4">
+              {archive.map((item) => (
+                <button
+                  key={item.id}
+                  className="grid w-full grid-cols-[1fr_auto] items-center gap-6 border-b border-black/[0.08] py-3 text-left transition hover:opacity-60"
+                  type="button"
+                  onClick={() => navigate(`/portfolio/${encodeURIComponent(item.id)}`)}
+                >
+                  <span className="public-project-title text-[#111111]">{item.title || 'Untitled Project'}</span>
+                  <span className="public-project-meta text-[#777777]">{[item.category, item.year].filter(Boolean).join(' / ') || 'archive'}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+    );
+  }
+
+  if (template === homepageTemplates.OFFSET_ARCHIVE_GRID) {
+    return (
+      <section className="grid gap-12">
+        <div className="grid gap-10 md:grid-cols-12 md:gap-12">
+          <div className="md:col-span-8">
+            <CuratedArchiveCard editorSettings={editorSettings} item={featured} navigate={navigate} size="large" />
+          </div>
+          <div className="grid content-start gap-5 md:col-span-4 md:pt-6">
+            <p className="public-project-meta text-[#777777]">selected archive</p>
+            <h2 className="public-project-title text-3xl leading-tight text-[#111111] md:text-5xl">{featured.title || 'Untitled Project'}</h2>
+            <p className="public-project-meta text-[#777777]">
+              {[featured.category, featured.location, featured.year].filter(Boolean).join(' / ') || 'archive composition'}
+            </p>
+          </div>
+        </div>
+        <div className="grid gap-7 md:grid-cols-12">
+          {secondary.map((item, index) => {
+            const spanClass = index === 0 ? 'md:col-span-4 md:mt-8' : index === 1 ? 'md:col-span-5' : index === 2 ? 'md:col-span-3 md:mt-14' : 'md:col-span-6';
+            return (
+              <div key={item.id} className={spanClass}>
+                <CuratedArchiveCard editorSettings={editorSettings} item={item} navigate={navigate} size={index === 2 ? 'compact' : 'medium'} />
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    );
+  }
+
   return (
-    <section className="public-archive-canvas" style={{ minHeight: getArchiveCanvasHeight(items) }}>
-      {items.map((item, index) => (
-        <HomeArchiveItem key={item.id} editorSettings={editorSettings} index={index} item={item} navigate={navigate} />
-      ))}
+    <section className="grid gap-12">
+      <div className="grid gap-10 md:grid-cols-12 md:gap-12">
+        <div className="md:col-span-7">
+          <CuratedArchiveCard editorSettings={editorSettings} item={featured} navigate={navigate} size="large" />
+        </div>
+        <div className="grid content-start gap-5 md:col-span-5">
+          <p className="public-project-meta text-[#777777]">selected archive</p>
+          <h2 className="public-project-title text-3xl leading-tight text-[#111111] md:text-5xl">{featured.title || 'Untitled Project'}</h2>
+          <p className="public-project-meta text-[#777777]">
+            {[featured.category, featured.location, featured.year].filter(Boolean).join(' / ') || 'archive composition'}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-7 md:grid-cols-12">
+        {secondary.map((item, index) => {
+          const spanClass = index === 0 ? 'md:col-span-7' : index === 1 ? 'md:col-span-5 md:mt-10' : 'md:col-span-6';
+          return (
+            <div key={item.id} className={spanClass}>
+              <CuratedArchiveCard editorSettings={editorSettings} item={item} navigate={navigate} size={index < 2 ? 'medium' : 'compact'} />
+            </div>
+          );
+        })}
+      </div>
+
+      {archive.length > 0 && (
+        <div className="border-t border-black/[0.08] pt-8">
+          <p className="public-project-meta mb-4 text-[#777777]">archive index</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            {archive.map((item) => (
+              <button
+                key={item.id}
+                className="grid w-full grid-cols-[1fr_auto] items-center gap-6 border-b border-black/[0.08] py-3 text-left transition hover:opacity-60"
+                type="button"
+                onClick={() => navigate(`/portfolio/${encodeURIComponent(item.id)}`)}
+              >
+                <span className="public-project-title text-[#111111]">{item.title || 'Untitled Project'}</span>
+                <span className="public-project-meta text-[#777777]">{[item.category, item.year].filter(Boolean).join(' / ') || 'archive'}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -389,6 +657,7 @@ function EditableArchiveItem({ editorSettings, highlighted, index, item, layout,
 function EditableHomeArchive({ draftLayouts, editorSettings, highlightedItemId, items, onDraftLayout }) {
   const canvasRef = useRef(null);
   const activeInteraction = useRef(null);
+  const composedLayouts = useMemo(() => buildComposedLayouts(items, draftLayouts), [items, draftLayouts]);
 
   useEffect(() => {
     const handlePointerMove = (event) => {
@@ -427,7 +696,7 @@ function EditableHomeArchive({ draftLayouts, editorSettings, highlightedItemId, 
     event.stopPropagation();
     activeInteraction.current = {
       id: item.id,
-      initial: draftLayouts[item.id] || getArchiveLayout(item, index),
+      initial: composedLayouts[item.id] || draftLayouts[item.id] || getArchiveLayout(item, index),
       mode,
       startX: event.clientX,
       startY: event.clientY,
@@ -436,15 +705,15 @@ function EditableHomeArchive({ draftLayouts, editorSettings, highlightedItemId, 
 
   const handleLayer = (item, nextLayer) => {
     const index = items.findIndex((candidate) => candidate.id === item.id);
-    const currentLayout = draftLayouts[item.id] || getArchiveLayout(item, index);
+    const currentLayout = composedLayouts[item.id] || draftLayouts[item.id] || getArchiveLayout(item, index);
     const nextLayout = { ...currentLayout, zIndex: Math.min(Math.max(nextLayer, 1), 40) };
     onDraftLayout(item.id, nextLayout);
   };
 
   return (
-    <section className="public-editor-canvas" ref={canvasRef} style={{ minHeight: getArchiveCanvasHeight(items, draftLayouts) }}>
+    <section className="public-editor-canvas" ref={canvasRef} style={{ minHeight: getArchiveCanvasHeight(items, composedLayouts) }}>
       {items.map((item, index) => {
-        const layout = draftLayouts[item.id] || getArchiveLayout(item, index);
+        const layout = composedLayouts[item.id] || draftLayouts[item.id] || getArchiveLayout(item, index);
         return (
           <EditableArchiveItem
             key={item.id}
@@ -637,6 +906,7 @@ export function PublicHomepage({ portfolioItems, navigate, updatePortfolioItem }
   const mastheadTransition = useMastheadTransition();
   const { signIn, user } = useStudioAuth();
   const isEditorAvailable = useEditorAvailability();
+  const viewportWidth = useViewportWidth();
   const {
     resetSettings,
     saveSettings,
@@ -728,7 +998,7 @@ export function PublicHomepage({ portfolioItems, navigate, updatePortfolioItem }
     >
       <PublicMasthead editorSettings={editorSettings} editMode={editMode} navigate={navigate} routePath={routePath} transition={mastheadTransition} />
 
-      <main className="mx-auto max-w-screen-2xl px-5 pb-32 pt-[42vh] md:px-8 md:pt-[48vh]">
+      <main className="mx-auto max-w-screen-2xl px-5 pb-32 pt-[37vh] md:px-8 md:pt-[42vh]">
         {routePath === '/about' ? (
           <AboutArchive />
         ) : routePath === '/journal' ? (
@@ -743,8 +1013,12 @@ export function PublicHomepage({ portfolioItems, navigate, updatePortfolioItem }
           />
         ) : (
           <>
-            <EditorialHeroLayer items={archiveItems} navigate={navigate} />
-            <HomeArchive editorSettings={editorSettings} items={archiveItems} navigate={navigate} />
+            <section className="pb-12 md:pb-16">
+              <EditorialHeroLayer items={archiveItems} navigate={navigate} />
+            </section>
+            <section className="pt-8 md:pt-12">
+              <CuratedArchiveComposition editorSettings={editorSettings} items={archiveItems} navigate={navigate} viewportWidth={viewportWidth} />
+            </section>
           </>
         )}
       </main>
