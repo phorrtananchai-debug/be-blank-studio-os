@@ -23,6 +23,10 @@ const defaultEditorSettings = {
   projectMetaOpacity: 0.86,
   mastheadFont: 'grotesk',
   projectTitleFont: 'grotesk',
+  contactLabel: 'contact',
+  contactHref: 'mailto:studio@beblanktobehindstudio.com',
+  instagramLabel: 'instagram',
+  instagramHref: 'https://instagram.com',
 };
 
 const fontStacks = {
@@ -278,22 +282,52 @@ function getEditorialSummary(item) {
   return item.category || item.subtitle || item.location || 'Archive';
 }
 
-function PublicMasthead({ editorSettings, editMode, navigate, routePath, transition }) {
+function getPublicLinkHref(value, fallback) {
+  const raw = String(value || '').trim();
+  if (!raw) return fallback;
+  if (raw.startsWith('mailto:') || raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('/')) return raw;
+  if (raw.includes('@') && !raw.includes(' ')) return `mailto:${raw}`;
+  return `https://${raw}`;
+}
+
+function getMastheadPresentation(editorSettings, transition) {
+  const { progress, viewportHeight } = transition;
+  const isMobile = viewportHeight < 720;
+  const initialTop = isMobile ? viewportHeight * 0.18 : viewportHeight * 0.24;
+  const finalTop = isMobile ? 60 : 70;
+  const titleTop = initialTop + (finalTop - initialTop) * progress + editorSettings.titleOffsetY;
+  const titleScale = ((isMobile ? 0.84 : 0.93) - progress * (isMobile ? 0.24 : 0.38)) * editorSettings.titleScale;
+  const titleOpacity = (0.86 - progress * 0.22) * editorSettings.titleOpacity;
+  const navOpacity = 0.54 + progress * 0.46;
+  const mastheadBackground = 0.08 + progress * 0.82;
+
+  return {
+    mastheadBackground,
+    navOpacity,
+    titleOpacity,
+    titleScale,
+    titleTop,
+  };
+}
+
+function PublicMasthead({ editorSettings, navigate, routePath, transition }) {
   const navItems = [
     { label: '[projects]', path: '/' },
     { label: 'work', path: '/work' },
     { label: 'journal', path: '/journal' },
     { label: 'about', path: '/about' },
   ];
-  const { progress, viewportHeight } = transition;
-  const isMobile = viewportHeight < 720;
-  const initialTop = isMobile ? viewportHeight * 0.18 : viewportHeight * 0.24;
-  const finalTop = isMobile ? 60 : 70;
-  const titleTop = initialTop + (finalTop - initialTop) * progress + (editMode ? editorSettings.titleOffsetY : 0);
-  const titleScale = ((isMobile ? 0.84 : 0.93) - progress * (isMobile ? 0.24 : 0.38)) * (editMode ? editorSettings.titleScale : 1);
-  const titleOpacity = (0.86 - progress * 0.22) * (editMode ? editorSettings.titleOpacity : 1);
-  const navOpacity = 0.54 + progress * 0.46;
-  const mastheadBackground = 0.08 + progress * 0.82;
+  const {
+    mastheadBackground,
+    navOpacity,
+    titleOpacity,
+    titleScale,
+    titleTop,
+  } = getMastheadPresentation(editorSettings, transition);
+  const contactLabel = String(editorSettings.contactLabel || 'contact').trim() || 'contact';
+  const instagramLabel = String(editorSettings.instagramLabel || 'instagram').trim() || 'instagram';
+  const contactHref = getPublicLinkHref(editorSettings.contactHref, 'mailto:studio@beblanktobehindstudio.com');
+  const instagramHref = getPublicLinkHref(editorSettings.instagramHref, 'https://instagram.com');
 
   return (
     <header
@@ -301,8 +335,8 @@ function PublicMasthead({ editorSettings, editMode, navigate, routePath, transit
       style={{ backgroundColor: `rgba(215,211,200,${mastheadBackground})` }}
     >
       <nav className="public-editorial-nav grid grid-cols-[1fr_auto_1fr] items-center gap-4 text-[#111111]" style={{ opacity: navOpacity }}>
-        <a className="justify-self-start text-left transition hover:opacity-55" href="mailto:studio@beblanktobehindstudio.com">
-          contact
+        <a className="justify-self-start text-left transition hover:opacity-55" href={contactHref}>
+          {contactLabel}
         </a>
         <div className="flex justify-center gap-4 md:gap-7">
           {navItems.map((item) => (
@@ -320,8 +354,8 @@ function PublicMasthead({ editorSettings, editMode, navigate, routePath, transit
             </button>
           ))}
         </div>
-        <a className="justify-self-end text-[#111111] transition hover:opacity-55" href="https://instagram.com" rel="noreferrer" target="_blank">
-          instagram
+        <a className="justify-self-end text-[#111111] transition hover:opacity-55" href={instagramHref} rel="noreferrer" target="_blank">
+          {instagramLabel}
         </a>
       </nav>
       <div
@@ -338,11 +372,9 @@ function PublicMasthead({ editorSettings, editMode, navigate, routePath, transit
             className="public-masthead-type max-w-[12ch] text-[10.5vw] text-[#111111] md:max-w-[13ch] md:text-[6.8vw]"
             style={{
               fontFamily: fontStacks[editorSettings.mastheadFont],
-              ...(editMode ? {
-                fontSize: `clamp(2.9rem, ${editorSettings.titleFontSize}vw, 9.2rem)`,
+              fontSize: `clamp(2.9rem, ${editorSettings.titleFontSize}vw, 9.2rem)`,
               maxWidth: `${editorSettings.titleMaxWidth}ch`,
               textAlign: editorSettings.titleAlign,
-              } : {}),
             }}
           >
             BE BLANK TO BEHIND STUDIO
@@ -725,6 +757,41 @@ function PublicEditorControls({ editorSettings, gridVisible, onExit, onReflow, o
           ))}
         </div>
       </div>
+      <div>
+        <p>nav links</p>
+        <label>
+          c label
+          <input
+            type="text"
+            value={editorSettings.contactLabel}
+            onChange={(event) => onUpdateSettings({ contactLabel: event.target.value })}
+          />
+        </label>
+        <label>
+          c link
+          <input
+            type="text"
+            value={editorSettings.contactHref}
+            onChange={(event) => onUpdateSettings({ contactHref: event.target.value })}
+          />
+        </label>
+        <label>
+          ig label
+          <input
+            type="text"
+            value={editorSettings.instagramLabel}
+            onChange={(event) => onUpdateSettings({ instagramLabel: event.target.value })}
+          />
+        </label>
+        <label>
+          ig link
+          <input
+            type="text"
+            value={editorSettings.instagramHref}
+            onChange={(event) => onUpdateSettings({ instagramHref: event.target.value })}
+          />
+        </label>
+      </div>
     </aside>
   );
 }
@@ -842,7 +909,7 @@ export function PublicHomepage({ portfolioItems, navigate, updatePortfolioItem }
       className={`min-h-screen bg-studio-paper text-[#111111] selection:bg-black/10 ${editMode && gridVisible ? 'public-edit-mode' : ''}`}
       style={{ '--public-project-title-size': `${Math.min(Math.max(editorSettings.projectTitleSize, 0.72), 0.96)}rem` }}
     >
-      <PublicMasthead editorSettings={editorSettings} editMode={editMode} navigate={navigate} routePath={routePath} transition={mastheadTransition} />
+      <PublicMasthead editorSettings={editorSettings} navigate={navigate} routePath={routePath} transition={mastheadTransition} />
 
       <main className="mx-auto max-w-screen-2xl px-5 pb-32 pt-[37vh] md:px-8 md:pt-[42vh]">
         {routePath === '/about' ? (
