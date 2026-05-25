@@ -6,30 +6,41 @@ async function verifyHomepageComposition(page, testInfo, width, height) {
   await page.waitForLoadState('networkidle');
 
   await expect(page.getByRole('heading', { name: 'BE BLANK TO BEHIND STUDIO' })).toBeVisible();
-  await expect(page.getByText('selected archive').first()).toBeVisible();
 
   const geometry = await page.evaluate(() => {
-    const masthead = document.querySelector('.public-masthead-type');
-    const selectedTitle = document.querySelector('h2.public-project-title');
-    const cards = Array.from(document.querySelectorAll('section button.group'));
+    const cards = Array.from(document.querySelectorAll('.public-work-item'));
     const viewportWidth = window.innerWidth;
 
-    const mastheadRect = masthead?.getBoundingClientRect();
-    const titleRect = selectedTitle?.getBoundingClientRect();
     const cardRects = cards.map((card) => card.getBoundingClientRect());
     const cardsInBounds = cardRects.every((rect) => rect.left >= -1 && rect.right <= viewportWidth + 1);
+    let overlapPairs = 0;
+
+    for (let i = 0; i < cardRects.length; i += 1) {
+      for (let j = i + 1; j < cardRects.length; j += 1) {
+        const a = cardRects[i];
+        const b = cardRects[j];
+        const overlaps = a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+        if (overlaps) overlapPairs += 1;
+      }
+    }
+
+    const maxPairs = cardRects.length > 1 ? (cardRects.length * (cardRects.length - 1)) / 2 : 0;
+    const overlapRatio = maxPairs ? overlapPairs / maxPairs : 0;
 
     return {
       cardsInBounds,
-      mastheadBottom: mastheadRect?.bottom ?? 0,
-      selectedTitleTop: titleRect?.top ?? 0,
       totalCards: cardRects.length,
+      overlapPairs,
+      overlapRatio,
     };
   });
 
   expect(geometry.totalCards).toBeGreaterThan(0);
   expect(geometry.cardsInBounds).toBeTruthy();
-  expect(geometry.selectedTitleTop).toBeGreaterThan(geometry.mastheadBottom + 8);
+  expect(geometry.overlapRatio).toBeLessThan(0.7);
+  if (geometry.totalCards >= 4) {
+    expect(geometry.overlapPairs).toBeGreaterThan(0);
+  }
 
   await page.screenshot({ path: testInfo.outputPath(`public-homepage-${width}.png`), fullPage: true });
 }
