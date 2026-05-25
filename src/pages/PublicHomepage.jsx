@@ -3,7 +3,6 @@ import { useLocation } from 'react-router-dom';
 import { initialPortfolioItems } from '../data/seed.js';
 import { useStudioAuth } from '../hooks/useStudioAuth.js';
 import {
-  getNextInteractionLayout,
   getNormalizedPortfolioLayouts,
   getPortfolioLayout,
   hasExplicitPortfolioLayout,
@@ -115,6 +114,26 @@ function getArchiveLayout(item, index) {
   return getPortfolioLayout(hasExplicitPortfolioLayout(item) ? item : {}, index);
 }
 
+function toFiniteNumber(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function getRawArchiveLayout(item, index, draftLayouts = {}) {
+  if (draftLayouts[item.id]) {
+    return draftLayouts[item.id];
+  }
+
+  const fallback = getArchiveLayout(item, index);
+  return {
+    x: toFiniteNumber(item.x, fallback.x),
+    y: toFiniteNumber(item.y, fallback.y),
+    width: toFiniteNumber(item.width, fallback.width),
+    height: toFiniteNumber(item.height, fallback.height),
+    zIndex: toFiniteNumber(item.zIndex, fallback.zIndex),
+  };
+}
+
 function overlaps(layoutA, layoutB) {
   const ax2 = layoutA.x + layoutA.width;
   const ay2 = layoutA.y + layoutA.height;
@@ -123,33 +142,40 @@ function overlaps(layoutA, layoutB) {
   return layoutA.x < bx2 && ax2 > layoutB.x && layoutA.y < by2 && ay2 > layoutB.y;
 }
 
-function buildComposedLayouts(items, draftLayouts = {}) {
+function normalizePublicLayout(layout) {
+  const width = Math.min(Math.max(layout.width, 10), 72);
+  const height = Math.min(Math.max(layout.height, 10), 84);
+  const visibleX = Math.min(24, Math.max(7, width * 0.24));
+  const visibleY = Math.min(24, Math.max(7, height * 0.24));
+
+  return {
+    ...layout,
+    width,
+    height,
+    zIndex: Math.min(Math.max(Math.round(layout.zIndex ?? 1), 1), 40),
+    x: Math.min(Math.max(layout.x, -width + visibleX), 100 - visibleX),
+    y: Math.min(Math.max(layout.y, -height + visibleY), 620),
+  };
+}
+
+function buildPublicLayouts(items, draftLayouts = {}) {
   const composed = {};
   const placed = [];
   const layoutEntries = items.map((item, index) => ({
     item,
     index,
-    source: draftLayouts[item.id] || getArchiveLayout(item, index),
+    source: normalizePublicLayout(getRawArchiveLayout(item, index, draftLayouts)),
   }));
   layoutEntries.sort((left, right) => (left.source.zIndex ?? left.index) - (right.source.zIndex ?? right.index));
 
   layoutEntries.forEach(({ item, source }) => {
-    const layout = {
-      ...source,
-      width: Math.min(Math.max(source.width, 15), 46),
-      height: Math.min(Math.max(source.height, 15), 56),
-      zIndex: Math.min(Math.max(source.zIndex ?? 1, 1), 40),
-    };
-
-    const maxX = Math.max(0, 100 - layout.width);
-    layout.x = Math.min(Math.max(layout.x, 0), maxX);
-    layout.y = Math.max(layout.y, 2);
+    const layout = { ...source };
 
     let loopGuard = 0;
     while (loopGuard < 32) {
       const collisions = placed.filter((candidate) => overlaps(layout, candidate));
-      if (collisions.length <= 2) break;
-      layout.y += 6;
+      if (collisions.length <= 3) break;
+      layout.y += 4;
       loopGuard += 1;
     }
 
@@ -158,6 +184,77 @@ function buildComposedLayouts(items, draftLayouts = {}) {
   });
 
   return composed;
+}
+
+function normalizeEditorLayout(layout) {
+  const width = Math.min(Math.max(layout.width, 8), 95);
+  const height = Math.min(Math.max(layout.height, 8), 110);
+  const visibleX = Math.min(12, Math.max(2.5, width * 0.12));
+  const visibleY = Math.min(12, Math.max(2.5, height * 0.12));
+
+  return {
+    ...layout,
+    width,
+    height,
+    zIndex: Math.min(Math.max(Math.round(layout.zIndex ?? 1), 1), 40),
+    x: Math.min(Math.max(layout.x, -width + visibleX), 100 - visibleX),
+    y: Math.min(Math.max(layout.y, -height + visibleY), 760),
+  };
+}
+
+function getNextEditorInteractionLayout(mode, initial, dxPercent, dyPercent) {
+  const constrain = (layout) => normalizeEditorLayout({ ...initial, ...layout });
+
+  if (mode === 'resize-se') {
+    return constrain({
+      width: initial.width + dxPercent,
+      height: initial.height + dyPercent,
+    });
+  }
+
+  if (mode === 'resize-sw') {
+    const width = Math.min(Math.max(initial.width - dxPercent, 8), 95);
+    return constrain({
+      x: initial.x + (initial.width - width),
+      width,
+      height: initial.height + dyPercent,
+    });
+  }
+
+  if (mode === 'resize-ne') {
+    const height = Math.min(Math.max(initial.height - dyPercent, 8), 110);
+    return constrain({
+      y: initial.y + (initial.height - height),
+      width: initial.width + dxPercent,
+      height,
+    });
+  }
+
+  if (mode === 'resize-nw') {
+    const width = Math.min(Math.max(initial.width - dxPercent, 8), 95);
+    const height = Math.min(Math.max(initial.height - dyPercent, 8), 110);
+    return constrain({
+      x: initial.x + (initial.width - width),
+      y: initial.y + (initial.height - height),
+      width,
+      height,
+    });
+  }
+
+  return constrain({
+    x: initial.x + dxPercent,
+    y: initial.y + dyPercent,
+  });
+}
+
+function buildEditorLayouts(items, draftLayouts = {}) {
+  return items.reduce((layouts, item, index) => {
+    const raw = getRawArchiveLayout(item, index, draftLayouts);
+    return {
+      ...layouts,
+      [item.id]: normalizeEditorLayout(raw),
+    };
+  }, {});
 }
 
 function getArchiveCanvasHeight(items, composedLayouts = {}) {
@@ -311,7 +408,7 @@ function PublicArchiveItem({ editorSettings, item, layout, navigate }) {
 }
 
 function PublicHomeArchive({ editorSettings, items, navigate }) {
-  const composedLayouts = useMemo(() => buildComposedLayouts(items), [items]);
+  const composedLayouts = useMemo(() => buildPublicLayouts(items), [items]);
 
   return (
     <section className="public-archive-canvas" style={{ minHeight: getArchiveCanvasHeight(items, composedLayouts) }}>
@@ -414,7 +511,7 @@ function EditableArchiveItem({ editorSettings, highlighted, index, item, layout,
 function EditableHomeArchive({ draftLayouts, editorSettings, highlightedItemId, items, onDraftLayout }) {
   const canvasRef = useRef(null);
   const activeInteraction = useRef(null);
-  const composedLayouts = useMemo(() => buildComposedLayouts(items, draftLayouts), [items, draftLayouts]);
+  const editorLayouts = useMemo(() => buildEditorLayouts(items, draftLayouts), [items, draftLayouts]);
 
   useEffect(() => {
     const handlePointerMove = (event) => {
@@ -425,10 +522,7 @@ function EditableHomeArchive({ draftLayouts, editorSettings, highlightedItemId, 
       const rect = canvas.getBoundingClientRect();
       const dxPercent = ((event.clientX - active.startX) / rect.width) * 100;
       const dyPercent = ((event.clientY - active.startY) / rect.height) * 100;
-      const nextLayout = {
-        ...active.initial,
-        ...getNextInteractionLayout(active.mode, active.initial, dxPercent, dyPercent),
-      };
+      const nextLayout = getNextEditorInteractionLayout(active.mode, active.initial, dxPercent, dyPercent);
 
       activeInteraction.current.latestLayout = nextLayout;
       onDraftLayout(active.id, nextLayout);
@@ -453,7 +547,7 @@ function EditableHomeArchive({ draftLayouts, editorSettings, highlightedItemId, 
     event.stopPropagation();
     activeInteraction.current = {
       id: item.id,
-      initial: composedLayouts[item.id] || draftLayouts[item.id] || getArchiveLayout(item, index),
+      initial: editorLayouts[item.id] || getRawArchiveLayout(item, index, draftLayouts),
       mode,
       startX: event.clientX,
       startY: event.clientY,
@@ -462,15 +556,15 @@ function EditableHomeArchive({ draftLayouts, editorSettings, highlightedItemId, 
 
   const handleLayer = (item, nextLayer) => {
     const index = items.findIndex((candidate) => candidate.id === item.id);
-    const currentLayout = composedLayouts[item.id] || draftLayouts[item.id] || getArchiveLayout(item, index);
-    const nextLayout = { ...currentLayout, zIndex: Math.min(Math.max(nextLayer, 1), 40) };
+    const currentLayout = editorLayouts[item.id] || getRawArchiveLayout(item, index, draftLayouts);
+    const nextLayout = normalizeEditorLayout({ ...currentLayout, zIndex: Math.min(Math.max(nextLayer, 1), 40) });
     onDraftLayout(item.id, nextLayout);
   };
 
   return (
-    <section className="public-editor-canvas" ref={canvasRef} style={{ minHeight: getArchiveCanvasHeight(items, composedLayouts) }}>
+    <section className="public-editor-canvas" ref={canvasRef} style={{ minHeight: getArchiveCanvasHeight(items, editorLayouts) }}>
       {items.map((item, index) => {
-        const layout = composedLayouts[item.id] || draftLayouts[item.id] || getArchiveLayout(item, index);
+        const layout = editorLayouts[item.id] || getRawArchiveLayout(item, index, draftLayouts);
         return (
           <EditableArchiveItem
             key={item.id}
@@ -675,10 +769,6 @@ export function PublicHomepage({ portfolioItems, navigate, updatePortfolioItem }
   const archiveItems = useMemo(() => getItems(portfolioItems), [portfolioItems]);
   const query = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const highlightedItemId = query.get('highlight') || '';
-  const draftArchiveItems = useMemo(
-    () => archiveItems.map((item) => ({ ...item, ...(draftLayouts[item.id] ? stringifyLayout(draftLayouts[item.id]) : {}) })),
-    [archiveItems, draftLayouts],
-  );
   const routePath = location.pathname;
   const isArchiveRoute = routePath === '/' || routePath === '/work' || routePath === '/portfolio';
 
@@ -764,7 +854,7 @@ export function PublicHomepage({ portfolioItems, navigate, updatePortfolioItem }
             draftLayouts={draftLayouts}
             editorSettings={editorSettings}
             highlightedItemId={highlightedItemId}
-            items={draftArchiveItems}
+            items={archiveItems}
             onDraftLayout={updateDraftLayout}
           />
         ) : (

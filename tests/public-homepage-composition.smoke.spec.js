@@ -12,7 +12,13 @@ async function verifyHomepageComposition(page, testInfo, width, height) {
     const viewportWidth = window.innerWidth;
 
     const cardRects = cards.map((card) => card.getBoundingClientRect());
-    const cardsInBounds = cardRects.every((rect) => rect.left >= -1 && rect.right <= viewportWidth + 1);
+    const minVisibleRatio = cardRects.length
+      ? Math.min(...cardRects.map((rect) => {
+        const visibleWidth = Math.max(0, Math.min(rect.right, viewportWidth) - Math.max(rect.left, 0));
+        return rect.width > 0 ? visibleWidth / rect.width : 0;
+      }))
+      : 0;
+    const fullyHiddenCards = cardRects.filter((rect) => rect.right <= 0 || rect.left >= viewportWidth).length;
     let overlapPairs = 0;
 
     for (let i = 0; i < cardRects.length; i += 1) {
@@ -28,7 +34,8 @@ async function verifyHomepageComposition(page, testInfo, width, height) {
     const overlapRatio = maxPairs ? overlapPairs / maxPairs : 0;
 
     return {
-      cardsInBounds,
+      minVisibleRatio,
+      fullyHiddenCards,
       totalCards: cardRects.length,
       overlapPairs,
       overlapRatio,
@@ -36,7 +43,8 @@ async function verifyHomepageComposition(page, testInfo, width, height) {
   });
 
   expect(geometry.totalCards).toBeGreaterThan(0);
-  expect(geometry.cardsInBounds).toBeTruthy();
+  expect(geometry.fullyHiddenCards).toBe(0);
+  expect(geometry.minVisibleRatio).toBeGreaterThan(0.16);
   expect(geometry.overlapRatio).toBeLessThan(0.7);
   if (geometry.totalCards >= 4) {
     expect(geometry.overlapPairs).toBeGreaterThan(0);
