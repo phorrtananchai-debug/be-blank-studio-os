@@ -542,8 +542,8 @@
     bottom: 1.25rem;
     z-index: 160;
     display: grid;
-    width: min(28rem, calc(100vw - 2.5rem));
-    grid-template-columns: 5rem repeat(2, minmax(0, 1fr));
+    width: min(40rem, calc(100vw - 2.5rem));
+    grid-template-columns: 5rem repeat(3, minmax(0, 1fr));
     gap: 1rem;
     border-top: 1px solid rgba(17, 17, 17, 0.18);
     background: rgba(233, 229, 219, 0.78);
@@ -574,6 +574,16 @@
     background: transparent;
     color: inherit;
     padding: 0;
+  }
+
+  .public-editor-controls input[type='text'] {
+    border: 0;
+    border-bottom: 1px solid rgba(17, 17, 17, 0.22);
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    width: 100%;
+    font: inherit;
   }
 
   .public-editor-toolbar button:hover,
