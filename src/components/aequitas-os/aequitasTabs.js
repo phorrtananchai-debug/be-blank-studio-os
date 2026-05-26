@@ -1,0 +1,30 @@
+import {
+  Activity,
+  Brain,
+  BriefcaseBusiness,
+  CalendarClock,
+  ChartPie,
+  Clock3,
+  Landmark,
+  ListChecks,
+  ScrollText,
+  Settings,
+  Sparkles,
+  WalletCards,
+} from 'lucide-react';
+
+export const aequitasTabs = [
+  { id: 'dashboard', label: 'Dashboard', icon: BriefcaseBusiness },
+  { id: 'daily-brief', label: 'Daily Brief', icon: Clock3 },
+  { id: 'holdings', label: 'Holdings', icon: WalletCards },
+  { id: 'allocation', label: 'Allocation', icon: ChartPie },
+  { id: 'dividends', label: 'Dividends', icon: Landmark },
+  { id: 'dca-plan', label: 'DCA Plan', icon: CalendarClock },
+  { id: 'ai-workflow', label: 'AI Workflow', icon: Sparkles },
+  { id: 'ai-advisor', label: 'AI Advisor', icon: Brain },
+  { id: 'snapshots', label: 'Snapshots', icon: ScrollText },
+  { id: 'watchlist', label: 'Watchlist', icon: ListChecks },
+  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'labs', label: 'Labs', icon: Activity },
+  { id: 'activity', label: 'History', icon: Activity },
+];

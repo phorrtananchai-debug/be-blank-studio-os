@@ -7,7 +7,7 @@ const MobileStudioApp = lazy(() => import('./pages/MobileStudioApp.jsx').then((m
 const PortfolioDetailPage = lazy(() => import('./pages/PortfolioDetailPage.jsx').then((module) => ({ default: module.PortfolioDetailPage })));
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage.jsx').then((module) => ({ default: module.PortfolioPage })));
 const PublicHomepage = lazy(() => import('./pages/PublicHomepage.jsx').then((module) => ({ default: module.PublicHomepage })));
-const StudioOSApp = lazy(() => import('./pages/StudioOSApp.jsx').then((module) => ({ default: module.StudioOSApp })));
+const AequitasOSApp = lazy(() => import('./pages/AequitasOSApp.jsx').then((module) => ({ default: module.AequitasOSApp })));
 
 function isMobileDevice() {
   if (typeof window === 'undefined') return false;
@@ -21,7 +21,7 @@ function RouteFallback({ children }) {
 function StudioOSRoute({ navigate, routePath }) {
   return (
     <RouteFallback>
-      <StudioOSApp navigate={navigate} routePath={routePath} />
+      <AequitasOSApp navigate={navigate} routePath={routePath} />
     </RouteFallback>
   );
 }
