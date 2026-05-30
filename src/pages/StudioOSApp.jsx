@@ -91,6 +91,11 @@ export function StudioOSApp({ navigate, routePath }) {
     return '';
   }, [routePath]);
 
+  const selectedProjectAlias = useMemo(() => {
+    if (!routePath.startsWith('/os/projects/')) return '';
+    return routePath.replace('/os/projects/', '').trim().toLowerCase();
+  }, [routePath]);
+
   const handleTabChange = (tabId) => {
     if (tabId === 'flow') navigate('/os');
     else if (tabId === 'artwork') {
@@ -791,6 +796,7 @@ export function StudioOSApp({ navigate, routePath }) {
           portfolioItems={portfolioItems}
           lastAddedPortfolioId={lastAddedPortfolioId}
           projects={projects}
+          selectedProjectAlias={selectedProjectAlias}
           selectedArtworkProjectId={selectedArtworkProjectId}
           statusCounts={statusCounts}
           studioUser={studioUser}

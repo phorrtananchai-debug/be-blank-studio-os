@@ -1,87 +1,63 @@
-# HANDOFF - BE BLANK OS Prototype Stabilization
+# HANDOFF - BE BLANK OS Migration Foundation
 
-## Build and quality checks
+## Validation
 - `npm install`: pass
 - `npm run build`: pass
 - `npm run lint`: pass
-- `npm run test`: not available (no script in `package.json`)
-- `npm run test:smoke`: pass (10/10)
+- `npm run test:smoke`: pass
 
-## Current route map (actual)
-Defined in `/src/App.jsx`:
-- `/`
-- `/about`
-- `/journal`
-- `/work`
-- `/portfolio`
-- `/portfolio/:portfolioId`
-- `/dashboard`
-- `/os/*`
-- `/m`
-- fallback `*`
+## New migration foundation files
+- Mapper: `/src/corebase/google/legacyToCorebase.ts`
+- Selectors: `/src/corebase/google/selectors.ts`
+- Expanded domain models: `/src/corebase/google/models.ts`
 
-Studio OS tab routing is nested under `/os` in `/src/pages/StudioOSApp.jsx`:
-- `/os` (Daily Flow)
-- `/os/projects`
-- `/os/artwork`
-- `/os/artwork/:projectId`
-- `/os/timeline`
-- `/os/content`
-- `/os/portfolio`
+## Stable project ID strategy
+Canonical IDs introduced in mapper:
+- `KARUN-PHUKET-OLDTOWN`
+- `KARUN-CENTRAL-KHONKAEN`
+- `AVERY-GAYSORN-AMARIN`
+- `ULTIMATE-BKK`
 
-## Required route audit
-Status against required top-level routes:
-- Missing as top-level routes: `/projects`, `/projects/karun-phuket`, `/timeline`, `/artwork`, `/documents`, `/work-queue`, `/site-watch`, `/gallery`, `/settings`
-- Partially covered functionally under `/os/*` tabs: overview, projects, artwork, timeline, journal, gallery
-- `/journal` exists at top level but currently points to public homepage route behavior, not a dedicated Studio Journal route
+Legacy aliases supported:
+- `karun-phuket`
+- `karun-phuket-oldtown`
+- plus per-project legacy slug aliases derived by mapper.
 
-## Overlay and trigger audit (actual)
-Current overlays/states found:
-- Command palette dialog (`/src/components/CommandPalette.jsx`) opened from toolbar button and keyboard shortcut
-- Quick Capture floating sheet (`/src/components/dashboard/QuickCapture.jsx`)
-- Backup import review panel (`/src/components/studio-os/StudioOSImportPreview.jsx`)
-- AI analysis preview panel (`/src/components/studio-os/StudioOSAnalysisPreview.jsx`)
-- Native browser confirmation dialogs for destructive actions (`window.confirm` in multiple components)
+## Route aliases added (no visual redesign)
+In `/src/App.jsx`:
+- `/projects` -> internal projects view (`/os/projects` behavior)
+- `/projects/karun-phuket` -> internal projects workspace target
+- `/timeline` -> `/os/timeline` behavior
+- `/artwork` -> `/os/artwork` behavior
+- `/documents` -> nearest document-capable internal view (`/os/projects`)
+- `/work-queue` -> nearest queue-capable internal view (`/os`)
+- `/journal` -> internal journal/content view (`/os/content`)
+- `/site-watch` -> nearest site/log-capable view (`/os/projects`)
+- `/gallery` -> `/os/portfolio` behavior
+- `/settings` -> internal non-public system view surface (`/os/projects`)
 
-Required overlay coverage status:
-- New Project Modal: not implemented as modal (project create actions exist)
-- Task Detail Drawer: not implemented in desktop Studio OS shell
-- Document Revision Drawer: not implemented
-- Artwork Preview Modal: not implemented as dedicated modal
-- Global Search: covered by Command Palette
-- Filter Drawer: not implemented as drawer
-- Confirmation Dialog: covered by native `window.confirm`
+## Overlay scaffold status
+Centralized overlay contract scaffold added (state only, minimal/no redesign):
+- `/src/overlays/overlayContract.js`
+- `/src/overlays/OverlayContext.js`
+- `/src/overlays/OverlayProvider.jsx`
+- `/src/overlays/useOverlayContract.js`
 
-## Data and adapter files
-Existing prototype data:
-- `/src/data/seed.js`
-- `/src/utils/*.js` for computed operational/timeline/client data
+Defined contract keys:
+- `new_project_modal`
+- `task_detail_drawer`
+- `document_revision_drawer`
+- `artwork_preview_modal`
+- `filter_drawer`
+- `confirmation_dialog`
 
-Added Google Corebase adapter architecture (mock-only):
-- `/src/corebase/google/models.ts` (typed data models)
-- `/src/corebase/google/adapters.ts` (adapter interfaces)
-- `/src/corebase/google/mockData.ts` (mock provider data)
-- `/src/corebase/google/mockAdapters.ts` (mock Sheets/Calendar/Drive adapters)
-- `/src/corebase/google/index.ts` (exports)
+Command Palette remains unchanged and active for global search behavior.
 
-## Naming audit
-- Explicit invalid strings not found: `BE BLANKOS`, `Blank OS`, `BlankOS`, `Atelier OS`
-- Updated key runtime backup app label to `BE BLANK OS`
-- Remaining legacy naming instances still exist (for compatibility and package metadata), e.g. `Be Blank Studio OS` in README/package metadata and utility text
+## What remains for live Google integration
+- Keep adapter interface stable and add live adapter implementations (Sheets/Calendar/Drive) behind provider switch.
+- Add read/write sync strategy and conflict handling.
+- Add credential flow and secure runtime only in a dedicated integration PR (not this foundation PR).
 
-## Placeholder audit
-- Removed explicit `coming soon` / `Placeholder` labels in mobile and quick capture copy
-- No `PlaceholderPage` component found
-- Residual non-final messaging may still exist in non-critical helper text
-
-## Known limitations
-- Required top-level route contract is not fully implemented yet (most Studio routes remain under `/os/*`)
-- Required overlay contract is not fully implemented as specified (drawers/modals missing)
-- No real Google API integration yet (mock adapters only)
-- No backend/auth/database additions were made in this stabilization pass
-
-## Next recommended steps
-1. Add top-level route aliases that map required URLs to existing Studio OS views without changing visual design.
-2. Introduce `OverlayProvider` + overlay state contract for Task Detail, Document Revision, Artwork Preview, Filter Drawer, and New Project modal.
-3. Wire adapter interfaces into a data service boundary and replace mock adapters with credentialed adapters behind feature flags.
-4. Add route-level smoke tests for all required URLs and overlay open/close behavior.
+## Notes
+- Legacy backup/localStorage support was preserved.
+- Public landing/portfolio pages were preserved.

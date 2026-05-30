@@ -4,6 +4,7 @@ export type CorebaseProjectRef = {
   id: string;
   name: string;
   phase?: string;
+  aliases?: string[];
 };
 
 export type CorebaseTask = {
@@ -15,6 +16,12 @@ export type CorebaseTask = {
   dueDate?: string;
   updatedAt: string;
 };
+export type WorkScopeItem = CorebaseTask & {
+  priority?: 'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL';
+  blockedBy?: string;
+  waitingFor?: string;
+  notes?: string;
+};
 
 export type CorebaseDocument = {
   id: string;
@@ -25,6 +32,10 @@ export type CorebaseDocument = {
   owner?: string;
   updatedAt: string;
 };
+export type DocumentItem = CorebaseDocument & {
+  legacySource?: string;
+  url?: string;
+};
 
 export type CorebaseArtwork = {
   id: string;
@@ -33,6 +44,10 @@ export type CorebaseArtwork = {
   mediaType: 'image' | 'pdf' | 'board';
   previewUrl?: string;
   updatedAt: string;
+};
+export type ProjectImage = CorebaseArtwork & {
+  role?: 'cover' | 'gallery' | 'board';
+  legacySource?: string;
 };
 
 export type CorebaseCalendarEvent = {
@@ -43,6 +58,10 @@ export type CorebaseCalendarEvent = {
   endAt: string;
   location?: string;
 };
+export type CalendarEvent = CorebaseCalendarEvent & {
+  category?: 'timeline' | 'milestone';
+  legacySource?: string;
+};
 
 export type CorebaseDriveFile = {
   id: string;
@@ -51,6 +70,42 @@ export type CorebaseDriveFile = {
   mimeType: string;
   webViewLink?: string;
   modifiedTime: string;
+};
+
+export type DecisionLogItem = {
+  id: string;
+  projectId?: string;
+  title: string;
+  body: string;
+  type: 'journal' | 'decision' | 'site-update' | 'ai-note';
+  createdAt: string;
+  source?: string;
+};
+
+export type SiteUpdateItem = {
+  id: string;
+  projectId: string;
+  title: string;
+  body: string;
+  date: string;
+};
+
+export type AlertItem = {
+  id: string;
+  projectId?: string;
+  level: 'SAFE' | 'WATCH' | 'RISK' | 'CRITICAL';
+  message: string;
+  source: 'operational-pressure';
+  createdAt: string;
+};
+
+export type CostDiffItem = {
+  id: string;
+  projectId: string;
+  baselineCost: number;
+  currentCost: number;
+  delta: number;
+  updatedAt: string;
 };
 
 export type CorebaseSyncResult = {

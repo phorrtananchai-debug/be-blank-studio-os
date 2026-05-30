@@ -14,7 +14,7 @@ test.afterEach(async () => {
 });
 
 async function expectStudioShell(page) {
-  await expect(page.getByRole('heading', { name: 'Be Blank Studio OS' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /BE BLANK OS|Be Blank Studio OS/ })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Commands' })).toBeVisible();
 }
 
@@ -51,6 +51,26 @@ test.describe('route smoke checks', () => {
     await expect(page.getByText('Project Archive')).toBeHidden();
 
     await page.goto('/os');
+    await expectStudioShell(page);
+
+    await page.goto('/projects');
+    await expectStudioShell(page);
+    await expect(page.getByText('Studio Pipeline')).toBeVisible();
+
+    await page.goto('/timeline');
+    await expectStudioShell(page);
+    await expect(page).toHaveURL(/\/timeline$/);
+
+    await page.goto('/work-queue');
+    await expectStudioShell(page);
+
+    await page.goto('/documents');
+    await expectStudioShell(page);
+
+    await page.goto('/gallery');
+    await expectStudioShell(page);
+
+    await page.goto('/settings');
     await expectStudioShell(page);
 
     await page.setViewportSize({ width: 390, height: 844 });

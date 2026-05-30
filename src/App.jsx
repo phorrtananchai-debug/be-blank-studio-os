@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { LoadingState } from './components/LoadingState.jsx';
 import { usePortfolioItems } from './hooks/usePortfolioItems.js';
 
@@ -19,6 +19,14 @@ function RouteFallback({ children }) {
 }
 
 function StudioOSRoute({ navigate, routePath }) {
+  return (
+    <RouteFallback>
+      <StudioOSApp navigate={navigate} routePath={routePath} />
+    </RouteFallback>
+  );
+}
+
+function StudioOSAliasRoute({ navigate, routePath }) {
   return (
     <RouteFallback>
       <StudioOSApp navigate={navigate} routePath={routePath} />
@@ -80,12 +88,22 @@ function App() {
     <Routes>
       <Route path="/" element={<PublicHomepageRoute portfolioItems={publicPortfolioItems} navigate={navigate} updatePortfolioItem={updatePortfolioItem} />} />
       <Route path="/about" element={<PublicHomepageRoute portfolioItems={publicPortfolioItems} navigate={navigate} updatePortfolioItem={updatePortfolioItem} />} />
-      <Route path="/journal" element={<PublicHomepageRoute portfolioItems={publicPortfolioItems} navigate={navigate} updatePortfolioItem={updatePortfolioItem} />} />
       <Route path="/work" element={<PortfolioRoute portfolioItems={publicPortfolioItems} navigate={navigate} updatePortfolioItem={updatePortfolioItem} />} />
       <Route path="/portfolio" element={<PortfolioRoute portfolioItems={publicPortfolioItems} navigate={navigate} updatePortfolioItem={updatePortfolioItem} />} />
       <Route path="/portfolio/:portfolioId" element={<PortfolioDetailRoute portfolioItems={publicPortfolioItems} navigate={navigate} />} />
       <Route path="/dashboard" element={<StudioOSRoute navigate={navigate} routePath={location.pathname} />} />
       <Route path="/os/*" element={<StudioOSRoute navigate={navigate} routePath={location.pathname} />} />
+      <Route path="/projects" element={<StudioOSAliasRoute navigate={navigate} routePath="/os/projects" />} />
+      <Route path="/projects/karun-phuket" element={<StudioOSAliasRoute navigate={navigate} routePath="/os/projects/karun-phuket" />} />
+      <Route path="/timeline" element={<StudioOSAliasRoute navigate={navigate} routePath="/os/timeline" />} />
+      <Route path="/artwork" element={<StudioOSAliasRoute navigate={navigate} routePath="/os/artwork" />} />
+      <Route path="/documents" element={<StudioOSAliasRoute navigate={navigate} routePath="/os/projects" />} />
+      <Route path="/work-queue" element={<StudioOSAliasRoute navigate={navigate} routePath="/os" />} />
+      <Route path="/site-watch" element={<StudioOSAliasRoute navigate={navigate} routePath="/os/projects" />} />
+      <Route path="/gallery" element={<StudioOSAliasRoute navigate={navigate} routePath="/os/portfolio" />} />
+      <Route path="/settings" element={<StudioOSAliasRoute navigate={navigate} routePath="/os/projects" />} />
+      <Route path="/os/projects/:projectAlias" element={<StudioOSRoute navigate={navigate} routePath={location.pathname} />} />
+      <Route path="/journal" element={<Navigate replace to="/os/content" />} />
       <Route
         path="/m"
         element={(

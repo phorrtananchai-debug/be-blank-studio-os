@@ -27,6 +27,7 @@ export function StudioOSWorkspaceContent({
   onUploadPortfolioImage,
   portfolioItems,
   projects,
+  selectedProjectAlias,
   selectedArtworkProjectId,
   statusCounts,
   studioUser,
@@ -53,6 +54,7 @@ export function StudioOSWorkspaceContent({
         {activeTab === 'projects' && (
           <ProjectDashboard
             projects={projects}
+            selectedProjectAlias={selectedProjectAlias}
             statusCounts={statusCounts}
             tasks={tasks}
             onAdd={addProject}

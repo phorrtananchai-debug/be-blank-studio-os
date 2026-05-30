@@ -1,4 +1,6 @@
 export type {
+  AlertItem,
+  CalendarEvent,
   CorebaseArtwork,
   CorebaseCalendarEvent,
   CorebaseDocument,
@@ -6,7 +8,13 @@ export type {
   CorebaseProjectRef,
   CorebaseSyncResult,
   CorebaseTask,
+  CostDiffItem,
+  DecisionLogItem,
+  DocumentItem,
   GoogleProvider,
+  ProjectImage,
+  SiteUpdateItem,
+  WorkScopeItem,
 } from './models';
 export type {
   GoogleCalendarAdapter,
@@ -21,3 +29,19 @@ export {
   createMockDriveAdapter,
   createMockSheetsAdapter,
 } from './mockAdapters';
+export {
+  getCanonicalProjectId,
+  getProjectAliases,
+  mapLegacyToCorebase,
+} from './legacyToCorebase';
+export {
+  getAlerts,
+  getArtwork,
+  getCalendarEvents,
+  getCostDiff,
+  getDecisionLog,
+  getDocuments,
+  getProjectById,
+  getProjects,
+  getWorkScope,
+} from './selectors';

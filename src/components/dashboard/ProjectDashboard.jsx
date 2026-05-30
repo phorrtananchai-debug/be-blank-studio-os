@@ -5,7 +5,7 @@ import {
   Trash2,
   Layers,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Badge } from '../Badge.jsx';
 import { Button } from '../Button.jsx';
 import { EmptyState } from '../EmptyState.jsx';
@@ -23,10 +23,11 @@ import { KeyDate, FinanceStat, ProfitStatusBadge } from './ProjectFinancials.jsx
 import { getProfitBarClass } from '../../utils/financials.js';
 import { NarrativePanel } from './NarrativePanel.jsx';
 import { ProjectWorkspace } from './ProjectWorkspace.jsx';
+import { getCanonicalProjectId, getProjectAliases } from '../../corebase/google/legacyToCorebase.ts';
 
 const drawingStatuses = ['draft', 'review', 'approved', 'issued'];
 
-export function ProjectDashboard({ projects, statusCounts, tasks = [], onAdd, onDelete, onUpdate, onOpenSpace, user }) {
+export function ProjectDashboard({ projects, selectedProjectAlias = '', statusCounts, tasks = [], onAdd, onDelete, onUpdate, onOpenSpace, user }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedProjectId, setSelectedProjectId] = useState('');
@@ -45,6 +46,19 @@ export function ProjectDashboard({ projects, statusCounts, tasks = [], onAdd, on
   }, [projects, searchQuery, statusFilter]);
 
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
+
+  useEffect(() => {
+    if (!selectedProjectAlias) return;
+    const normalizedAlias = selectedProjectAlias.trim().toLowerCase();
+    const match = projects.find((project) => {
+      const canonicalId = getCanonicalProjectId(project).toLowerCase();
+      const aliases = getProjectAliases(getCanonicalProjectId(project), project.id).map((alias) => alias.toLowerCase());
+      return normalizedAlias === project.id?.toLowerCase() || normalizedAlias === canonicalId || aliases.includes(normalizedAlias);
+    });
+    if (match) {
+      setSelectedProjectId(match.id);
+    }
+  }, [projects, selectedProjectAlias]);
 
   const deleteProject = (id) => {
     if (selectedProjectId === id) {
