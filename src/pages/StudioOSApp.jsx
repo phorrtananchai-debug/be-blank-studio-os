@@ -408,7 +408,7 @@ export function StudioOSApp({ navigate, routePath }) {
   const exportBackup = () => {
     try {
       downloadJson('be-blank-studio-os-backup.json', {
-        app: 'Be Blank Studio OS',
+        app: 'BE BLANK OS',
         schema: 'studio-os-backup',
         version: 1,
         exportedAt: new Date().toISOString(),
