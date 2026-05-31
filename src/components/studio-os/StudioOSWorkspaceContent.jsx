@@ -20,6 +20,11 @@ export function StudioOSWorkspaceContent({
   addContent,
   addPortfolio,
   addProject,
+  corebaseArtwork = [],
+  corebaseDocuments = [],
+  corebaseReadStatus = null,
+  corebaseSiteUpdates = [],
+  corebaseWorkScope = [],
   contentItems,
   copyCaption,
   copiedId,
@@ -85,10 +90,17 @@ export function StudioOSWorkspaceContent({
         {activeTab === 'artwork' && (
           <div className="space-y-12">
             {!selectedArtworkProjectId ? (
-              <BoardGallery
-                projects={projects}
-                onSelect={handleSelectArtwork}
-              />
+              <div className="space-y-4">
+                {!!corebaseArtwork.length && (
+                  <p className="type-caption text-studio-muted">
+                    Corebase mapped artwork rows: {corebaseArtwork.length}
+                  </p>
+                )}
+                <BoardGallery
+                  projects={projects}
+                  onSelect={handleSelectArtwork}
+                />
+              </div>
             ) : (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 <header className="flex items-center justify-between border-b border-black/[0.05] pb-6">
@@ -132,6 +144,7 @@ export function StudioOSWorkspaceContent({
 
         {activeTab === 'documents' && (
           <DocumentsSurface
+            documents={corebaseDocuments}
             projects={projects}
             onOpenDocument={(document) => {
               if (onOpenGlobalDocumentRevision) {
@@ -148,7 +161,7 @@ export function StudioOSWorkspaceContent({
         {activeTab === 'workQueue' && (
           <WorkQueueSurface
             projects={projects}
-            tasks={tasks}
+            tasks={corebaseWorkScope.length ? corebaseWorkScope : tasks}
             onOpenTask={openTaskDetail}
           />
         )}
@@ -156,6 +169,7 @@ export function StudioOSWorkspaceContent({
         {activeTab === 'siteWatch' && (
           <SiteWatchSurface
             projects={projects}
+            siteUpdates={corebaseSiteUpdates}
           />
         )}
 
@@ -186,6 +200,7 @@ export function StudioOSWorkspaceContent({
 
         {activeTab === 'settings' && (
           <SettingsSurface
+            corebaseStatus={corebaseReadStatus}
             settings={studioSettings}
             onChange={onUpdateStudioSettings}
           />

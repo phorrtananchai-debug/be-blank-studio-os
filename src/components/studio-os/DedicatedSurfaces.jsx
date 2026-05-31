@@ -86,8 +86,22 @@ export function WorkQueueSurface({ tasks = [], onOpenTask, projects = [] }) {
   );
 }
 
-export function SiteWatchSurface({ projects = [] }) {
-  const rows = useMemo(() => projects.flatMap((project) => (Array.isArray(project.siteLogs) ? project.siteLogs.map((log) => ({ ...log, projectName: project.name })) : [])), [projects]);
+export function SiteWatchSurface({ projects = [], siteUpdates = [] }) {
+  const rows = useMemo(() => {
+    if (siteUpdates.length) {
+      return siteUpdates.map((item) => ({
+        date: item.date || item.createdAt || '',
+        id: item.id,
+        issues: item.issues || '',
+        notes: item.body || item.message || '',
+        projectName: item.projectName || item.projectId || 'Studio',
+        title: item.title || 'Site log',
+      }));
+    }
+    return projects.flatMap((project) => (
+      Array.isArray(project.siteLogs) ? project.siteLogs.map((log) => ({ ...log, projectName: project.name })) : []
+    ));
+  }, [projects, siteUpdates]);
   return (
     <SectionCard title="Site Watch" eyebrow="Dedicated Surface">
       {rows.length ? (
@@ -107,7 +121,7 @@ export function SiteWatchSurface({ projects = [] }) {
   );
 }
 
-export function SettingsSurface({ settings, onChange }) {
+export function SettingsSurface({ settings, onChange, corebaseStatus }) {
   return (
     <SectionCard title="Studio System Settings" eyebrow="Dedicated Surface">
       <div className="grid gap-6 sm:grid-cols-2">
@@ -131,6 +145,16 @@ export function SettingsSurface({ settings, onChange }) {
           value={settings.backupRetention}
           onChange={(value) => onChange({ ...settings, backupRetention: value })}
         />
+      </div>
+      <div className="mt-8 rounded-3xl border border-black/[0.06] bg-white/70 p-6">
+        <p className="type-label text-studio-muted">Corebase Sync Status</p>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <p className="type-caption text-studio-muted">Corebase mode: {corebaseStatus?.mode || 'mock'}</p>
+          <p className="type-caption text-studio-muted">Endpoint configured: {corebaseStatus?.endpointConfigured ? 'yes' : 'no'}</p>
+          <p className="type-caption text-studio-muted">Last sync: {corebaseStatus?.lastSyncAt || 'not synced yet'}</p>
+          <p className="type-caption text-studio-muted">Last error code: {corebaseStatus?.lastErrorCode || 'none'}</p>
+        </div>
+        <p className="mt-3 type-control text-studio-muted">Read-only mode: active</p>
       </div>
     </SectionCard>
   );

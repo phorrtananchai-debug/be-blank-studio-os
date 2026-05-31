@@ -107,3 +107,65 @@
 - Normalize remaining non-targeted overlay openers onto shared payload builders.
 - Add dedicated unit tests for overlay payload builder functions.
 - Tighten any remaining destructive-action entry paths to always include deterministic metadata coverage.
+
+---
+
+## Google Corebase Read-only MVP Foundation (Step 4)
+
+### What was implemented
+- Provider mode config added:
+  - `/src/corebase/google/providerConfig.js`
+  - Modes:
+    - `mock` (default)
+    - `google-readonly` (only when `VITE_GOOGLE_COREBASE_ENDPOINT` is set)
+- Read-only adapter added:
+  - `/src/corebase/google/googleReadonlyAdapter.js`
+  - Safe fetch wrapper with timeout + JSON guards + error mapping.
+  - No write methods and no credentials in code.
+- Google row normalization added:
+  - `/src/corebase/google/googleRowMappers.js`
+  - Handles optional/missing fields, alias mapping, booleans, numeric parsing, and safe status normalization.
+- Provider-aware selectors extended:
+  - `/src/corebase/google/selectors.ts`
+  - Read order:
+    1. `google-readonly` (when configured and successful)
+    2. mock adapter fallback
+    3. legacy fallback where already used
+- Internal surfaces wired additively with selector output:
+  - `/src/pages/StudioOSApp.jsx`
+  - `/src/components/studio-os/StudioOSWorkspaceContent.jsx`
+  - `/src/components/studio-os/DedicatedSurfaces.jsx`
+  - Settings now shows Corebase mode/status (read-only badge and sync/error metadata).
+
+### New documentation and templates
+- `/GOOGLE_COREBASE_READONLY_MVP.md`
+- `/GOOGLE_APPS_SCRIPT_ENDPOINT_CONTRACT.md`
+- `/docs/google-corebase-templates/00_ProjectMaster.csv`
+- `/docs/google-corebase-templates/01_WorkScope.csv`
+- `/docs/google-corebase-templates/02_DecisionLog.csv`
+- `/docs/google-corebase-templates/03_CostDiff.csv`
+- `/docs/google-corebase-templates/04_AlertLog.csv`
+- `/docs/google-corebase-templates/05_Documents.csv`
+- `/docs/google-corebase-templates/06_Images.csv`
+- `/docs/google-corebase-templates/09_CalendarMirror.csv`
+
+### How to configure read-only endpoint later
+- Set `VITE_GOOGLE_COREBASE_ENDPOINT` in local env.
+- If unset, app remains in `mock` mode and keeps current local/mock behavior.
+- No OAuth/backend secret handling is included in this phase.
+
+### Validation (Step 4)
+- `npm run build`: pass
+- `npm run lint`: pass
+- `npm run test`: pass
+- `npm run test:smoke`: pass
+
+### Risks and limitations
+- `google-readonly` currently assumes GET-only Apps Script response contract; no auth flow in this phase.
+- Row mappers normalize unknown values safely, so malformed upstream rows may be tolerated but downgraded to defaults.
+- Write-back actions are intentionally out of scope.
+
+### Next recommended PR scope
+- Add authenticated Apps Script or service gateway strategy (still read-only first).
+- Add retry/backoff and explicit stale-data indicator for repeated endpoint errors.
+- Add project-level read-status diagnostics per surface.

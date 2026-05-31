@@ -1,0 +1,5 @@
+task_id,project_id,task_title,status,priority,assignee,due_date,notes,updated_at
+TASK-001,KARUN-PHUKET-OLDTOWN,Finalize lighting schedule,IN_PROGRESS,HIGH,Studio Lead,2026-06-10,Pending supplier response,2026-06-01T09:05:00Z
+TASK-002,KARUN-CENTRAL-KHONKAEN,Confirm partition details,WAITING,NORMAL,Design Director,2026-06-12,Awaiting owner sign-off,2026-06-01T09:06:00Z
+TASK-003,AVERY-GAYSORN-AMARIN,Update BOQ alignment,TODO,HIGH,QS Team,2026-06-14,Budget reconciliation in progress,2026-06-01T09:07:00Z
+TASK-004,ULTIMATE-BKK,Prepare handover checklist,BLOCKED,CRITICAL,PM,2026-06-08,Pending legal clearance,2026-06-01T09:08:00Z

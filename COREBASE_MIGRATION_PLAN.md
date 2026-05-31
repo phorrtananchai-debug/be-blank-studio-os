@@ -4,6 +4,7 @@
 - Phase 1 (mapping foundation): complete
 - Phase 2 (safe read-path binding): in progress (this PR step)
 - Phase 3 (route + overlay contract hardening): in progress (this PR step)
+- Phase 4 (google read-only foundation): in progress (this PR step)
 
 ## Completed in this step
 1. Selector-bound read fallback in project workspace
@@ -47,3 +48,45 @@
 - No backend/auth/database additions.
 - No public landing redesign.
 - No destructive migration of legacy localStorage/backup schema.
+
+---
+
+## Phase 4 Additions - Google Read-only Foundation
+
+### Implemented
+1. Provider configuration
+   - `src/corebase/google/providerConfig.js`
+   - Default mode remains `mock`.
+   - `google-readonly` activates only when `VITE_GOOGLE_COREBASE_ENDPOINT` exists.
+
+2. Read-only adapter boundary
+   - `src/corebase/google/googleReadonlyAdapter.js`
+   - GET-only reader with timeout, JSON guard, response guard, and known error mapping.
+
+3. Row normalization layer
+   - `src/corebase/google/googleRowMappers.js`
+   - Maps sheet-like rows to existing Corebase models and preserves safe fallback behavior.
+
+4. Provider-aware selector integration
+   - `src/corebase/google/selectors.ts`
+   - Prioritized read path:
+     1) google-readonly
+     2) mock adapter fallback
+     3) legacy fallback
+
+5. Additive surface wiring
+   - `src/pages/StudioOSApp.jsx`
+   - `src/components/studio-os/StudioOSWorkspaceContent.jsx`
+   - `src/components/studio-os/DedicatedSurfaces.jsx`
+   - Dedicated routes now consume selector-backed read data where safe without removing legacy paths.
+
+6. Read-only docs/templates
+   - `GOOGLE_COREBASE_READONLY_MVP.md`
+   - `GOOGLE_APPS_SCRIPT_ENDPOINT_CONTRACT.md`
+   - `docs/google-corebase-templates/*.csv`
+
+### Remaining before live use
+1. Apps Script deployment and endpoint security policy.
+2. Deterministic endpoint health/retry UX.
+3. Live auth strategy (out of scope for this PR).
+4. Write-back contract and conflict strategy (separate PR).
