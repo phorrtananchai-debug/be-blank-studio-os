@@ -26,6 +26,11 @@ import { NarrativePanel } from './NarrativePanel.jsx';
 import { ProjectWorkspace } from './ProjectWorkspace.jsx';
 import { getCanonicalProjectId, getProjectAliases } from '../../corebase/google/legacyToCorebase.ts';
 import { useOverlayContract } from '../../overlays/useOverlayContract.js';
+import {
+  buildConfirmationPayload,
+  buildFilterDrawerPayload,
+  buildNewProjectPayload,
+} from '../../overlays/overlayPayloads.js';
 
 const drawingStatuses = ['draft', 'review', 'approved', 'issued'];
 
@@ -75,12 +80,16 @@ export function ProjectDashboard({ projects, selectedProjectAlias = '', statusCo
   };
 
   const requestDeleteProject = (project) => {
-    openOverlay(overlayKinds.CONFIRMATION_DIALOG, {
+    openOverlay(overlayKinds.CONFIRMATION_DIALOG, buildConfirmationPayload({
       confirmLabel: 'Delete',
       description: `Delete ${project.name || 'this project'} from Studio OS.`,
+      id: `DELETE-${project.id || 'PROJECT'}`,
+      name: project.name || 'Project',
       onConfirm: () => deleteProject(project.id),
+      projectId: project.id || '',
+      source: '/os/projects',
       title: 'Delete Project',
-    });
+    }));
   };
 
   if (selectedProject) {
@@ -113,12 +122,7 @@ export function ProjectDashboard({ projects, selectedProjectAlias = '', statusCo
 
       <SectionCard
         action={
-          <Button onClick={() => openOverlay(overlayKinds.NEW_PROJECT_MODAL, {
-            confirmLabel: 'Create Project',
-            description: 'Create a new project shell and open it in the current workspace.',
-            onConfirm: onAdd,
-            title: 'New Project',
-          })}>
+          <Button onClick={() => openOverlay(overlayKinds.NEW_PROJECT_MODAL, buildNewProjectPayload(onAdd, '/os/projects'))}>
             <Plus size={16} />
             New Project
           </Button>
@@ -160,10 +164,11 @@ export function ProjectDashboard({ projects, selectedProjectAlias = '', statusCo
             </select>
           </label>
           <div className="flex items-end">
-            <Button variant="secondary" onClick={() => openOverlay(overlayKinds.FILTER_DRAWER, {
-              content: `Search query: ${searchQuery || 'none'} | Status: ${statusFilter}`,
-              title: 'Filter Drawer',
-            })}>
+            <Button variant="secondary" onClick={() => openOverlay(overlayKinds.FILTER_DRAWER, buildFilterDrawerPayload({
+              query: searchQuery,
+              source: '/os/projects',
+              status: statusFilter,
+            }))}>
               <SlidersHorizontal size={14} />
               Filters
             </Button>

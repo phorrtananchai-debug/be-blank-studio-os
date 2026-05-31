@@ -19,6 +19,10 @@ import { OverlayHost } from '../overlays/OverlayHost.jsx';
 import { useOverlayContract } from '../overlays/useOverlayContract.js';
 import { getDocuments } from '../corebase/google/selectors.ts';
 import {
+  buildConfirmationPayload,
+  buildDocumentRevisionPayload,
+} from '../overlays/overlayPayloads.js';
+import {
   addCollectionItem,
   deleteCollectionItem,
   getFirebaseDebugInfo,
@@ -640,11 +644,6 @@ export function StudioOSApp({ navigate, routePath }) {
       return;
     }
 
-    const confirmed = window.confirm(
-      `Restore last AI import snapshot from ${snapshot.createdAt}?\n\nAffected projects: ${snapshot.affectedProjectIds.join(', ') || 'none'}\n\nThis restores project records and local notes. Firebase task deletion is not automated.`,
-    );
-    if (!confirmed) return;
-
     try {
       if (studioUser && snapshot.records?.projects?.length) {
         await Promise.all(snapshot.records.projects.map((project) => updateProject(project.id, project)));
@@ -664,6 +663,25 @@ export function StudioOSApp({ navigate, routePath }) {
     }
   };
 
+  const requestRestoreLastAiSnapshot = async () => {
+    const snapshot = getLatestAiImportSnapshot();
+    if (!snapshot) {
+      showToast('No AI import recovery snapshot found.', 'warning');
+      return;
+    }
+
+    openOverlay(overlayKinds.CONFIRMATION_DIALOG, buildConfirmationPayload({
+      confirmLabel: 'Restore Snapshot',
+      description: `Restore last AI import snapshot from ${snapshot.createdAt}? Affected projects: ${snapshot.affectedProjectIds.join(', ') || 'none'}.`,
+      id: `RESTORE-SNAPSHOT-${snapshot.createdAt}`,
+      name: 'AI Import Snapshot',
+      onConfirm: restoreLastAiSnapshot,
+      source: '/os',
+      status: 'pending',
+      title: 'Restore AI Snapshot',
+    }));
+  };
+
   const toggleDebugPanel = () => {
     setShowDebug((value) => {
       const nextValue = !value;
@@ -675,11 +693,7 @@ export function StudioOSApp({ navigate, routePath }) {
   const openDocumentRevisionDrawer = async (documentFromSurface = null) => {
     const docs = await getDocuments();
     const firstDoc = documentFromSurface || docs[0] || null;
-    openOverlay(overlayKinds.DOCUMENT_REVISION_DRAWER, {
-      description: 'Dedicated document revision view.',
-      document: firstDoc,
-      title: 'Document Revision',
-    });
+    openOverlay(overlayKinds.DOCUMENT_REVISION_DRAWER, buildDocumentRevisionPayload(firstDoc, routePath || '/os/documents'));
   };
 
   const firebaseDebugInfo = getFirebaseDebugInfo();
@@ -814,7 +828,7 @@ export function StudioOSApp({ navigate, routePath }) {
           onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
           onRequestAnalysisImport={requestAnalysisImport}
           onRequestBackupImport={requestBackupImport}
-          onRestoreLastAiSnapshot={restoreLastAiSnapshot}
+          onRestoreLastAiSnapshot={requestRestoreLastAiSnapshot}
           onToggleDebug={toggleDebugPanel}
         />
 

@@ -60,6 +60,11 @@ import {
 import { getCanonicalProjectId } from '../../corebase/google/legacyToCorebase.ts';
 import { getArtwork, getDocuments, getWorkScope } from '../../corebase/google/selectors.ts';
 import { useOverlayContract } from '../../overlays/useOverlayContract.js';
+import {
+  buildConfirmationPayload,
+  buildDocumentRevisionPayload,
+  buildTaskDetailPayload,
+} from '../../overlays/overlayPayloads.js';
 
 const drawingStatuses = ['draft', 'review', 'approved', 'issued'];
 
@@ -937,28 +942,30 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
   };
 
   const requestDeleteProject = () => {
-    openOverlay(overlayKinds.CONFIRMATION_DIALOG, {
+    openOverlay(overlayKinds.CONFIRMATION_DIALOG, buildConfirmationPayload({
       confirmLabel: 'Delete',
       description: `Delete ${project.name || 'this project'} from Studio OS.`,
+      id: `DELETE-${project.id || 'PROJECT'}`,
+      name: project.name || 'Project',
       onConfirm: onDelete,
+      projectId: project.id || '',
+      source: '/os/projects',
       title: 'Delete Project',
-    });
+    }));
   };
 
   const openTaskDetailDrawer = (task) => {
-    openOverlay(overlayKinds.TASK_DETAIL_DRAWER, {
-      description: project.name,
-      task,
-      title: 'Task Detail',
-    });
+    openOverlay(overlayKinds.TASK_DETAIL_DRAWER, buildTaskDetailPayload({
+      ...task,
+      projectId: task?.projectId || project.id || '',
+    }, '/os/projects'));
   };
 
   const openDocumentRevisionDrawer = (document) => {
-    openOverlay(overlayKinds.DOCUMENT_REVISION_DRAWER, {
-      description: project.name,
-      document,
-      title: 'Document Revision',
-    });
+    openOverlay(overlayKinds.DOCUMENT_REVISION_DRAWER, buildDocumentRevisionPayload({
+      ...document,
+      projectId: document?.projectId || project.id || '',
+    }, '/os/projects'));
   };
 
   return (
