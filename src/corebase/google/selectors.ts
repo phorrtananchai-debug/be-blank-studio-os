@@ -1,5 +1,6 @@
 import { initialContentItems, initialPortfolioItems, initialProjects } from '../../data/seed.js';
 import { createGoogleReadonlyAdapter } from './googleReadonlyAdapter.js';
+import { getGoogleReadonlyDiagnostics } from './googleReadonlyDiagnostics.js';
 import { mapLegacyToCorebase } from './legacyToCorebase';
 import { createMockGoogleCorebaseAdapters } from './mockAdapters';
 import { getCorebaseModeLabel, getGoogleCorebaseProviderConfig } from './providerConfig.js';
@@ -13,13 +14,13 @@ const readonlyAdapter = createGoogleReadonlyAdapter(
   },
 );
 
-const corebaseReadStatus = {
-  endpointConfigured: providerConfig.endpointConfigured,
-  lastErrorCode: null,
-  lastSyncAt: null,
-  mode: getCorebaseModeLabel(providerConfig),
-  readOnly: true,
-};
+const corebaseReadStatus = getGoogleReadonlyDiagnostics({
+  adapterStatus: readonlyAdapter.getStatus(),
+  providerConfig: {
+    ...providerConfig,
+    mode: getCorebaseModeLabel(providerConfig),
+  },
+});
 
 function getLegacySnapshot() {
   return mapLegacyToCorebase({
@@ -76,10 +77,14 @@ function ensureArtwork(projectImages = [], projects = initialProjects, portfolio
   }];
 }
 
-function applyReadonlyStatus() {
+function applyReadonlyStatus(fallback: string | null = null) {
   const adapterStatus = readonlyAdapter.getStatus();
-  corebaseReadStatus.lastErrorCode = adapterStatus.lastErrorCode || null;
-  corebaseReadStatus.lastSyncAt = adapterStatus.lastSyncAt || null;
+  const nextStatus = getGoogleReadonlyDiagnostics({
+    adapterStatus,
+    fallback,
+    providerConfig,
+  });
+  Object.assign(corebaseReadStatus, nextStatus);
 }
 
 function shouldUseGoogleReadonly() {
@@ -88,14 +93,20 @@ function shouldUseGoogleReadonly() {
 
 async function loadWithReadonlyFallback(readonlyLoader, fallbackLoader) {
   if (!shouldUseGoogleReadonly()) {
-    return fallbackLoader();
+    const fallbackRows = await fallbackLoader();
+    applyReadonlyStatus(null);
+    return fallbackRows;
   }
   const readonlyRows = await readonlyLoader();
-  applyReadonlyStatus();
+  applyReadonlyStatus(null);
   if (Array.isArray(readonlyRows) && readonlyRows.length) {
     return readonlyRows;
   }
-  return fallbackLoader();
+  const fallbackRows = await fallbackLoader();
+  const adapterStatus = readonlyAdapter.getStatus();
+  const fallback = adapterStatus.lastErrorCode ? 'mock' : null;
+  applyReadonlyStatus(fallback);
+  return fallbackRows;
 }
 
 function normalizeTaskRows(rows = []) {

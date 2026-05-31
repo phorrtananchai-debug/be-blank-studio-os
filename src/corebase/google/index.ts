@@ -35,6 +35,10 @@ export {
   mapLegacyToCorebase,
 } from './legacyToCorebase';
 export {
+  getEndpointHost,
+  getGoogleReadonlyDiagnostics,
+} from './googleReadonlyDiagnostics';
+export {
   getCorebaseReadStatus,
   getAlerts,
   getArtwork,

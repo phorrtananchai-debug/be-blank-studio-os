@@ -1,10 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   mapReadonlyError,
   createGoogleReadonlyAdapter,
   normalizeErrorCode,
 } from '../../src/corebase/google/googleReadonlyAdapter.js';
+import { getEndpointHost, getGoogleReadonlyDiagnostics } from '../../src/corebase/google/googleReadonlyDiagnostics.js';
 import { getGoogleCorebaseProviderConfig } from '../../src/corebase/google/providerConfig.js';
 import {
   mapAlertRow,
@@ -83,9 +86,11 @@ test('error mapper normalizes known and unknown error codes', () => {
   const mappedKnown = mapReadonlyError({ code: 'rate_limited', message: 'Too many requests', retryable: true });
   assert.equal(mappedKnown.code, 'rate_limited');
   assert.equal(mappedKnown.retryable, true);
+  assert.equal(mappedKnown.suggestedRetryMs, 60000);
 
   const mappedUnknown = mapReadonlyError({ code: 'mystery', message: 'x' });
   assert.equal(mappedUnknown.code, 'unknown');
+  assert.equal(mappedUnknown.suggestedRetryMs, 30000);
 });
 
 test('row mappers handle missing optional fields safely', () => {
@@ -123,4 +128,66 @@ test('settings row booleans parse from string values', () => {
   assert.equal(enabled.acknowledged, false);
   assert.equal(disabled.active, false);
   assert.equal(disabled.acknowledged, true);
+});
+
+test('diagnostics exposes endpoint host only', () => {
+  assert.equal(getEndpointHost('https://script.google.com/macros/s/example-id/exec?x=1'), 'script.google.com');
+
+  const diagnostics = getGoogleReadonlyDiagnostics({
+    adapterStatus: {
+      endpointConfigured: true,
+      mode: 'google-readonly',
+    },
+    providerConfig: {
+      endpoint: 'https://script.google.com/macros/s/private-token/exec?key=123',
+      endpointConfigured: true,
+      mode: 'google-readonly',
+    },
+  });
+
+  assert.equal(diagnostics.endpointHost, 'script.google.com');
+  assert.equal(diagnostics.endpointHost.includes('private-token'), false);
+  assert.equal(diagnostics.endpointHost.includes('key='), false);
+});
+
+test('diagnostics marks stale fallback when readonly errors and mock fallback is used', () => {
+  const diagnostics = getGoogleReadonlyDiagnostics({
+    adapterStatus: {
+      lastErrorCode: 'network_error',
+      lastErrorRetryable: true,
+      lastErrorSuggestedRetryMs: 10000,
+      mode: 'google-readonly',
+    },
+    fallback: 'mock',
+    providerConfig: {
+      endpoint: 'https://script.google.com/macros/s/example/exec',
+      endpointConfigured: true,
+      mode: 'google-readonly',
+    },
+  });
+
+  assert.equal(diagnostics.mode, 'google-readonly');
+  assert.equal(diagnostics.fallback, 'mock');
+  assert.equal(diagnostics.stale, true);
+  assert.equal(diagnostics.lastErrorCode, 'network_error');
+  assert.equal(diagnostics.retryable, true);
+  assert.equal(diagnostics.suggestedRetryMs, 10000);
+});
+
+test('apps script sample includes expected resources and placeholder spreadsheet id', () => {
+  const samplePath = path.resolve(process.cwd(), 'docs/google-corebase-apps-script/readonly-doGet.sample.js');
+  const sample = fs.readFileSync(samplePath, 'utf8');
+
+  [
+    'projects',
+    'workscope',
+    'documents',
+    'images',
+    'calendar',
+    'alerts',
+    'all',
+    'YOUR_SPREADSHEET_ID_HERE',
+  ].forEach((token) => {
+    assert.equal(sample.includes(token), true, `Expected sample to include ${token}`);
+  });
 });
