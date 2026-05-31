@@ -63,7 +63,19 @@ function mapLegacyProjectRefs(projects = initialProjects): CorebaseProjectRef[] 
 }
 
 function mapLegacyTasks(tasks = [], projects = initialProjects): WorkScopeItem[] {
-  return tasks.map((task: any) => {
+  const sourceTasks = tasks.length
+    ? tasks
+    : projects.map((project: any, index: number) => ({
+      dueDate: project.handoverDate || project.openingDate || '',
+      id: `legacy-seeded-task-${index + 1}`,
+      notes: project.notes || '',
+      priority: 'NORMAL',
+      projectId: project.id,
+      status: 'OPEN',
+      title: project.nextAction || `Next action for ${project.name}`,
+    }));
+
+  return sourceTasks.map((task: any) => {
     const matchedProject = projects.find((project) => project.id === task.projectId);
     return {
       id: task.id || `TASK-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
