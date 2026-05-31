@@ -1,63 +1,61 @@
-# HANDOFF - BE BLANK OS Migration Foundation
+# HANDOFF - BE BLANK OS Migration Foundation (Step 2)
+
+## What changed in this step
+
+### 1) Adapter-backed selector binding (read-only, additive)
+- Bound Corebase selectors into project workspace read paths as fallback data sources:
+  - `/src/components/dashboard/ProjectWorkspace.jsx`
+  - Uses:
+    - `getWorkScope(projectId)`
+    - `getDocuments(projectId)`
+    - `getArtwork(projectId)`
+- Legacy data paths remain intact and primary.
+- Selector output is used only when local project arrays are empty.
+
+### 2) Route alias hardening
+- Internal alias coverage retained and verified in `/src/App.jsx`:
+  - `/projects`
+  - `/projects/karun-phuket`
+  - `/timeline`
+  - `/artwork`
+  - `/documents`
+  - `/work-queue`
+  - `/journal` (redirects to internal `/os/content`)
+  - `/site-watch`
+  - `/gallery`
+  - `/settings`
+- Public landing and public portfolio routes remain unchanged.
+
+### 3) Overlay contract attached to real triggers
+- Overlay host and context-driven runtime added:
+  - `/src/overlays/OverlayHost.jsx`
+  - `/src/overlays/overlayContract.js`
+  - `/src/overlays/OverlayContext.js`
+  - `/src/overlays/OverlayProvider.jsx`
+  - `/src/overlays/useOverlayContract.js`
+- Trigger attachments:
+  - New Project button -> `new_project_modal` (`ProjectDashboard`)
+  - Filter button -> `filter_drawer` (`ProjectDashboard`)
+  - Project delete actions -> `confirmation_dialog` (`ProjectDashboard`, `ProjectWorkspace`)
+  - Task row click -> `task_detail_drawer` (`ProjectWorkspace` task panel)
+  - Document row click -> `document_revision_drawer` (`ProjectWorkspace` document panel)
+  - Artwork card click -> `artwork_preview_modal` (`BoardGallery`)
+- Command Palette remains unchanged for global search behavior.
+
+### 4) Tests updated
+- Smoke route coverage expanded for aliases:
+  - `/projects`, `/projects/karun-phuket`, `/timeline`, `/artwork`, `/work-queue`, `/journal`, `/documents`, `/site-watch`, `/gallery`, `/settings`
+- Overlay smoke checks added for open/close baseline behavior.
+- Naming/placeholder smoke checks added for banned naming and placeholder text on key routes.
+- File: `/tests/smoke.spec.js`
 
 ## Validation
-- `npm install`: pass
 - `npm run build`: pass
 - `npm run lint`: pass
 - `npm run test:smoke`: pass
 
-## New migration foundation files
-- Mapper: `/src/corebase/google/legacyToCorebase.ts`
-- Selectors: `/src/corebase/google/selectors.ts`
-- Expanded domain models: `/src/corebase/google/models.ts`
-
-## Stable project ID strategy
-Canonical IDs introduced in mapper:
-- `KARUN-PHUKET-OLDTOWN`
-- `KARUN-CENTRAL-KHONKAEN`
-- `AVERY-GAYSORN-AMARIN`
-- `ULTIMATE-BKK`
-
-Legacy aliases supported:
-- `karun-phuket`
-- `karun-phuket-oldtown`
-- plus per-project legacy slug aliases derived by mapper.
-
-## Route aliases added (no visual redesign)
-In `/src/App.jsx`:
-- `/projects` -> internal projects view (`/os/projects` behavior)
-- `/projects/karun-phuket` -> internal projects workspace target
-- `/timeline` -> `/os/timeline` behavior
-- `/artwork` -> `/os/artwork` behavior
-- `/documents` -> nearest document-capable internal view (`/os/projects`)
-- `/work-queue` -> nearest queue-capable internal view (`/os`)
-- `/journal` -> internal journal/content view (`/os/content`)
-- `/site-watch` -> nearest site/log-capable view (`/os/projects`)
-- `/gallery` -> `/os/portfolio` behavior
-- `/settings` -> internal non-public system view surface (`/os/projects`)
-
-## Overlay scaffold status
-Centralized overlay contract scaffold added (state only, minimal/no redesign):
-- `/src/overlays/overlayContract.js`
-- `/src/overlays/OverlayContext.js`
-- `/src/overlays/OverlayProvider.jsx`
-- `/src/overlays/useOverlayContract.js`
-
-Defined contract keys:
-- `new_project_modal`
-- `task_detail_drawer`
-- `document_revision_drawer`
-- `artwork_preview_modal`
-- `filter_drawer`
-- `confirmation_dialog`
-
-Command Palette remains unchanged and active for global search behavior.
-
-## What remains for live Google integration
-- Keep adapter interface stable and add live adapter implementations (Sheets/Calendar/Drive) behind provider switch.
-- Add read/write sync strategy and conflict handling.
-- Add credential flow and secure runtime only in a dedicated integration PR (not this foundation PR).
-
-## Notes
-- Legacy backup/localStorage support was preserved.
-- Public landing/portfolio pages were preserved.
+## Remaining limitations
+- Overlay views are scaffold-level UX (contract and payload routing), not full production drawer/modal feature parity yet.
+- Document/task/artwork overlay checks are data-dependent; when no project rows exist, deep interaction checks are skipped safely in smoke tests.
+- Selector read-path integration is intentionally conservative and localized to workspace fallback reads only.
+- Live Google adapters (Sheets/Calendar/Drive) are still not connected.

@@ -1,9 +1,11 @@
 import { Layers, ChevronRight, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '../Badge.jsx';
+import { useOverlayContract } from '../../overlays/useOverlayContract.js';
 
 export function BoardGallery({ projects, onSelect }) {
   const [search, setSearch] = useState('');
+  const { openOverlay, overlayKinds } = useOverlayContract();
 
   const filtered = projects.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -33,7 +35,18 @@ export function BoardGallery({ projects, onSelect }) {
         {filtered.map((project) => (
           <button
             key={project.id}
-            onClick={() => onSelect(project.id)}
+            onClick={() => openOverlay(overlayKinds.ARTWORK_PREVIEW_MODAL, {
+              artwork: {
+                client: project.client || '',
+                name: project.name,
+                projectName: project.name,
+                title: `${project.name} board`,
+              },
+              confirmLabel: 'Open Space',
+              description: 'Preview studio board context before opening the full artwork surface.',
+              onConfirm: () => onSelect(project.id),
+              title: 'Artwork Preview',
+            })}
             className="group relative flex flex-col text-left rounded-2xl border border-black/[0.05] bg-white overflow-hidden shadow-studioSoft hover:shadow-studio hover:border-black/10 transition-all"
           >
             {/* Thumbnail Placeholder */}

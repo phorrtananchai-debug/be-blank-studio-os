@@ -286,3 +286,8 @@ Defined in [C:/Users/UsEr/Documents/New project-worktrees/beblank-os-corebase-ad
 3. Add route aliases for required internal URLs that map to existing screens.
 4. Add overlay contract scaffolding with typed payloads and no visual redesign.
 5. Add migration smoke tests for key routes + open/close overlay states + backup compatibility read.
+## Audit status update (migration step 2)
+- Selector fallback reads are now bound in project workspace (tasks/documents/artwork).
+- Overlay contract is now attached to real UI triggers (new project, filter, task row, document row, artwork card, destructive confirmations).
+- Route aliases remain active and are covered in smoke tests.
+- Full parity for dedicated document/work-queue/settings experiences is still pending.

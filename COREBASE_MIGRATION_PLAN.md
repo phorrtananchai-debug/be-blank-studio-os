@@ -1,30 +1,49 @@
 # COREBASE_MIGRATION_PLAN
 
-## Purpose
-Migration foundation plan for moving legacy BE BLANK OS operational data into Corebase-compatible structures while keeping current UI behavior stable.
+## Phase status
+- Phase 1 (mapping foundation): complete
+- Phase 2 (safe read-path binding): in progress (this PR step)
+- Phase 3 (route + overlay contract hardening): in progress (this PR step)
 
-## Implemented in this PR
-1. Read-only legacy mapper in `/src/corebase/google/legacyToCorebase.ts`.
-2. Adapter-backed selectors in `/src/corebase/google/selectors.ts`.
-3. Canonical project ID + alias mapping strategy.
-4. Route aliases that map required URLs to existing Studio OS surfaces.
-5. Centralized overlay contract scaffolding without replacing existing command palette.
-6. Smoke route coverage for internal and alias routes.
+## Completed in this step
+1. Selector-bound read fallback in project workspace
+   - `src/components/dashboard/ProjectWorkspace.jsx`
+   - Selectors used:
+     - `getWorkScope(projectId)`
+     - `getDocuments(projectId)`
+     - `getArtwork(projectId)`
 
-## Data mapped into Corebase domain
-- Projects -> `CorebaseProjectRef`
-- Tasks -> `WorkScopeItem`
-- Journal + site context -> `DecisionLogItem`
-- Timeline dates -> `CalendarEvent`
-- Documents -> `DocumentItem`
-- Artwork/gallery -> `ProjectImage`
-- Site logs -> `SiteUpdateItem`
-- Operational pressure -> `AlertItem`
-- Cost delta -> `CostDiffItem`
+2. Route alias hardening
+   - `src/App.jsx`
+   - Required internal aliases mapped to existing Studio OS surfaces.
 
-## Next execution phases
-1. Bind selectors to Studio OS read paths and progressively replace legacy direct reads.
-2. Expand project canonical model beyond refs and add normalization for missing document fields.
-3. Add dedicated route-level document/work-queue/settings surfaces using existing visual language.
-4. Attach overlay contract payloads to real triggers (task row, document row, artwork preview, filters, destructive confirmations).
-5. Introduce live Google adapters (read-only first), then controlled write-back.
+3. Overlay contract runtime
+   - Added overlay host and hook integration:
+     - `src/overlays/OverlayHost.jsx`
+     - `src/overlays/overlayContract.js`
+     - `src/overlays/OverlayContext.js`
+     - `src/overlays/OverlayProvider.jsx`
+     - `src/overlays/useOverlayContract.js`
+   - Trigger bindings:
+     - New Project -> `new_project_modal`
+     - Filter action -> `filter_drawer`
+     - Delete actions -> `confirmation_dialog`
+     - Task row -> `task_detail_drawer`
+     - Document row -> `document_revision_drawer`
+     - Artwork card -> `artwork_preview_modal`
+
+4. Smoke coverage expansion
+   - `tests/smoke.spec.js`
+   - Added alias route checks, overlay open/close checks, naming/placeholder checks.
+
+## Recommended next PR scope
+1. Promote selector-backed reads from workspace fallback to shared Studio OS page-level data access layer.
+2. Normalize document/work-queue/site-watch route surfaces to dedicated tabs/views while preserving current visual style.
+3. Connect overlay payloads to richer domain data (revision history, task dependency graph, artwork metadata).
+4. Add deterministic fixture mode for smoke tests so overlay interaction checks always run, not only when project rows exist.
+
+## Deferred by design
+- No live Google credentials or API wiring yet.
+- No backend/auth/database additions.
+- No public landing redesign.
+- No destructive migration of legacy localStorage/backup schema.

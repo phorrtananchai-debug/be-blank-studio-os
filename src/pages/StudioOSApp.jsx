@@ -15,6 +15,7 @@ import { usePortfolioItems } from '../hooks/usePortfolioItems.js';
 import { useStudioAuth } from '../hooks/useStudioAuth.js';
 import { useStudioProjects } from '../hooks/useStudioProjects.js';
 import { useToastMessage } from '../hooks/useToastMessage.js';
+import { OverlayHost } from '../overlays/OverlayHost.jsx';
 import {
   addCollectionItem,
   deleteCollectionItem,
@@ -837,6 +838,7 @@ export function StudioOSApp({ navigate, routePath }) {
         onClose={() => setIsCommandPaletteOpen(false)}
         onOpen={() => setIsCommandPaletteOpen(true)}
       />
+      <OverlayHost />
     </div>
   );
 }
