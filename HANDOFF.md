@@ -169,3 +169,78 @@
 - Add authenticated Apps Script or service gateway strategy (still read-only first).
 - Add retry/backoff and explicit stale-data indicator for repeated endpoint errors.
 - Add project-level read-status diagnostics per surface.
+
+---
+
+## Google Read-only Auth Hardening (Step 5)
+
+### What was implemented
+- Environment guidance updated:
+  - `/.env.example`
+  - Adds `VITE_GOOGLE_COREBASE_ENDPOINT` with safety comments:
+    - keep blank for mock mode
+    - use Apps Script Web App URL for `google-readonly`
+    - do not commit sensitive endpoint values
+
+- Diagnostics utility added:
+  - `/src/corebase/google/googleReadonlyDiagnostics.js`
+  - Reports:
+    - provider mode
+    - endpoint configured yes/no
+    - endpoint host only (sanitized)
+    - last sync timestamp
+    - last error code
+    - retryable + suggested retry ms
+    - stale flag
+    - fallback source
+
+- Read-only adapter error metadata hardened:
+  - `/src/corebase/google/googleReadonlyAdapter.js`
+  - Stable retry metadata now included in mapped errors:
+    - `retryable`
+    - `suggestedRetryMs`
+  - Guard coverage remains:
+    - timeout
+    - JSON parse guard
+    - `response.ok` guard
+    - known error code mapping
+
+- Selector stale fallback state exposed:
+  - `/src/corebase/google/selectors.ts`
+  - When `google-readonly` fails and mock fallback is used:
+    - `mode: google-readonly`
+    - `fallback: mock`
+    - `stale: true`
+    - `lastErrorCode` populated safely
+
+- Settings surface status visibility expanded without redesign:
+  - `/src/components/studio-os/DedicatedSurfaces.jsx`
+  - Shows endpoint host, fallback, stale, retryability, retry hint.
+
+### Apps Script sample and deployment docs
+- Sample endpoint:
+  - `/docs/google-corebase-apps-script/readonly-doGet.sample.js`
+  - Uses placeholder spreadsheet ID:
+    - `YOUR_SPREADSHEET_ID_HERE`
+  - Supports resources:
+    - `projects`, `workscope`, `documents`, `images`, `calendar`, `alerts`, `all`
+- Deployment guide:
+  - `/GOOGLE_APPS_SCRIPT_READONLY_DEPLOYMENT.md`
+  - Covers CSV import, Apps Script setup, deployment, endpoint testing, env config, and safety notes.
+
+### Validation (Step 5)
+- `npm run build`: pass
+- `npm run lint`: pass
+- `npm run test`: pass
+- `npm run test:smoke`: pass
+
+### Remaining limitations
+- No OAuth flow in this phase.
+- No write-back in this phase.
+- No production credential handling in-repo.
+- Endpoint protection policy is still deployment-time responsibility (documented, not automated here).
+
+### Next recommended PR scope
+- Add optional request header/token strategy for read-only endpoint access (without OAuth).
+- Add non-intrusive user-facing stale data hints per internal surface.
+- Add endpoint health probe command in Settings diagnostics panel (manual trigger only, no polling).

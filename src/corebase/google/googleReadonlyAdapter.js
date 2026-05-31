@@ -21,24 +21,42 @@ const KNOWN_ERROR_CODES = new Set([
   'unknown',
 ]);
 
+const ERROR_RETRY_HINTS = {
+  auth_required: { retryable: false, suggestedRetryMs: null },
+  invalid_resource: { retryable: false, suggestedRetryMs: null },
+  invalid_response: { retryable: true, suggestedRetryMs: 30000 },
+  network_error: { retryable: true, suggestedRetryMs: 10000 },
+  not_found: { retryable: false, suggestedRetryMs: null },
+  rate_limited: { retryable: true, suggestedRetryMs: 60000 },
+  timeout: { retryable: true, suggestedRetryMs: 15000 },
+  unknown: { retryable: false, suggestedRetryMs: 30000 },
+};
+
 function normalizeErrorCode(code) {
   const normalized = String(code || '').trim().toLowerCase();
   return KNOWN_ERROR_CODES.has(normalized) ? normalized : 'unknown';
 }
 
 export function mapReadonlyError(error = {}) {
+  const normalizedCode = normalizeErrorCode(typeof error === 'string' ? error : error.code || error.name);
+  const retryHint = ERROR_RETRY_HINTS[normalizedCode] || ERROR_RETRY_HINTS.unknown;
+
   if (typeof error === 'string') {
     return {
-      code: normalizeErrorCode(error),
+      code: normalizedCode,
       message: 'Google readonly request failed.',
-      retryable: false,
+      retryable: retryHint.retryable,
+      suggestedRetryMs: retryHint.suggestedRetryMs,
     };
   }
 
   return {
-    code: normalizeErrorCode(error.code || error.name),
+    code: normalizedCode,
     message: String(error.message || 'Google readonly request failed.'),
-    retryable: Boolean(error.retryable),
+    retryable: typeof error.retryable === 'boolean' ? error.retryable : retryHint.retryable,
+    suggestedRetryMs: Number.isFinite(Number(error.suggestedRetryMs))
+      ? Number(error.suggestedRetryMs)
+      : retryHint.suggestedRetryMs,
   };
 }
 
@@ -62,18 +80,18 @@ async function safeFetchJson(fetchImpl, url, timeoutMs) {
     try {
       json = JSON.parse(text);
     } catch {
-      return { ok: false, error: { code: 'invalid_response', message: 'Response is not valid JSON.', retryable: false } };
+      return { ok: false, error: mapReadonlyError({ code: 'invalid_response', message: 'Response is not valid JSON.' }) };
     }
     if (!response.ok) {
       return { ok: false, error: mapReadonlyError(json?.error || { code: 'network_error', message: `HTTP ${response.status}` }) };
     }
     if (!json?.ok || !Array.isArray(json?.data)) {
-      return { ok: false, error: { code: 'invalid_response', message: 'Response payload shape is invalid.', retryable: false } };
+      return { ok: false, error: mapReadonlyError({ code: 'invalid_response', message: 'Response payload shape is invalid.' }) };
     }
     return { ok: true, resource: json.resource, updatedAt: json.updated_at || new Date().toISOString(), data: json.data };
   } catch (error) {
     if (error?.name === 'AbortError') {
-      return { ok: false, error: { code: 'timeout', message: 'Request timed out.', retryable: true } };
+      return { ok: false, error: mapReadonlyError({ code: 'timeout', message: 'Request timed out.' }) };
     }
     return { ok: false, error: mapReadonlyError({ code: 'network_error', message: String(error?.message || 'Network request failed.') }) };
   } finally {
@@ -83,12 +101,17 @@ async function safeFetchJson(fetchImpl, url, timeoutMs) {
 
 export function createGoogleReadonlyAdapter(config = getGoogleCorebaseProviderConfig(), fetchImpl = fetch) {
   const status = {
+    endpointHost: '',
     endpointConfigured: config.endpointConfigured,
+    fallback: null,
     lastErrorCode: null,
     lastErrorMessage: '',
+    lastErrorRetryable: false,
+    lastErrorSuggestedRetryMs: null,
     lastSyncAt: null,
     mode: config.mode,
     readOnly: true,
+    stale: false,
   };
 
   async function loadResource(resource, mapper, projectId) {
@@ -100,11 +123,17 @@ export function createGoogleReadonlyAdapter(config = getGoogleCorebaseProviderCo
     if (!result.ok) {
       status.lastErrorCode = result.error.code;
       status.lastErrorMessage = result.error.message;
+      status.lastErrorRetryable = Boolean(result.error.retryable);
+      status.lastErrorSuggestedRetryMs = Number.isFinite(Number(result.error.suggestedRetryMs))
+        ? Number(result.error.suggestedRetryMs)
+        : null;
       return [];
     }
     status.lastSyncAt = result.updatedAt;
     status.lastErrorCode = null;
     status.lastErrorMessage = '';
+    status.lastErrorRetryable = false;
+    status.lastErrorSuggestedRetryMs = null;
     return result.data.map((row) => mapper(row));
   }
 

@@ -5,6 +5,7 @@
 - Phase 2 (safe read-path binding): in progress (this PR step)
 - Phase 3 (route + overlay contract hardening): in progress (this PR step)
 - Phase 4 (google read-only foundation): in progress (this PR step)
+- Phase 5 (read-only auth hardening + diagnostics): in progress (this PR step)
 
 ## Completed in this step
 1. Selector-bound read fallback in project workspace
@@ -90,3 +91,41 @@
 2. Deterministic endpoint health/retry UX.
 3. Live auth strategy (out of scope for this PR).
 4. Write-back contract and conflict strategy (separate PR).
+
+---
+
+## Phase 5 Additions - Read-only Auth Hardening
+
+### Implemented
+1. Environment contract hardening
+   - `.env.example` includes `VITE_GOOGLE_COREBASE_ENDPOINT` guidance and secret-safety notes.
+
+2. Diagnostics layer
+   - `src/corebase/google/googleReadonlyDiagnostics.js`
+   - Endpoint privacy-safe host extraction, stale detection, fallback source, retry metadata projection.
+
+3. Error metadata hardening
+   - `src/corebase/google/googleReadonlyAdapter.js`
+   - Known errors include stable `retryable` and `suggestedRetryMs` hints.
+
+4. Selector status hardening
+   - `src/corebase/google/selectors.ts`
+   - Explicit stale fallback representation when readonly fetch fails and mock fallback is used.
+
+5. Settings diagnostics surface enrichment
+   - `src/components/studio-os/DedicatedSurfaces.jsx`
+   - Added status fields while preserving existing visual system.
+
+6. Apps Script delivery artifacts
+   - `docs/google-corebase-apps-script/readonly-doGet.sample.js`
+   - `GOOGLE_APPS_SCRIPT_READONLY_DEPLOYMENT.md`
+
+7. Test coverage
+   - `tests/unit/googleCorebaseReadonly.test.js`
+   - Added diagnostics privacy checks, retry metadata checks, stale fallback checks, sample contract token checks.
+
+### Remaining before live use
+1. OAuth or alternative authenticated gateway flow (still deferred).
+2. Endpoint allowlist and deployment-level access policy hardening.
+3. Optional manual connectivity probe action in Settings.
+4. Write-back contract (separate future PR only).

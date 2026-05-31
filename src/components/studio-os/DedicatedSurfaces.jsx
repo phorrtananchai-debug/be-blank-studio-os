@@ -151,8 +151,13 @@ export function SettingsSurface({ settings, onChange, corebaseStatus }) {
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <p className="type-caption text-studio-muted">Corebase mode: {corebaseStatus?.mode || 'mock'}</p>
           <p className="type-caption text-studio-muted">Endpoint configured: {corebaseStatus?.endpointConfigured ? 'yes' : 'no'}</p>
+          <p className="type-caption text-studio-muted">Endpoint host: {corebaseStatus?.endpointHost || 'n/a'}</p>
+          <p className="type-caption text-studio-muted">Fallback source: {corebaseStatus?.fallback || 'none'}</p>
+          <p className="type-caption text-studio-muted">Stale data: {corebaseStatus?.stale ? 'yes' : 'no'}</p>
           <p className="type-caption text-studio-muted">Last sync: {corebaseStatus?.lastSyncAt || 'not synced yet'}</p>
           <p className="type-caption text-studio-muted">Last error code: {corebaseStatus?.lastErrorCode || 'none'}</p>
+          <p className="type-caption text-studio-muted">Retryable: {corebaseStatus?.retryable ? 'yes' : 'no'}</p>
+          <p className="type-caption text-studio-muted">Suggested retry: {corebaseStatus?.suggestedRetryMs ? `${corebaseStatus.suggestedRetryMs}ms` : 'n/a'}</p>
         </div>
         <p className="mt-3 type-control text-studio-muted">Read-only mode: active</p>
       </div>
