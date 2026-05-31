@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { SectionCard } from '../SectionCard.jsx';
 import { EmptyState } from '../EmptyState.jsx';
 import { Field } from '../Field.jsx';
+import { Button } from '../Button.jsx';
 
 export function DocumentsSurface({ documents = [], onOpenDocument, projects = [] }) {
   const rows = documents.length ? documents : projects.flatMap((project) => (
@@ -121,7 +122,41 @@ export function SiteWatchSurface({ projects = [], siteUpdates = [] }) {
   );
 }
 
-export function SettingsSurface({ settings, onChange, corebaseStatus }) {
+export function SettingsSurface({
+  settings,
+  onChange,
+  corebaseStatus,
+  corebaseVerification,
+  onVerifyGoogleCorebase,
+  verifyingCorebase = false,
+}) {
+  const setupChecklist = [
+    {
+      done: Boolean(corebaseStatus?.lastSyncAt && corebaseStatus?.mode === 'google-readonly'),
+      label: 'Sheet template created',
+    },
+    {
+      done: Boolean(corebaseStatus?.endpointConfigured),
+      label: 'Apps Script deployed',
+    },
+    {
+      done: Boolean(corebaseStatus?.endpointConfigured),
+      label: 'Endpoint configured',
+    },
+    {
+      done: corebaseStatus?.mode === 'google-readonly',
+      label: 'Read-only mode active',
+    },
+    {
+      done: Boolean(corebaseStatus?.lastSyncAt && !corebaseStatus?.lastErrorCode),
+      label: 'First sync successful',
+    },
+    {
+      done: true,
+      label: 'Write-back disabled',
+    },
+  ];
+
   return (
     <SectionCard title="Studio System Settings" eyebrow="Dedicated Surface">
       <div className="grid gap-6 sm:grid-cols-2">
@@ -160,6 +195,34 @@ export function SettingsSurface({ settings, onChange, corebaseStatus }) {
           <p className="type-caption text-studio-muted">Suggested retry: {corebaseStatus?.suggestedRetryMs ? `${corebaseStatus.suggestedRetryMs}ms` : 'n/a'}</p>
         </div>
         <p className="mt-3 type-control text-studio-muted">Read-only mode: active</p>
+      </div>
+      <div className="mt-6 rounded-3xl border border-black/[0.06] bg-white/70 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="type-label text-studio-muted">Google Corebase Verification</p>
+          <Button variant="secondary" onClick={onVerifyGoogleCorebase} disabled={verifyingCorebase}>
+            {verifyingCorebase ? 'Verifying...' : 'Verify Google Corebase'}
+          </Button>
+        </div>
+        <p className="mt-3 type-caption text-studio-muted">
+          Run a safe read-only check for projects, workscope, documents, images, calendar, and alerts.
+        </p>
+        {corebaseVerification && (
+          <div className="mt-4 rounded-2xl border border-black/[0.06] bg-studio-bone/30 p-4">
+            <p className="type-caption text-studio-muted">Result: {corebaseVerification.ok ? 'pass' : 'fail'}</p>
+            <p className="type-caption text-studio-muted">Message: {corebaseVerification.message || 'No message'}</p>
+            <p className="type-caption text-studio-muted">Error code: {corebaseVerification.errorCode || 'none'}</p>
+          </div>
+        )}
+      </div>
+      <div className="mt-6 rounded-3xl border border-black/[0.06] bg-white/70 p-6">
+        <p className="type-label text-studio-muted">Read-only Setup Checklist</p>
+        <div className="mt-4 grid gap-2">
+          {setupChecklist.map((item) => (
+            <p key={item.label} className="type-caption text-studio-muted">
+              [{item.done ? 'x' : ' '}] {item.label}
+            </p>
+          ))}
+        </div>
       </div>
     </SectionCard>
   );

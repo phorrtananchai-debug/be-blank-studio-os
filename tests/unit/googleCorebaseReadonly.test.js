@@ -17,6 +17,12 @@ import {
   mapSettingsRow,
   mapWorkScopeRow,
 } from '../../src/corebase/google/googleRowMappers.js';
+import {
+  verifyAllCoreResources,
+  verifyEndpointConfigured,
+  verifyEndpointHealth,
+  verifyResourceShape,
+} from '../../src/corebase/google/verifyGoogleReadonlyEndpoint.js';
 
 test('provider config defaults to mock without endpoint', () => {
   const config = getGoogleCorebaseProviderConfig({});
@@ -185,9 +191,102 @@ test('apps script sample includes expected resources and placeholder spreadsheet
     'images',
     'calendar',
     'alerts',
+    'health',
     'all',
     'YOUR_SPREADSHEET_ID_HERE',
   ].forEach((token) => {
     assert.equal(sample.includes(token), true, `Expected sample to include ${token}`);
   });
+});
+
+test('verifyEndpointConfigured returns mock mode when endpoint is missing', () => {
+  const result = verifyEndpointConfigured({
+    providerConfig: {
+      endpoint: '',
+      endpointConfigured: false,
+      mode: 'mock',
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.mode, 'mock');
+  assert.equal(result.endpointConfigured, false);
+});
+
+test('verifyEndpointHealth supports health success response', async () => {
+  const result = await verifyEndpointHealth({
+    fetchImpl: async () => ({
+      ok: true,
+      text: async () => JSON.stringify({
+        ok: true,
+        resource: 'health',
+        data: { spreadsheetConfigured: true, tabs: {} },
+      }),
+    }),
+    providerConfig: {
+      endpoint: 'https://script.google.com/macros/s/mock/exec',
+      endpointConfigured: true,
+      mode: 'google-readonly',
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.resource, 'health');
+  assert.equal(result.mode, 'google-readonly');
+});
+
+test('verifyEndpointHealth maps known error metadata', async () => {
+  const result = await verifyEndpointHealth({
+    fetchImpl: async () => ({
+      ok: false,
+      status: 429,
+      text: async () => JSON.stringify({
+        ok: false,
+        error: { code: 'rate_limited', message: 'Too many requests', retryable: true },
+      }),
+    }),
+    providerConfig: {
+      endpoint: 'https://script.google.com/macros/s/mock/exec',
+      endpointConfigured: true,
+      mode: 'google-readonly',
+    },
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.errorCode, 'rate_limited');
+  assert.equal(result.retryable, true);
+});
+
+test('verifyResourceShape validates core resources with expected shape', async () => {
+  const adapter = {
+    listAlerts: async () => [{ id: 'AL-1', level: 'WATCH', message: 'x' }],
+    listCalendar: async () => [{ id: 'EV-1', title: 'Kickoff', startAt: '2026-01-01', endAt: '2026-01-02' }],
+    listDocuments: async () => [{ id: 'DOC-1', projectId: 'KARUN-PHUKET-OLDTOWN', revision: 'R1', title: 'Doc' }],
+    listImages: async () => [{ id: 'IMG-1', projectId: 'KARUN-PHUKET-OLDTOWN', title: 'Board', mediaType: 'image' }],
+    listProjects: async () => [{ id: 'KARUN-PHUKET-OLDTOWN', name: 'Karun' }],
+    listWorkScope: async () => [{ id: 'TASK-1', projectId: 'KARUN-PHUKET-OLDTOWN', status: 'OPEN', title: 'Task' }],
+    getStatus: () => ({}),
+  };
+  const providerConfig = {
+    endpoint: 'https://script.google.com/macros/s/mock/exec',
+    endpointConfigured: true,
+    mode: 'google-readonly',
+  };
+
+  const resources = ['projects', 'workscope', 'documents', 'images', 'calendar', 'alerts'];
+  for (const resource of resources) {
+    const result = await verifyResourceShape(resource, { adapter, providerConfig });
+    assert.equal(result.ok, true, `Expected ${resource} to validate`);
+  }
+});
+
+test('verifyAllCoreResources returns structured mock fallback result when endpoint missing', async () => {
+  const result = await verifyAllCoreResources({
+    providerConfig: { endpoint: '', endpointConfigured: false, mode: 'mock' },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.mode, 'mock');
+  assert.equal(result.endpointConfigured, false);
+  assert.equal(Array.isArray(result.checks), true);
 });

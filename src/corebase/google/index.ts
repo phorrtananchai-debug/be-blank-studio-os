@@ -39,6 +39,12 @@ export {
   getGoogleReadonlyDiagnostics,
 } from './googleReadonlyDiagnostics';
 export {
+  verifyAllCoreResources,
+  verifyEndpointConfigured,
+  verifyEndpointHealth,
+  verifyResourceShape,
+} from './verifyGoogleReadonlyEndpoint';
+export {
   getCorebaseReadStatus,
   getAlerts,
   getArtwork,

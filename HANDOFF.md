@@ -244,3 +244,69 @@
 - Add optional request header/token strategy for read-only endpoint access (without OAuth).
 - Add non-intrusive user-facing stale data hints per internal surface.
 - Add endpoint health probe command in Settings diagnostics panel (manual trigger only, no polling).
+
+---
+
+## Apps Script Read-only Usable Setup (Step 6)
+
+### What was implemented
+- Quickstart guide added:
+  - `/GOOGLE_COREBASE_QUICKSTART.md`
+  - Covers complete setup from sheet templates to endpoint verification and troubleshooting.
+
+- Endpoint verifier utility added:
+  - `/src/corebase/google/verifyGoogleReadonlyEndpoint.js`
+  - Exposes:
+    - `verifyEndpointConfigured()`
+    - `verifyEndpointHealth()`
+    - `verifyResourceShape(resource)`
+    - `verifyAllCoreResources()`
+  - Returns structured safe results with mode, endpointConfigured, error/retry metadata.
+
+- Settings diagnostics action added:
+  - `/src/components/studio-os/DedicatedSurfaces.jsx`
+  - New action:
+    - `Verify Google Corebase`
+  - Displays verification result and retains privacy-safe endpoint host behavior.
+
+- Settings static setup checklist added:
+  - Sheet template created
+  - Apps Script deployed
+  - Endpoint configured
+  - Read-only mode active
+  - First sync successful
+  - Write-back disabled
+
+- Env local example added:
+  - `/.env.local.example`
+
+- Apps Script sample strengthened:
+  - `/docs/google-corebase-apps-script/readonly-doGet.sample.js`
+  - Added clearer comments, project filter behavior, test URL examples, and optional `resource=health`.
+
+### Documentation updates
+- Updated:
+  - `/GOOGLE_APPS_SCRIPT_ENDPOINT_CONTRACT.md` (includes optional `health` resource)
+  - `/GOOGLE_APPS_SCRIPT_READONLY_DEPLOYMENT.md`
+  - `/GOOGLE_COREBASE_READONLY_MVP.md`
+  - `/COREBASE_MIGRATION_PLAN.md`
+- Added extra templates for full quickstart tab list:
+  - `/docs/google-corebase-templates/07_Team.csv`
+  - `/docs/google-corebase-templates/08_Settings.csv`
+
+### Validation (Step 6)
+- `npm run build`: pass
+- `npm run lint`: pass
+- `npm run test`: pass
+- `npm run test:smoke`: pass
+
+### Remaining limitations
+- No OAuth in this phase.
+- No write-back in this phase.
+- No production deployment automation in-app.
+- Endpoint security policy remains a manual deployment responsibility.
+
+### Next recommended PR scope
+- Add optional authenticated request header strategy (no OAuth).
+- Add richer per-resource verification detail UI in Settings (still minimal style).
+- Add integration runbook for rotating Apps Script deployments safely.

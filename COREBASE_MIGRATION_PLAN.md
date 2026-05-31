@@ -6,6 +6,7 @@
 - Phase 3 (route + overlay contract hardening): in progress (this PR step)
 - Phase 4 (google read-only foundation): in progress (this PR step)
 - Phase 5 (read-only auth hardening + diagnostics): in progress (this PR step)
+- Phase 6 (apps script read-only usable setup): in progress (this PR step)
 
 ## Completed in this step
 1. Selector-bound read fallback in project workspace
@@ -129,3 +130,48 @@
 2. Endpoint allowlist and deployment-level access policy hardening.
 3. Optional manual connectivity probe action in Settings.
 4. Write-back contract (separate future PR only).
+
+---
+
+## Phase 6 Additions - Usable Read-only Setup
+
+### Implemented
+1. Quickstart workflow
+   - `GOOGLE_COREBASE_QUICKSTART.md`
+   - End-to-end user flow for sheet + Apps Script + endpoint + in-app verification.
+
+2. Endpoint verifier utility
+   - `src/corebase/google/verifyGoogleReadonlyEndpoint.js`
+   - Functions:
+     - `verifyEndpointConfigured`
+     - `verifyEndpointHealth`
+     - `verifyResourceShape`
+     - `verifyAllCoreResources`
+
+3. Settings verification action
+   - `src/components/studio-os/DedicatedSurfaces.jsx`
+   - Added `Verify Google Corebase` action and result panel.
+   - Added setup checklist while preserving visual system.
+
+4. Environment helpers
+   - `.env.local.example`
+   - Clarifies local-only endpoint setup and mock fallback behavior.
+
+5. Apps Script sample hardening
+   - `docs/google-corebase-apps-script/readonly-doGet.sample.js`
+   - Added richer comments and optional `resource=health`.
+
+6. Template/data completeness for quickstart
+   - Added:
+     - `docs/google-corebase-templates/07_Team.csv`
+     - `docs/google-corebase-templates/08_Settings.csv`
+
+7. Test coverage
+   - `tests/unit/googleCorebaseReadonly.test.js`
+   - Added verifier/diagnostics checks and sample contract checks.
+   - Smoke assertions updated to confirm settings diagnostics visibility remains present.
+
+### Remaining before live use
+1. Optional request-level auth token strategy (still no OAuth).
+2. Deployment governance for private/internal endpoint sharing policy.
+3. Future write-back contract PR (strictly separate scope).

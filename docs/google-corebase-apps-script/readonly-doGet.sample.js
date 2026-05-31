@@ -3,12 +3,20 @@
  *
  * NOTE:
  * - Sample only. Do not store production secrets in script source.
- * - Replace YOUR_SPREADSHEET_ID_HERE before deployment.
+ * - Replace YOUR_SPREADSHEET_ID_HERE with your sheet ID before deployment.
  * - Read-only doGet only. No write-back in this phase.
+ *
+ * Resource tests:
+ * - ?resource=projects
+ * - ?resource=all
+ * - ?resource=workscope&project_id=KARUN-PHUKET-OLDTOWN
+ * - ?resource=health
  */
 
+// Paste your spreadsheet ID here. Keep this value out of public repositories.
 const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID_HERE';
 
+// Resource to tab mapping for read-only fetches.
 const RESOURCE_TO_TAB = {
   alerts: '04_AlertLog',
   calendar: '09_CalendarMirror',
@@ -25,6 +33,20 @@ function doGet(e) {
 
     if (!resource) {
       return json(errorResponse('invalid_resource', 'Missing resource parameter.', false));
+    }
+
+    if (resource === 'health') {
+      const tabs = Object.entries(RESOURCE_TO_TAB).reduce(function (acc, entry) {
+        var key = entry[0];
+        var tabName = entry[1];
+        acc[key] = Boolean(SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(tabName));
+        return acc;
+      }, {});
+
+      return json(successResponse('health', {
+        spreadsheetConfigured: SPREADSHEET_ID !== 'YOUR_SPREADSHEET_ID_HERE',
+        tabs: tabs,
+      }));
     }
 
     if (resource === 'all') {
@@ -90,6 +112,7 @@ function filterByProjectId(rows, projectId) {
   const normalized = String(projectId || '').trim().toLowerCase();
   if (!normalized) return rows;
 
+  // Filter rows by project_id (or projectId alias) for workspace-specific reads.
   return rows.filter(function (row) {
     const candidate = String(row.project_id || row.projectId || '').trim().toLowerCase();
     return candidate === normalized;
