@@ -18,7 +18,7 @@ export function QuickCapture({ onAddNote, onAddProject, onAddTask, onOpenArtwork
     { id: 'note', icon: NotebookPen, label: 'Note', placeholder: 'Capture studio context. This saves to Journal as an idea.' },
     { id: 'meeting', icon: CalendarClock, label: 'Meeting', placeholder: 'Who, when, and what decision is needed?', staged: 'draft only' },
     { id: 'reference', icon: Image, label: 'Reference', placeholder: 'Add a reference note or open the artwork board.', staged: 'open board' },
-    { id: 'deadline', icon: FileText, label: 'Deadline', placeholder: 'Project, date, and consequence...', staged: 'coming soon' },
+    { id: 'deadline', icon: FileText, label: 'Deadline', placeholder: 'Project, date, and consequence...', staged: 'staged' },
   ];
   const currentMode = modes.find((mode) => mode.id === activeMode) || modes[0];
   const isSupported = supportedModes.has(activeMode);

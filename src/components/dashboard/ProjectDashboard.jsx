@@ -1,11 +1,12 @@
 import {
   ArrowLeft,
+  SlidersHorizontal,
   Plus,
   Search,
   Trash2,
   Layers,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Badge } from '../Badge.jsx';
 import { Button } from '../Button.jsx';
 import { EmptyState } from '../EmptyState.jsx';
@@ -23,13 +24,16 @@ import { KeyDate, FinanceStat, ProfitStatusBadge } from './ProjectFinancials.jsx
 import { getProfitBarClass } from '../../utils/financials.js';
 import { NarrativePanel } from './NarrativePanel.jsx';
 import { ProjectWorkspace } from './ProjectWorkspace.jsx';
+import { getCanonicalProjectId, getProjectAliases } from '../../corebase/google/legacyToCorebase.ts';
+import { useOverlayContract } from '../../overlays/useOverlayContract.js';
 
 const drawingStatuses = ['draft', 'review', 'approved', 'issued'];
 
-export function ProjectDashboard({ projects, statusCounts, tasks = [], onAdd, onDelete, onUpdate, onOpenSpace, user }) {
+export function ProjectDashboard({ projects, selectedProjectAlias = '', statusCounts, tasks = [], onAdd, onDelete, onUpdate, onOpenSpace, user }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedProjectId, setSelectedProjectId] = useState('');
+  const { openOverlay, overlayKinds } = useOverlayContract();
 
   const filteredProjects = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -46,6 +50,23 @@ export function ProjectDashboard({ projects, statusCounts, tasks = [], onAdd, on
 
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
 
+  useEffect(() => {
+    if (!selectedProjectAlias) return;
+    const normalizedAlias = selectedProjectAlias.trim().toLowerCase();
+    const match = projects.find((project) => {
+      const canonicalId = getCanonicalProjectId(project).toLowerCase();
+      const aliases = getProjectAliases(getCanonicalProjectId(project), project.id).map((alias) => alias.toLowerCase());
+      return normalizedAlias === project.id?.toLowerCase() || normalizedAlias === canonicalId || aliases.includes(normalizedAlias);
+    });
+    if (match) {
+      setSelectedProjectId(match.id);
+      return;
+    }
+    if (projects.length) {
+      setSelectedProjectId(projects[0].id);
+    }
+  }, [projects, selectedProjectAlias]);
+
   const deleteProject = (id) => {
     if (selectedProjectId === id) {
       setSelectedProjectId('');
@@ -53,12 +74,21 @@ export function ProjectDashboard({ projects, statusCounts, tasks = [], onAdd, on
     onDelete(id);
   };
 
+  const requestDeleteProject = (project) => {
+    openOverlay(overlayKinds.CONFIRMATION_DIALOG, {
+      confirmLabel: 'Delete',
+      description: `Delete ${project.name || 'this project'} from Studio OS.`,
+      onConfirm: () => deleteProject(project.id),
+      title: 'Delete Project',
+    });
+  };
+
   if (selectedProject) {
     return (
       <ProjectWorkspace
         project={selectedProject}
         onBack={() => setSelectedProjectId('')}
-        onDelete={() => deleteProject(selectedProject.id)}
+        onDelete={() => requestDeleteProject(selectedProject)}
         onUpdate={(updates) => onUpdate(selectedProject.id, updates)}
         onOpenSpace={() => onOpenSpace?.(selectedProject.id)}
         tasks={tasks}
@@ -83,7 +113,12 @@ export function ProjectDashboard({ projects, statusCounts, tasks = [], onAdd, on
 
       <SectionCard
         action={
-          <Button onClick={onAdd}>
+          <Button onClick={() => openOverlay(overlayKinds.NEW_PROJECT_MODAL, {
+            confirmLabel: 'Create Project',
+            description: 'Create a new project shell and open it in the current workspace.',
+            onConfirm: onAdd,
+            title: 'New Project',
+          })}>
             <Plus size={16} />
             New Project
           </Button>
@@ -124,6 +159,15 @@ export function ProjectDashboard({ projects, statusCounts, tasks = [], onAdd, on
               ))}
             </select>
           </label>
+          <div className="flex items-end">
+            <Button variant="secondary" onClick={() => openOverlay(overlayKinds.FILTER_DRAWER, {
+              content: `Search query: ${searchQuery || 'none'} | Status: ${statusFilter}`,
+              title: 'Filter Drawer',
+            })}>
+              <SlidersHorizontal size={14} />
+              Filters
+            </Button>
+          </div>
         </div>
 
         {projects.length === 0 ? (
@@ -172,7 +216,7 @@ export function ProjectDashboard({ projects, statusCounts, tasks = [], onAdd, on
                       type="button"
                       onClick={(event) => {
                         event.stopPropagation();
-                        deleteProject(project.id);
+                        requestDeleteProject(project);
                       }}
                     >
                       <Trash2 size={18} />

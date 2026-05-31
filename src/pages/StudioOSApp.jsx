@@ -15,6 +15,7 @@ import { usePortfolioItems } from '../hooks/usePortfolioItems.js';
 import { useStudioAuth } from '../hooks/useStudioAuth.js';
 import { useStudioProjects } from '../hooks/useStudioProjects.js';
 import { useToastMessage } from '../hooks/useToastMessage.js';
+import { OverlayHost } from '../overlays/OverlayHost.jsx';
 import {
   addCollectionItem,
   deleteCollectionItem,
@@ -89,6 +90,11 @@ export function StudioOSApp({ navigate, routePath }) {
       return routePath.replace('/os/artwork/', '');
     }
     return '';
+  }, [routePath]);
+
+  const selectedProjectAlias = useMemo(() => {
+    if (!routePath.startsWith('/os/projects/')) return '';
+    return routePath.replace('/os/projects/', '').trim().toLowerCase();
   }, [routePath]);
 
   const handleTabChange = (tabId) => {
@@ -408,7 +414,7 @@ export function StudioOSApp({ navigate, routePath }) {
   const exportBackup = () => {
     try {
       downloadJson('be-blank-studio-os-backup.json', {
-        app: 'Be Blank Studio OS',
+        app: 'BE BLANK OS',
         schema: 'studio-os-backup',
         version: 1,
         exportedAt: new Date().toISOString(),
@@ -791,6 +797,7 @@ export function StudioOSApp({ navigate, routePath }) {
           portfolioItems={portfolioItems}
           lastAddedPortfolioId={lastAddedPortfolioId}
           projects={projects}
+          selectedProjectAlias={selectedProjectAlias}
           selectedArtworkProjectId={selectedArtworkProjectId}
           statusCounts={statusCounts}
           studioUser={studioUser}
@@ -831,6 +838,7 @@ export function StudioOSApp({ navigate, routePath }) {
         onClose={() => setIsCommandPaletteOpen(false)}
         onOpen={() => setIsCommandPaletteOpen(true)}
       />
+      <OverlayHost />
     </div>
   );
 }

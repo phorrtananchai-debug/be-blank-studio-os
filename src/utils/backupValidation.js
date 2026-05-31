@@ -75,7 +75,8 @@ export function validateStudioBackup(data) {
     };
   }
 
-  const isStudioBackup = data.schema === 'studio-os-backup' || data.app === 'Be Blank Studio OS';
+  const appName = String(data.app || '').trim();
+  const isStudioBackup = data.schema === 'studio-os-backup' || appName === 'BE BLANK OS' || appName === 'Be Blank Studio OS';
   if (!isStudioBackup) {
     return {
       backup: null,

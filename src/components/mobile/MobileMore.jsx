@@ -92,7 +92,7 @@ export function MobileMore({ onClearCompleted, onOpenProfile, onSignOut, profile
       )}
 
       <MoreSection title="Account">
-        <MoreRow label="Profile" meta="Placeholder" onClick={() => showToolMessage('Profile settings coming soon.')} />
+        <MoreRow label="Profile" meta="Profile" onClick={() => showToolMessage('Profile settings are not available in this mobile shell yet.')} />
         <MoreRow label="Account email" meta={user?.email || 'Private workspace'} onClick={() => showToolMessage(user?.email || 'Private workspace')} />
       </MoreSection>
 
@@ -105,7 +105,7 @@ export function MobileMore({ onClearCompleted, onOpenProfile, onSignOut, profile
 
       <MoreSection title="Tools">
         <MoreRow label="Clear completed tasks" meta={`${completedCount} done`} onClick={() => setConfirmClear(true)} />
-        <MoreRow label="Export data" meta="Soon" onClick={() => showToolMessage('Export coming soon.')} />
+        <MoreRow label="Export data" meta="Export" onClick={() => showToolMessage('Export is not available in this mobile shell yet.')} />
         <MoreRow label="Rebuild calendar index" meta="Refresh" onClick={() => showToolMessage('Calendar index refreshed.')} />
       </MoreSection>
 

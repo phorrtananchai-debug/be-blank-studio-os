@@ -49,7 +49,7 @@ export function StudioOSHeader({ contentItems, onBackHome, projects, tasks }) {
             Operating System
           </div>
           <h1 className="type-display">
-            Be Blank Studio OS
+            BE BLANK OS
           </h1>
           <p className="type-body max-w-2xl">
             A calm workspace for architectural delivery, content strategy, and portfolio management.

@@ -17,7 +17,7 @@ import {
   Plus,
   SwatchBook,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Badge } from '../Badge.jsx';
 import { Button } from '../Button.jsx';
 import { Field } from '../Field.jsx';
@@ -57,6 +57,9 @@ import {
   normalizeMaterialApprovals,
   serializeMaterialApprovals,
 } from '../../utils/materialApprovals.js';
+import { getCanonicalProjectId } from '../../corebase/google/legacyToCorebase.ts';
+import { getArtwork, getDocuments, getWorkScope } from '../../corebase/google/selectors.ts';
+import { useOverlayContract } from '../../overlays/useOverlayContract.js';
 
 const drawingStatuses = ['draft', 'review', 'approved', 'issued'];
 
@@ -429,7 +432,7 @@ function BillingMilestonePanel({ milestones, onUpdate }) {
   );
 }
 
-function ProjectTaskPanel({ tasks }) {
+function ProjectTaskPanel({ onOpenTask, tasks }) {
   const visibleTasks = tasks.slice(0, 6);
 
   return (
@@ -437,7 +440,18 @@ function ProjectTaskPanel({ tasks }) {
       {visibleTasks.length ? (
         <div className="divide-y divide-black/[0.06] border-y border-black/[0.06]">
           {visibleTasks.map((task) => (
-            <article key={task.id || task.title} className="grid gap-3 py-4 md:grid-cols-[1fr_8rem_8rem]">
+            <article
+              key={task.id || task.title}
+              className="grid cursor-pointer gap-3 py-4 md:grid-cols-[1fr_8rem_8rem]"
+              role="button"
+              tabIndex={0}
+              onClick={() => onOpenTask?.(task)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  onOpenTask?.(task);
+                }
+              }}
+            >
               <div>
                 <p className="type-card-title">{task.title || 'Untitled Task'}</p>
                 {(task.notes || task.detail) && <p className="type-caption mt-1 line-clamp-2 text-studio-muted">{task.notes || task.detail}</p>}
@@ -449,6 +463,43 @@ function ProjectTaskPanel({ tasks }) {
         </div>
       ) : (
         <EmptyState message="No project tasks are attached yet." />
+      )}
+    </SectionCard>
+  );
+}
+
+function ProjectDocumentPanel({ documents, onOpenDocument }) {
+  const visibleDocuments = documents.slice(0, 8);
+  return (
+    <SectionCard title="Document Control" eyebrow="Revision Surface">
+      {visibleDocuments.length ? (
+        <div className="divide-y divide-black/[0.06] border-y border-black/[0.06]">
+          {visibleDocuments.map((document, index) => (
+            <article
+              key={document.id || `${document.title || document.label}-${index}`}
+              className="grid cursor-pointer gap-3 py-4 md:grid-cols-[1fr_8rem_8rem]"
+              role="button"
+              tabIndex={0}
+              onClick={() => onOpenDocument?.(document)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  onOpenDocument?.(document);
+                }
+              }}
+            >
+              <div>
+                <p className="type-card-title">{document.title || document.label || 'Untitled Document'}</p>
+                {(document.url || document.webViewLink) && (
+                  <p className="type-caption mt-1 line-clamp-1 text-studio-muted">{document.url || document.webViewLink}</p>
+                )}
+              </div>
+              <p className="type-caption text-studio-muted">{document.revision || document.version || 'R0'}</p>
+              <p className="type-control text-studio-muted md:text-right">{document.status || 'Draft'}</p>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <EmptyState message="No document rows are available yet." />
       )}
     </SectionCard>
   );
@@ -795,13 +846,55 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
   const [activeTab, setActiveTab] = useState('overview');
   const [isPresenting, setIsPresenting] = useState(false);
   const [isClientViewOpen, setIsClientViewOpen] = useState(false);
+  const [corebaseWorkScope, setCorebaseWorkScope] = useState([]);
+  const [corebaseDocuments, setCorebaseDocuments] = useState([]);
+  const [corebaseArtwork, setCorebaseArtwork] = useState([]);
+  const { openOverlay, overlayKinds } = useOverlayContract();
+  const canonicalProjectId = useMemo(() => getCanonicalProjectId(project), [project]);
   const timeline = calculateTimeline(project);
   const financials = calculateProjectFinancials(project);
-  const projectTasks = useMemo(() => tasks.filter((task) => task.projectId === project.id), [project.id, tasks]);
+  const localProjectTasks = useMemo(() => tasks.filter((task) => task.projectId === project.id), [project.id, tasks]);
   const siteVisits = useMemo(() => normalizeSiteVisits(project.siteLogs), [project.siteLogs]);
   const materialApprovals = useMemo(() => normalizeMaterialApprovals(project.materialApprovals), [project.materialApprovals]);
   const billingMilestones = useMemo(() => normalizeBillingMilestones(project.billingMilestones), [project.billingMilestones]);
   const clientProject = createClientProjectProjection(project);
+  const projectTasks = localProjectTasks.length ? localProjectTasks : corebaseWorkScope.map((task) => ({
+    ...task,
+    detail: task.notes || '',
+  }));
+  const projectDocuments = useMemo(() => {
+    const localDocuments = Array.isArray(project.documents) ? project.documents : [];
+    if (localDocuments.length) return localDocuments;
+    return corebaseDocuments;
+  }, [corebaseDocuments, project.documents]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadCorebaseReadPaths = async () => {
+      try {
+        const [workScope, documents, artwork] = await Promise.all([
+          getWorkScope(canonicalProjectId),
+          getDocuments(canonicalProjectId),
+          getArtwork(canonicalProjectId),
+        ]);
+        if (!cancelled) {
+          setCorebaseWorkScope(Array.isArray(workScope) ? workScope : []);
+          setCorebaseDocuments(Array.isArray(documents) ? documents : []);
+          setCorebaseArtwork(Array.isArray(artwork) ? artwork : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setCorebaseWorkScope([]);
+          setCorebaseDocuments([]);
+          setCorebaseArtwork([]);
+        }
+      }
+    };
+    loadCorebaseReadPaths();
+    return () => {
+      cancelled = true;
+    };
+  }, [canonicalProjectId]);
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: Layout },
@@ -840,6 +933,31 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
   const updateBillingMilestones = (nextMilestones) => {
     onUpdate({
       billingMilestones: serializeBillingMilestones(nextMilestones),
+    });
+  };
+
+  const requestDeleteProject = () => {
+    openOverlay(overlayKinds.CONFIRMATION_DIALOG, {
+      confirmLabel: 'Delete',
+      description: `Delete ${project.name || 'this project'} from Studio OS.`,
+      onConfirm: onDelete,
+      title: 'Delete Project',
+    });
+  };
+
+  const openTaskDetailDrawer = (task) => {
+    openOverlay(overlayKinds.TASK_DETAIL_DRAWER, {
+      description: project.name,
+      task,
+      title: 'Task Detail',
+    });
+  };
+
+  const openDocumentRevisionDrawer = (document) => {
+    openOverlay(overlayKinds.DOCUMENT_REVISION_DRAWER, {
+      description: project.name,
+      document,
+      title: 'Document Revision',
     });
   };
 
@@ -917,7 +1035,7 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
             Present
           </Button>
           <button
-            onClick={onDelete}
+            onClick={requestDeleteProject}
             className="grid h-10 w-10 place-items-center rounded-full border border-red-100 bg-red-50 text-red-500 hover:bg-red-100 transition-all"
             title="Delete Project"
           >
@@ -990,7 +1108,7 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
 
               <BillingMilestonePanel milestones={billingMilestones} onUpdate={updateBillingMilestones} />
 
-              <ProjectTaskPanel tasks={projectTasks} />
+              <ProjectTaskPanel tasks={projectTasks} onOpenTask={openTaskDetailDrawer} />
             </div>
 
             <div className="lg:col-span-4 space-y-8">
@@ -1061,6 +1179,11 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
                   <p className="text-sm text-studio-muted">Spatial thinking and reference for {project.name}.</p>
                 </div>
                 <div className="flex items-center gap-2">
+                  {!!corebaseArtwork.length && (
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">
+                      {corebaseArtwork.length} mapped artwork item(s)
+                    </span>
+                  )}
                   <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-600">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     Cloud Synced
@@ -1134,15 +1257,18 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
                 />
               </div>
             </SectionCard>
-            <div className="rounded-2xl border-2 border-dashed border-black/[0.05] bg-black/[0.01] grid place-items-center p-12 text-center">
-               <div className="max-w-xs space-y-4">
-                  <div className="mx-auto h-12 w-12 rounded-full bg-studio-bone grid place-items-center text-studio-muted">
-                    <Link size={24} />
-                  </div>
-                  <h4 className="font-bold text-studio-ink">Linked Studio Assets</h4>
-                  <p className="text-sm text-studio-muted font-medium">Link external CAD files, specification sheets, and client portals.</p>
-                  <Button variant="secondary" disabled>Connect Resource</Button>
-               </div>
+            <div className="grid gap-8">
+              <ProjectDocumentPanel documents={projectDocuments} onOpenDocument={openDocumentRevisionDrawer} />
+              <div className="rounded-2xl border-2 border-dashed border-black/[0.05] bg-black/[0.01] grid place-items-center p-12 text-center">
+                 <div className="max-w-xs space-y-4">
+                    <div className="mx-auto h-12 w-12 rounded-full bg-studio-bone grid place-items-center text-studio-muted">
+                      <Link size={24} />
+                    </div>
+                    <h4 className="font-bold text-studio-ink">Linked Studio Assets</h4>
+                    <p className="text-sm text-studio-muted font-medium">Link external CAD files, specification sheets, and client portals.</p>
+                    <Button variant="secondary" disabled>Connect Resource</Button>
+                 </div>
+              </div>
             </div>
           </div>
         )}

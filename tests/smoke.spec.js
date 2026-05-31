@@ -14,7 +14,7 @@ test.afterEach(async () => {
 });
 
 async function expectStudioShell(page) {
-  await expect(page.getByRole('heading', { name: 'Be Blank Studio OS' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /BE BLANK OS|Be Blank Studio OS/ })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Commands' })).toBeVisible();
 }
 
@@ -51,6 +51,38 @@ test.describe('route smoke checks', () => {
     await expect(page.getByText('Project Archive')).toBeHidden();
 
     await page.goto('/os');
+    await expectStudioShell(page);
+
+    await page.goto('/projects');
+    await expectStudioShell(page);
+    await expect(page.getByText('Studio Pipeline')).toBeVisible();
+
+    await page.goto('/timeline');
+    await expectStudioShell(page);
+    await expect(page).toHaveURL(/\/timeline$/);
+
+    await page.goto('/artwork');
+    await expectStudioShell(page);
+
+    await page.goto('/projects/karun-phuket');
+    await expectStudioShell(page);
+
+    await page.goto('/work-queue');
+    await expectStudioShell(page);
+
+    await page.goto('/journal');
+    await expectStudioShell(page);
+
+    await page.goto('/documents');
+    await expectStudioShell(page);
+
+    await page.goto('/site-watch');
+    await expectStudioShell(page);
+
+    await page.goto('/gallery');
+    await expectStudioShell(page);
+
+    await page.goto('/settings');
     await expectStudioShell(page);
 
     await page.setViewportSize({ width: 390, height: 844 });
@@ -132,6 +164,66 @@ test.describe('command palette smoke checks', () => {
 
     await expect(page).toHaveURL(/\/m$/);
     await expect(page.getByText('Studio OS')).toBeVisible();
+  });
+});
+
+test.describe('overlay scaffold checks', () => {
+  test('opens and closes new project and filter overlays', async ({ page }) => {
+    await page.goto('/projects');
+    await expectStudioShell(page);
+
+    await page.getByRole('button', { name: 'New Project' }).click();
+    await expect(page.getByRole('dialog', { name: 'New Project' })).toBeVisible();
+    await page.getByRole('button', { name: 'Close overlay' }).click();
+    await expect(page.getByRole('dialog', { name: 'New Project' })).toBeHidden();
+
+    await page.getByRole('button', { name: 'Filters' }).click();
+    await expect(page.getByRole('dialog', { name: 'Filter Drawer' })).toBeVisible();
+    await page.getByRole('button', { name: 'Close overlay' }).click();
+    await expect(page.getByRole('dialog', { name: 'Filter Drawer' })).toBeHidden();
+  });
+
+  test('opens artwork, task, and confirmation overlays when rows exist', async ({ page }) => {
+    await page.goto('/artwork');
+    await expectStudioShell(page);
+    const artworkCards = page.locator('button:has-text("Open Space")');
+    if (await artworkCards.count()) {
+      await artworkCards.first().click();
+      await expect(page.getByRole('dialog', { name: 'Artwork Preview' })).toBeVisible();
+      await page.getByRole('button', { name: 'Close overlay' }).click();
+    }
+
+    await page.goto('/os/projects');
+    await expectStudioShell(page);
+    const opened = await openAnyProjectWorkspace(page);
+    if (!opened) return;
+
+    const taskRows = page.locator('article:has-text("No date"), article:has-text("OPEN")');
+    if (await taskRows.count()) {
+      await taskRows.first().click();
+      await expect(page.getByRole('dialog', { name: 'Task Detail' })).toBeVisible();
+      await page.getByRole('button', { name: 'Close overlay' }).click();
+    }
+
+    await page.getByTitle('Delete Project').click();
+    await expect(page.getByRole('dialog', { name: 'Delete Project' })).toBeVisible();
+    await page.getByRole('button', { name: 'Close overlay' }).click();
+  });
+});
+
+test.describe('naming and placeholder checks', () => {
+  test('does not render invalid naming or placeholder labels on key routes', async ({ page }) => {
+    const invalidStrings = ['BE BLANKOS', 'Blank OS', 'BlankOS', 'Atelier OS', 'Placeholder', 'coming soon'];
+    const routes = ['/os', '/projects', '/timeline', '/gallery', '/settings'];
+
+    for (const route of routes) {
+      await page.goto(route);
+      await expectStudioShell(page);
+      const html = await page.content();
+      for (const invalid of invalidStrings) {
+        expect(html.includes(invalid)).toBeFalsy();
+      }
+    }
   });
 });
 
