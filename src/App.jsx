@@ -97,11 +97,11 @@ function App() {
       <Route path="/projects/karun-phuket" element={<StudioOSAliasRoute navigate={navigate} routePath="/os/projects/karun-phuket" />} />
       <Route path="/timeline" element={<StudioOSAliasRoute navigate={navigate} routePath="/os/timeline" />} />
       <Route path="/artwork" element={<StudioOSAliasRoute navigate={navigate} routePath="/os/artwork" />} />
-      <Route path="/documents" element={<StudioOSAliasRoute navigate={navigate} routePath="/os/projects" />} />
-      <Route path="/work-queue" element={<StudioOSAliasRoute navigate={navigate} routePath="/os" />} />
-      <Route path="/site-watch" element={<StudioOSAliasRoute navigate={navigate} routePath="/os/projects" />} />
+      <Route path="/documents" element={<StudioOSAliasRoute navigate={navigate} routePath="/os/documents" />} />
+      <Route path="/work-queue" element={<StudioOSAliasRoute navigate={navigate} routePath="/os/work-queue" />} />
+      <Route path="/site-watch" element={<StudioOSAliasRoute navigate={navigate} routePath="/os/site-watch" />} />
       <Route path="/gallery" element={<StudioOSAliasRoute navigate={navigate} routePath="/os/portfolio" />} />
-      <Route path="/settings" element={<StudioOSAliasRoute navigate={navigate} routePath="/os/projects" />} />
+      <Route path="/settings" element={<StudioOSAliasRoute navigate={navigate} routePath="/os/settings" />} />
       <Route path="/os/projects/:projectAlias" element={<StudioOSRoute navigate={navigate} routePath={location.pathname} />} />
       <Route path="/journal" element={<Navigate replace to="/os/content" />} />
       <Route

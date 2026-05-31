@@ -5,7 +5,14 @@ import { ContentPlanner } from '../dashboard/ContentPlanner.jsx';
 import { PortfolioManager } from '../dashboard/PortfolioManager.jsx';
 import { ProjectDashboard } from '../dashboard/ProjectDashboard.jsx';
 import { TimelineCalculator } from '../dashboard/TimelineCalculator.jsx';
+import {
+  DocumentsSurface,
+  SettingsSurface,
+  SiteWatchSurface,
+  WorkQueueSurface,
+} from './DedicatedSurfaces.jsx';
 import { EditorialLayoutDashboard } from './EditorialLayoutDashboard.jsx';
+import { useOverlayContract } from '../../overlays/useOverlayContract.js';
 
 export function StudioOSWorkspaceContent({
   activeTab,
@@ -30,14 +37,27 @@ export function StudioOSWorkspaceContent({
   selectedProjectAlias,
   selectedArtworkProjectId,
   statusCounts,
+  studioSettings,
   studioUser,
   tasks,
+  onOpenGlobalDocumentRevision,
   onCompleteTask,
   onUpdateTask,
+  onUpdateStudioSettings,
   updateContent,
   updatePortfolio,
   updateProject,
 }) {
+  const { openOverlay, overlayKinds } = useOverlayContract();
+
+  const openTaskDetail = (task) => {
+    openOverlay(overlayKinds.TASK_DETAIL_DRAWER, {
+      description: 'Dedicated work queue item.',
+      task,
+      title: 'Task Detail',
+    });
+  };
+
   return (
     <div className="space-y-32 page-fade">
       <div key={activeTab} className="page-fade">
@@ -113,6 +133,36 @@ export function StudioOSWorkspaceContent({
 
         {activeTab === 'timeline' && <TimelineCalculator projects={projects} onUpdate={updateProject} />}
 
+        {activeTab === 'documents' && (
+          <DocumentsSurface
+            projects={projects}
+            onOpenDocument={(document) => {
+              if (onOpenGlobalDocumentRevision) {
+                onOpenGlobalDocumentRevision(document);
+                return;
+              }
+              openOverlay(overlayKinds.DOCUMENT_REVISION_DRAWER, {
+                description: 'Dedicated document control surface.',
+                document,
+                title: 'Document Revision',
+              });
+            }}
+          />
+        )}
+
+        {activeTab === 'workQueue' && (
+          <WorkQueueSurface
+            tasks={tasks}
+            onOpenTask={openTaskDetail}
+          />
+        )}
+
+        {activeTab === 'siteWatch' && (
+          <SiteWatchSurface
+            projects={projects}
+          />
+        )}
+
         {activeTab === 'content' && (
           <ContentPlanner
             contentItems={contentItems}
@@ -135,6 +185,13 @@ export function StudioOSWorkspaceContent({
             onToast={onToast}
             onUpdate={updatePortfolio}
             onUploadImage={onUploadPortfolioImage}
+          />
+        )}
+
+        {activeTab === 'settings' && (
+          <SettingsSurface
+            settings={studioSettings}
+            onChange={onUpdateStudioSettings}
           />
         )}
       </div>

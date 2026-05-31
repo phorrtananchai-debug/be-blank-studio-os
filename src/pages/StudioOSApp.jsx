@@ -16,6 +16,8 @@ import { useStudioAuth } from '../hooks/useStudioAuth.js';
 import { useStudioProjects } from '../hooks/useStudioProjects.js';
 import { useToastMessage } from '../hooks/useToastMessage.js';
 import { OverlayHost } from '../overlays/OverlayHost.jsx';
+import { useOverlayContract } from '../overlays/useOverlayContract.js';
+import { getDocuments } from '../corebase/google/selectors.ts';
 import {
   addCollectionItem,
   deleteCollectionItem,
@@ -80,6 +82,10 @@ export function StudioOSApp({ navigate, routePath }) {
     if (routePath.startsWith('/os/artwork')) return 'artwork';
     if (routePath.startsWith('/os/projects')) return 'projects';
     if (routePath.startsWith('/os/timeline')) return 'timeline';
+    if (routePath.startsWith('/os/documents')) return 'documents';
+    if (routePath.startsWith('/os/work-queue')) return 'workQueue';
+    if (routePath.startsWith('/os/site-watch')) return 'siteWatch';
+    if (routePath.startsWith('/os/settings')) return 'settings';
     if (routePath.startsWith('/os/content')) return 'content';
     if (routePath.startsWith('/os/portfolio')) return 'portfolio';
     return 'flow';
@@ -103,6 +109,8 @@ export function StudioOSApp({ navigate, routePath }) {
       if (selectedArtworkProjectId) navigate(`/os/artwork/${selectedArtworkProjectId}`);
       else navigate('/os/artwork');
     }
+    else if (tabId === 'workQueue') navigate('/os/work-queue');
+    else if (tabId === 'siteWatch') navigate('/os/site-watch');
     else navigate(`/os/${tabId}`);
   };
 
@@ -126,11 +134,18 @@ export function StudioOSApp({ navigate, routePath }) {
   } = useOperationalTasks({ enabled: Boolean(studioUser) || !isFirebaseConfigured, onToast: showToast });
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
+  const [studioSettings, setStudioSettings] = useLocalStorage('beBlank.studioSettings.v1', {
+    backupRetention: '30 days',
+    reviewCadence: 'Weekly',
+    studioLabel: 'BE BLANK OS',
+    timezone: 'Asia/Bangkok',
+  });
   const [pendingAnalysis, setPendingAnalysis] = useState(null);
   const [pendingBackup, setPendingBackup] = useState(null);
   const [lastAddedPortfolioId, setLastAddedPortfolioId] = useState('');
   const importInputRef = useRef(null);
   const importModeRef = useRef('backup');
+  const { openOverlay, overlayKinds } = useOverlayContract();
 
   const dataMode = isFirebaseConfigured
     ? (studioUser ? 'firebase' : 'firebase-auth')
@@ -657,6 +672,16 @@ export function StudioOSApp({ navigate, routePath }) {
     });
   };
 
+  const openDocumentRevisionDrawer = async (documentFromSurface = null) => {
+    const docs = await getDocuments();
+    const firstDoc = documentFromSurface || docs[0] || null;
+    openOverlay(overlayKinds.DOCUMENT_REVISION_DRAWER, {
+      description: 'Dedicated document revision view.',
+      document: firstDoc,
+      title: 'Document Revision',
+    });
+  };
+
   const firebaseDebugInfo = getFirebaseDebugInfo();
   const commandPaletteCommands = [
     {
@@ -682,6 +707,30 @@ export function StudioOSApp({ navigate, routePath }) {
       group: 'Navigate',
       keywords: ['board', 'canvas'],
       run: () => navigate('/os/artwork'),
+    },
+    {
+      id: 'go-documents',
+      label: 'Go to Documents',
+      description: 'Open dedicated document control',
+      group: 'Navigate',
+      keywords: ['docs', 'revision'],
+      run: () => navigate('/os/documents'),
+    },
+    {
+      id: 'go-work-queue',
+      label: 'Go to Work Queue',
+      description: 'Open dedicated work queue',
+      group: 'Navigate',
+      keywords: ['tasks', 'queue'],
+      run: () => navigate('/os/work-queue'),
+    },
+    {
+      id: 'go-settings',
+      label: 'Go to Settings',
+      description: 'Open studio settings surface',
+      group: 'Navigate',
+      keywords: ['system', 'preferences'],
+      run: () => navigate('/os/settings'),
     },
     {
       id: 'go-portfolio',
@@ -800,6 +849,7 @@ export function StudioOSApp({ navigate, routePath }) {
           selectedProjectAlias={selectedProjectAlias}
           selectedArtworkProjectId={selectedArtworkProjectId}
           statusCounts={statusCounts}
+          studioSettings={studioSettings}
           studioUser={studioUser}
           updateContent={updateContent}
           updatePortfolio={updatePortfolio}
@@ -809,7 +859,9 @@ export function StudioOSApp({ navigate, routePath }) {
           onUploadPortfolioImage={uploadPortfolioImage}
           tasks={tasks}
           onCompleteTask={completeTask}
+          onOpenGlobalDocumentRevision={openDocumentRevisionDrawer}
           onUpdateTask={updateTask}
+          onUpdateStudioSettings={setStudioSettings}
         />
 
         <StudioOSAnalysisPreview

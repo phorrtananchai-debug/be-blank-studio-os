@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { isFirebaseConfigured } from '../services/firebase.js';
 import { subscribeToProjects } from '../services/firebaseProjects.js';
+import { initialProjects } from '../data/seed.js';
 
 export function useProjectsSubscription({ enabled = true, onError } = {}) {
   const [projects, setProjects] = useState([]);
@@ -9,7 +10,7 @@ export function useProjectsSubscription({ enabled = true, onError } = {}) {
 
   useEffect(() => {
     if (!enabled || !isFirebaseConfigured()) {
-      setProjects([]);
+      setProjects(initialProjects);
       setIsLoading(false);
       setError(null);
       return undefined;
