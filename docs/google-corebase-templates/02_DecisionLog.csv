@@ -1,0 +1,5 @@
+decision_id,project_id,title,body,type,source,created_at
+DEC-001,KARUN-PHUKET-OLDTOWN,Stone finish locked,Client approved travertine batch,decision,google-readonly,2026-05-30T13:00:00Z
+DEC-002,KARUN-CENTRAL-KHONKAEN,MEP reroute required,Site beam conflict resolved with alternate route,site-update,site-watch,2026-05-31T06:30:00Z
+DEC-003,AVERY-GAYSORN-AMARIN,Facade option selected,Preferred bronze frame profile accepted,decision,google-readonly,2026-05-29T15:20:00Z
+DEC-004,ULTIMATE-BKK,Handover pack revision,Client requested revised as-built index,journal,google-readonly,2026-05-28T10:15:00Z

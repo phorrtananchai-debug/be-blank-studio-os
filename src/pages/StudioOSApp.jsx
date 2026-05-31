@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CommandPalette } from '../components/CommandPalette.jsx';
 import { LoginPage } from '../components/LoginPage.jsx';
 import { QuickCapture } from '../components/dashboard/QuickCapture.jsx';
@@ -17,7 +17,15 @@ import { useStudioProjects } from '../hooks/useStudioProjects.js';
 import { useToastMessage } from '../hooks/useToastMessage.js';
 import { OverlayHost } from '../overlays/OverlayHost.jsx';
 import { useOverlayContract } from '../overlays/useOverlayContract.js';
-import { getDocuments } from '../corebase/google/selectors.ts';
+import {
+  getAlerts,
+  getArtwork,
+  getCorebaseReadStatus,
+  getDecisionLog,
+  getDocuments,
+  getProjects,
+  getWorkScope,
+} from '../corebase/google/selectors.ts';
 import {
   buildConfirmationPayload,
   buildDocumentRevisionPayload,
@@ -150,12 +158,88 @@ export function StudioOSApp({ navigate, routePath }) {
   const importInputRef = useRef(null);
   const importModeRef = useRef('backup');
   const { openOverlay, overlayKinds } = useOverlayContract();
+  const [corebaseProjects, setCorebaseProjects] = useState([]);
+  const [corebaseWorkScope, setCorebaseWorkScope] = useState([]);
+  const [corebaseDocuments, setCorebaseDocuments] = useState([]);
+  const [corebaseArtwork, setCorebaseArtwork] = useState([]);
+  const [corebaseSiteUpdates, setCorebaseSiteUpdates] = useState([]);
+  const [corebaseReadStatus, setCorebaseReadStatus] = useState(getCorebaseReadStatus());
 
   const dataMode = isFirebaseConfigured
     ? (studioUser ? 'firebase' : 'firebase-auth')
     : 'checking';
 
-  const statusCounts = useMemo(() => countByStatus(projects, projectStatuses), [projects]);
+  const effectiveProjects = useMemo(
+    () => (projects.length ? projects : corebaseProjects),
+    [corebaseProjects, projects],
+  );
+
+  const statusCounts = useMemo(() => countByStatus(effectiveProjects, projectStatuses), [effectiveProjects]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadCorebaseReadPaths = async () => {
+      try {
+        const [readProjects, readWorkScope, readDocuments, readArtwork, readDecisions, readAlerts] = await Promise.all([
+          getProjects(),
+          getWorkScope(),
+          getDocuments(),
+          getArtwork(),
+          getDecisionLog(),
+          getAlerts(),
+        ]);
+
+        if (cancelled) return;
+        setCorebaseProjects(Array.isArray(readProjects) ? readProjects : []);
+        setCorebaseWorkScope(Array.isArray(readWorkScope) ? readWorkScope : []);
+        setCorebaseDocuments(Array.isArray(readDocuments) ? readDocuments : []);
+        setCorebaseArtwork(Array.isArray(readArtwork) ? readArtwork : []);
+
+        const siteUpdates = [
+          ...(Array.isArray(readDecisions)
+            ? readDecisions
+              .filter((item) => item?.type === 'site-update' || item?.source === 'site-watch')
+              .map((item) => ({
+                body: item.body || '',
+                createdAt: item.createdAt,
+                date: item.createdAt,
+                id: item.id,
+                projectId: item.projectId,
+                projectName: item.projectId,
+                title: item.title || 'Site update',
+              }))
+            : []),
+          ...(Array.isArray(readAlerts)
+            ? readAlerts.map((alert) => ({
+              body: alert.message || '',
+              createdAt: alert.createdAt,
+              date: alert.createdAt,
+              id: `alert-${alert.id}`,
+              projectId: alert.projectId,
+              projectName: alert.projectId,
+              title: `Alert (${alert.level || 'WATCH'})`,
+            }))
+            : []),
+        ];
+        setCorebaseSiteUpdates(siteUpdates);
+        setCorebaseReadStatus(getCorebaseReadStatus());
+      } catch {
+        if (!cancelled) {
+          setCorebaseProjects([]);
+          setCorebaseWorkScope([]);
+          setCorebaseDocuments([]);
+          setCorebaseArtwork([]);
+          setCorebaseSiteUpdates([]);
+          setCorebaseReadStatus(getCorebaseReadStatus());
+        }
+      }
+    };
+    loadCorebaseReadPaths();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   if (!studioUser && dataMode === 'firebase-auth') {
     return <LoginPage errorMessage={authMessage || projectsError} onBack={() => navigate('/')} onSignIn={handleFirebaseSignIn} />;
   }
@@ -218,7 +302,7 @@ export function StudioOSApp({ navigate, routePath }) {
   };
 
   const addQuickTask = async (text) => {
-    const savedTask = await createTask(inferTaskDraft(text, projects));
+    const savedTask = await createTask(inferTaskDraft(text, effectiveProjects));
     return Boolean(savedTask);
   };
 
@@ -344,11 +428,11 @@ export function StudioOSApp({ navigate, routePath }) {
   const getIntelligenceJson = () => buildStudioIntelligenceExport({
     contentItems,
     portfolioItems,
-    projects,
+    projects: effectiveProjects,
     tasks,
   });
 
-  const getWeeklyReview = () => buildWeeklyStudioReview({ projects, tasks });
+  const getWeeklyReview = () => buildWeeklyStudioReview({ projects: effectiveProjects, tasks });
 
   const exportIntelligenceJson = () => {
     try {
@@ -803,7 +887,7 @@ export function StudioOSApp({ navigate, routePath }) {
         <StudioOSHeader
           contentItems={contentItems}
           tasks={tasks}
-          projects={projects}
+          projects={effectiveProjects}
           onBackHome={() => navigate('/')}
         />
 
@@ -848,6 +932,11 @@ export function StudioOSApp({ navigate, routePath }) {
           addContent={addContent}
           addPortfolio={addPortfolio}
           addProject={addProject}
+          corebaseArtwork={corebaseArtwork}
+          corebaseDocuments={corebaseDocuments}
+          corebaseReadStatus={corebaseReadStatus}
+          corebaseSiteUpdates={corebaseSiteUpdates}
+          corebaseWorkScope={corebaseWorkScope}
           contentItems={contentItems}
           copiedId={copiedId}
           copyCaption={copyCaption}
@@ -859,7 +948,7 @@ export function StudioOSApp({ navigate, routePath }) {
           handleSelectArtwork={handleSelectArtwork}
           portfolioItems={portfolioItems}
           lastAddedPortfolioId={lastAddedPortfolioId}
-          projects={projects}
+          projects={effectiveProjects}
           selectedProjectAlias={selectedProjectAlias}
           selectedArtworkProjectId={selectedArtworkProjectId}
           statusCounts={statusCounts}

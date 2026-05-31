@@ -89,6 +89,8 @@ test.describe('route smoke checks', () => {
 
     await page.goto('/settings');
     await expectStudioShell(page);
+    await expect(page.getByText(/Corebase mode:/)).toBeVisible();
+    await expect(page.getByText(/Read-only mode: active/)).toBeVisible();
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/m');
@@ -209,7 +211,8 @@ test.describe('overlay scaffold checks', () => {
 
     await page.goto('/documents');
     await expectStudioShell(page);
-    const documentRows = page.getByRole('button', { name: /drawing package/i });
+    const documentSurface = page.locator('section').filter({ hasText: 'Document Control' }).first();
+    const documentRows = documentSurface.getByRole('button');
     await expect(documentRows.first()).toBeVisible();
     await documentRows.first().click();
     const documentDialog = page.getByRole('dialog', { name: 'Document Revision' });
@@ -222,7 +225,8 @@ test.describe('overlay scaffold checks', () => {
 
     await page.goto('/work-queue');
     await expectStudioShell(page);
-    const taskRows = page.getByRole('button', { name: /Next action|Untitled task|OPEN/i });
+    const workQueueSurface = page.locator('section').filter({ hasText: 'Work Queue' }).first();
+    const taskRows = workQueueSurface.getByRole('button');
     await expect(taskRows.first()).toBeVisible();
     await taskRows.first().click();
     const taskDialog = page.getByRole('dialog', { name: 'Task Detail' });

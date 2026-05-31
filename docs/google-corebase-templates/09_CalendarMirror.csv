@@ -1,0 +1,5 @@
+event_id,project_id,title,category,start_at,end_at,location,source,updated_at
+EVT-001,KARUN-PHUKET-OLDTOWN,Site coordination,timeline,2026-06-03T03:00:00Z,2026-06-03T04:00:00Z,Phuket,google-readonly,2026-06-01T09:35:00Z
+EVT-002,KARUN-CENTRAL-KHONKAEN,Client review,milestone,2026-06-05T07:00:00Z,2026-06-05T08:00:00Z,Khon Kaen,google-readonly,2026-06-01T09:36:00Z
+EVT-003,AVERY-GAYSORN-AMARIN,Tender clarification,timeline,2026-06-06T02:30:00Z,2026-06-06T03:15:00Z,Bangkok,google-readonly,2026-06-01T09:37:00Z
+EVT-004,ULTIMATE-BKK,Handover readiness,milestone,2026-06-07T06:00:00Z,2026-06-07T07:00:00Z,Bangkok,google-readonly,2026-06-01T09:38:00Z

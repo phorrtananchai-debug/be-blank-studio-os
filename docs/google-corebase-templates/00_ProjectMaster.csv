@@ -1,0 +1,5 @@
+project_id,project_name,phase,status,client,location,slug,aliases,updated_at
+KARUN-PHUKET-OLDTOWN,Karun Phuket Oldtown,design,active,Karun,Phuket,karun-phuket,"karun-phuket|karun-phuket-oldtown",2026-06-01T09:00:00Z
+KARUN-CENTRAL-KHONKAEN,Karun Central Khonkaen,construction,active,Karun,Khon Kaen,karun-central-khonkaen,karun-central-khonkaen,2026-06-01T09:00:00Z
+AVERY-GAYSORN-AMARIN,Avery Gaysorn Amarin,tender,watch,Avery,Bangkok,avery-gaysorn-amarin,avery-gaysorn-amarin,2026-06-01T09:00:00Z
+ULTIMATE-BKK,Ultimate BKK,handover,active,Ultimate,Bangkok,ultimate-bkk,ultimate-bkk,2026-06-01T09:00:00Z

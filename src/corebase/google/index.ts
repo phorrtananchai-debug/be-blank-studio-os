@@ -35,6 +35,7 @@ export {
   mapLegacyToCorebase,
 } from './legacyToCorebase';
 export {
+  getCorebaseReadStatus,
   getAlerts,
   getArtwork,
   getCalendarEvents,

@@ -1,0 +1,5 @@
+image_id,project_id,title,media_type,role,preview_url,url,updated_at
+IMG-001,KARUN-PHUKET-OLDTOWN,Lobby Concept Board,image,board,https://example.com/img/karun-lobby.jpg,https://example.com/img/karun-lobby.jpg,2026-06-01T09:20:00Z
+IMG-002,KARUN-CENTRAL-KHONKAEN,Facade Revision,image,gallery,https://example.com/img/karun-central-facade.jpg,https://example.com/img/karun-central-facade.jpg,2026-06-01T09:21:00Z
+IMG-003,AVERY-GAYSORN-AMARIN,Material Palette,image,board,https://example.com/img/avery-material.jpg,https://example.com/img/avery-material.jpg,2026-06-01T09:22:00Z
+IMG-004,ULTIMATE-BKK,Completion Walkthrough,image,cover,https://example.com/img/ultimate-cover.jpg,https://example.com/img/ultimate-cover.jpg,2026-06-01T09:23:00Z

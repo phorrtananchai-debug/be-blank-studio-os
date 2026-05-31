@@ -1,0 +1,5 @@
+alert_id,project_id,level,message,status,created_at
+ALERT-001,KARUN-PHUKET-OLDTOWN,WATCH,Drawing set waiting on MEP revision,open,2026-06-01T09:12:00Z
+ALERT-002,KARUN-CENTRAL-KHONKAEN,RISK,Lead time for custom hardware is extending,open,2026-06-01T09:13:00Z
+ALERT-003,AVERY-GAYSORN-AMARIN,SAFE,Budget review completed without variance,closed,2026-06-01T09:14:00Z
+ALERT-004,ULTIMATE-BKK,CRITICAL,Handover date at risk due to permit pending,open,2026-06-01T09:15:00Z
