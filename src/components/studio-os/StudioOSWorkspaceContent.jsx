@@ -13,6 +13,7 @@ import {
 } from './DedicatedSurfaces.jsx';
 import { EditorialLayoutDashboard } from './EditorialLayoutDashboard.jsx';
 import { useOverlayContract } from '../../overlays/useOverlayContract.js';
+import { buildDocumentRevisionPayload, buildTaskDetailPayload } from '../../overlays/overlayPayloads.js';
 
 export function StudioOSWorkspaceContent({
   activeTab,
@@ -51,11 +52,7 @@ export function StudioOSWorkspaceContent({
   const { openOverlay, overlayKinds } = useOverlayContract();
 
   const openTaskDetail = (task) => {
-    openOverlay(overlayKinds.TASK_DETAIL_DRAWER, {
-      description: 'Dedicated work queue item.',
-      task,
-      title: 'Task Detail',
-    });
+    openOverlay(overlayKinds.TASK_DETAIL_DRAWER, buildTaskDetailPayload(task, '/os/work-queue'));
   };
 
   return (
@@ -142,9 +139,7 @@ export function StudioOSWorkspaceContent({
                 return;
               }
               openOverlay(overlayKinds.DOCUMENT_REVISION_DRAWER, {
-                description: 'Dedicated document control surface.',
-                document,
-                title: 'Document Revision',
+                ...buildDocumentRevisionPayload(document, '/os/documents'),
               });
             }}
           />
@@ -152,6 +147,7 @@ export function StudioOSWorkspaceContent({
 
         {activeTab === 'workQueue' && (
           <WorkQueueSurface
+            projects={projects}
             tasks={tasks}
             onOpenTask={openTaskDetail}
           />

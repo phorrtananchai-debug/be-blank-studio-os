@@ -5,14 +5,14 @@ import { Field } from '../Field.jsx';
 
 export function DocumentsSurface({ documents = [], onOpenDocument, projects = [] }) {
   const rows = documents.length ? documents : projects.flatMap((project) => (
-    project?.drawingLink ? [{
+    [{
       id: `${project.id}-drawing`,
       projectId: project.id,
       revision: project.drawingVersion || 'R0',
       status: project.drawingStatus || 'draft',
       title: `${project.name} drawing package`,
       url: project.drawingLink,
-    }] : []
+    }]
   ));
 
   return (
@@ -46,8 +46,15 @@ export function DocumentsSurface({ documents = [], onOpenDocument, projects = []
   );
 }
 
-export function WorkQueueSurface({ tasks = [], onOpenTask }) {
-  const orderedTasks = useMemo(() => [...tasks].sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || ''))), [tasks]);
+export function WorkQueueSurface({ tasks = [], onOpenTask, projects = [] }) {
+  const taskRows = tasks.length ? tasks : projects.map((project, index) => ({
+    dueDate: project.handoverDate || project.openingDate || '',
+    id: `work-queue-fallback-${project.id || index + 1}`,
+    projectId: project.id || 'UNASSIGNED',
+    status: 'OPEN',
+    title: project.nextAction || `Next action for ${project.name || 'project'}`,
+  }));
+  const orderedTasks = useMemo(() => [...taskRows].sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || ''))), [taskRows]);
   return (
     <SectionCard title="Work Queue" eyebrow="Dedicated Surface">
       {orderedTasks.length ? (

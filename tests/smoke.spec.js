@@ -178,55 +178,71 @@ test.describe('overlay scaffold checks', () => {
     await expectStudioShell(page);
 
     await page.getByRole('button', { name: 'New Project' }).click();
-    await expect(page.getByRole('dialog', { name: 'New Project' })).toBeVisible();
+    const newProjectDialog = page.getByRole('dialog', { name: 'New Project' });
+    await expect(newProjectDialog).toBeVisible();
+    await expect(newProjectDialog.getByText('Source: /os/projects')).toBeVisible();
     await page.getByRole('button', { name: 'Close overlay' }).click();
-    await expect(page.getByRole('dialog', { name: 'New Project' })).toBeHidden();
+    await expect(newProjectDialog).toBeHidden();
 
     await page.getByRole('button', { name: 'Filters' }).click();
-    await expect(page.getByRole('dialog', { name: 'Filter Drawer' })).toBeVisible();
+    const filterDialog = page.getByRole('dialog', { name: 'Filter Drawer' });
+    await expect(filterDialog).toBeVisible();
+    await expect(filterDialog.getByText('Filter Context')).toBeVisible();
+    await expect(filterDialog.getByText('Source: /os/projects')).toBeVisible();
     await page.getByRole('button', { name: 'Close overlay' }).click();
-    await expect(page.getByRole('dialog', { name: 'Filter Drawer' })).toBeHidden();
+    await expect(filterDialog).toBeHidden();
   });
 
   test('opens artwork, task, and confirmation overlays when rows exist', async ({ page }) => {
     await page.goto('/artwork');
     await expectStudioShell(page);
     const artworkCards = page.locator('button:has-text("Open Space")');
-    if (await artworkCards.count()) {
-      await artworkCards.first().click();
-      await expect(page.getByRole('dialog', { name: 'Artwork Preview' })).toBeVisible();
-      await page.getByRole('button', { name: 'Close overlay' }).click();
-    }
+    await expect(artworkCards.first()).toBeVisible();
+    await artworkCards.first().click();
+    const artworkDialog = page.getByRole('dialog', { name: 'Artwork Preview' });
+    await expect(artworkDialog).toBeVisible();
+    await expect(artworkDialog.getByText(/^ID:/)).toBeVisible();
+    await expect(artworkDialog.getByText(/^Project:/)).toBeVisible();
+    await expect(artworkDialog.getByText('Source: /os/artwork')).toBeVisible();
+    await page.getByRole('button', { name: 'Close overlay' }).click();
+    await expect(artworkDialog).toBeHidden();
 
-    await page.goto('/os/projects');
+    await page.goto('/documents');
     await expectStudioShell(page);
-    const opened = await openAnyProjectWorkspace(page);
-    if (!opened) return;
+    const documentRows = page.getByRole('button', { name: /drawing package/i });
+    await expect(documentRows.first()).toBeVisible();
+    await documentRows.first().click();
+    const documentDialog = page.getByRole('dialog', { name: 'Document Revision' });
+    await expect(documentDialog).toBeVisible();
+    await expect(documentDialog.getByText(/^ID:/)).toBeVisible();
+    await expect(documentDialog.getByText(/^Revision:/)).toBeVisible();
+    await expect(documentDialog.getByText('Source: /os/documents')).toBeVisible();
+    await page.getByRole('button', { name: 'Close overlay' }).click();
+    await expect(documentDialog).toBeHidden();
 
     await page.goto('/work-queue');
     await expectStudioShell(page);
-    const taskRows = page.locator('main article[role="button"]');
-    if (await taskRows.count()) {
-      await taskRows.first().click();
-      await expect(page.getByRole('dialog', { name: 'Task Detail' })).toBeVisible();
-      await page.getByRole('button', { name: 'Close overlay' }).click();
-    }
+    const taskRows = page.getByRole('button', { name: /Next action|Untitled task|OPEN/i });
+    await expect(taskRows.first()).toBeVisible();
+    await taskRows.first().click();
+    const taskDialog = page.getByRole('dialog', { name: 'Task Detail' });
+    await expect(taskDialog).toBeVisible();
+    await expect(taskDialog.getByText(/^ID:/)).toBeVisible();
+    await expect(taskDialog.getByText(/^Status:/)).toBeVisible();
+    await expect(taskDialog.getByText('Source: /os/work-queue')).toBeVisible();
+    await page.getByRole('button', { name: 'Close overlay' }).click();
+    await expect(taskDialog).toBeHidden();
 
     await page.goto('/projects');
     await expectStudioShell(page);
-    const detailCount = await page.getByRole('button', { name: 'Open Detail' }).count();
-    if (detailCount) {
-      await page.getByRole('button', { name: 'Open Detail' }).first().click();
-      const destructiveActions = page.getByRole('button', { name: /Delete Project/i });
-      if (await destructiveActions.count()) {
-        await destructiveActions.first().click();
-        const confirmationDialog = page.getByRole('dialog', { name: /Delete Project|Confirm Action/ });
-        if (await confirmationDialog.count()) {
-          await expect(confirmationDialog).toBeVisible();
-          await page.getByRole('button', { name: 'Close overlay' }).click();
-        }
-      }
-    }
+    await page.getByLabel('Delete project').first().click();
+    const confirmationDialog = page.getByRole('dialog').filter({ hasText: 'Source: /os/projects' });
+    await expect(confirmationDialog).toBeVisible();
+    await expect(confirmationDialog.getByText(/^ID:/)).toBeVisible();
+    await expect(confirmationDialog.getByText('Source: /os/projects')).toBeVisible();
+    await expect(confirmationDialog.getByRole('button', { name: 'Delete' })).toBeVisible();
+    await page.getByRole('button', { name: 'Close overlay' }).click();
+    await expect(confirmationDialog).toBeHidden();
   });
 });
 

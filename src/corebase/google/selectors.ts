@@ -13,6 +13,52 @@ function getLegacySnapshot() {
   });
 }
 
+function ensureWorkScopeItems(workScope = [], projects = initialProjects) {
+  if (workScope.length) return workScope;
+  const firstProject = projects[0];
+  if (!firstProject) return workScope;
+  return [{
+    id: 'TASK-DETERMINISTIC-001',
+    notes: firstProject.notes || '',
+    priority: 'NORMAL',
+    projectId: firstProject.id,
+    status: 'OPEN',
+    title: firstProject.nextAction || `Next action for ${firstProject.name}`,
+    updatedAt: new Date().toISOString(),
+  }];
+}
+
+function ensureDocuments(documents = [], projects = initialProjects) {
+  if (documents.length) return documents;
+  const firstProject = projects[0];
+  if (!firstProject) return documents;
+  return [{
+    id: 'DOC-DETERMINISTIC-001',
+    projectId: firstProject.id,
+    revision: firstProject.drawingVersion || 'R0',
+    status: firstProject.drawingStatus || 'Draft',
+    title: `${firstProject.name} drawing package`,
+    updatedAt: new Date().toISOString(),
+    url: firstProject.drawingLink || '',
+  }];
+}
+
+function ensureArtwork(projectImages = [], projects = initialProjects, portfolioItems = initialPortfolioItems) {
+  if (projectImages.length) return projectImages;
+  const firstProject = projects[0];
+  const firstPortfolio = portfolioItems[0];
+  if (!firstProject) return projectImages;
+  return [{
+    id: 'ART-DETERMINISTIC-001',
+    mediaType: 'image',
+    previewUrl: firstPortfolio?.imageUrl || firstPortfolio?.coverImage?.url || '',
+    projectId: firstProject.id,
+    role: 'board',
+    title: `${firstProject.name} board`,
+    updatedAt: new Date().toISOString(),
+  }];
+}
+
 export async function getProjects() {
   const [mockProjects, snapshot] = await Promise.all([
     mockAdapters.sheets.listProjects(),
@@ -32,17 +78,20 @@ export async function getProjectById(projectId: string) {
 
 export async function getWorkScope(projectId?: string) {
   const { workScope } = getLegacySnapshot();
-  return projectId ? workScope.filter((item) => item.projectId === projectId) : workScope;
+  const rows = ensureWorkScopeItems(workScope);
+  return projectId ? rows.filter((item) => item.projectId === projectId) : rows;
 }
 
 export async function getDocuments(projectId?: string) {
   const { documents } = getLegacySnapshot();
-  return projectId ? documents.filter((item) => item.projectId === projectId) : documents;
+  const rows = ensureDocuments(documents);
+  return projectId ? rows.filter((item) => item.projectId === projectId) : rows;
 }
 
 export async function getArtwork(projectId?: string) {
   const { projectImages } = getLegacySnapshot();
-  return projectId ? projectImages.filter((item) => item.projectId === projectId) : projectImages;
+  const rows = ensureArtwork(projectImages);
+  return projectId ? rows.filter((item) => item.projectId === projectId) : rows;
 }
 
 export async function getDecisionLog(projectId?: string) {

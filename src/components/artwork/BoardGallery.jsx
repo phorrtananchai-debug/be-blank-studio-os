@@ -2,6 +2,7 @@ import { Layers, ChevronRight, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '../Badge.jsx';
 import { useOverlayContract } from '../../overlays/useOverlayContract.js';
+import { buildArtworkPreviewPayload } from '../../overlays/overlayPayloads.js';
 
 export function BoardGallery({ projects, onSelect }) {
   const [search, setSearch] = useState('');
@@ -36,16 +37,17 @@ export function BoardGallery({ projects, onSelect }) {
           <button
             key={project.id}
             onClick={() => openOverlay(overlayKinds.ARTWORK_PREVIEW_MODAL, {
-              artwork: {
+              ...buildArtworkPreviewPayload({
                 client: project.client || '',
+                id: `${project.id}-board`,
                 name: project.name,
+                projectId: project.id,
                 projectName: project.name,
+                status: project.status || 'review',
                 title: `${project.name} board`,
-              },
+              }, '/os/artwork'),
               confirmLabel: 'Open Space',
-              description: 'Preview studio board context before opening the full artwork surface.',
               onConfirm: () => onSelect(project.id),
-              title: 'Artwork Preview',
             })}
             className="group relative flex flex-col text-left rounded-2xl border border-black/[0.05] bg-white overflow-hidden shadow-studioSoft hover:shadow-studio hover:border-black/10 transition-all"
           >
