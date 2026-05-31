@@ -95,9 +95,9 @@
   - Removes tolerant confirmation fallback in the main destructive flow path
 
 ### Validation
-- `npm run build`: pending latest run
-- `npm run lint`: pending latest run
-- `npm run test:smoke`: pending latest run
+- `npm run build`: pass
+- `npm run lint`: pass
+- `npm run test:smoke`: pass (14/14)
 
 ### Remaining limitations
 - Overlay payload schemas are hardened for core surfaces, but not yet uniformly expanded for every legacy interaction path outside the targeted contract routes.
