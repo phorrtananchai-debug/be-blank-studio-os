@@ -91,6 +91,7 @@ test.describe('route smoke checks', () => {
     await expectStudioShell(page);
     await expect(page.getByText(/Corebase mode:/)).toBeVisible();
     await expect(page.getByText(/Endpoint configured:/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Verify Google Corebase' })).toBeVisible();
     await expect(page.getByText(/Read-only mode: active/)).toBeVisible();
 
     await page.setViewportSize({ width: 390, height: 844 });

@@ -1,0 +1,3 @@
+member_id,name,role,email,active,updated_at
+TEAM-001,Studio Principal,Principal,principal@example.com,TRUE,2026-06-01T09:25:00Z
+TEAM-002,Design Director,Director,director@example.com,TRUE,2026-06-01T09:26:00Z

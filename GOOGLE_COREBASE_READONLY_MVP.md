@@ -143,3 +143,4 @@ EVT-001,KARUN-PHUKET-OLDTOWN,Site coordination,timeline,2026-06-03T03:00:00Z,202
 - Keep `project_id` canonical where possible.
 - Alias slugs may still be provided in `slug` or `aliases` for route compatibility.
 - This MVP intentionally excludes OAuth and write-back.
+- Use `GOOGLE_COREBASE_QUICKSTART.md` for step-by-step setup and verifier workflow.

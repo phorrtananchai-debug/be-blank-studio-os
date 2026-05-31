@@ -20,6 +20,7 @@ This contract defines a read-only JSON API for BE BLANK OS Google Corebase mode.
 - `GET ?resource=images&project_id=KARUN-PHUKET-OLDTOWN`
 - `GET ?resource=calendar&project_id=KARUN-PHUKET-OLDTOWN`
 - `GET ?resource=alerts`
+- `GET ?resource=health` (optional but recommended)
 - `GET ?resource=all`
 
 ## Success response
@@ -62,6 +63,7 @@ This contract defines a read-only JSON API for BE BLANK OS Google Corebase mode.
 - `images`: rows compatible with `ProjectImage`
 - `calendar`: rows compatible with `CalendarEvent`
 - `alerts`: rows compatible with `AlertItem`
+- `health`: object payload indicating tab availability and spreadsheet setup state
 - `all`: object with keys `{ projects, workscope, documents, images, calendar, alerts, decisionlog, costdiff }`
 
 ## Client-side behavior requirements

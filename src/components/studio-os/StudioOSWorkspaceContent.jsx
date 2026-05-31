@@ -24,6 +24,7 @@ export function StudioOSWorkspaceContent({
   corebaseDocuments = [],
   corebaseReadStatus = null,
   corebaseSiteUpdates = [],
+  corebaseVerification = null,
   corebaseWorkScope = [],
   contentItems,
   copyCaption,
@@ -47,9 +48,11 @@ export function StudioOSWorkspaceContent({
   studioUser,
   tasks,
   onOpenGlobalDocumentRevision,
+  onVerifyGoogleCorebase,
   onCompleteTask,
   onUpdateTask,
   onUpdateStudioSettings,
+  verifyingCorebase = false,
   updateContent,
   updatePortfolio,
   updateProject,
@@ -201,8 +204,11 @@ export function StudioOSWorkspaceContent({
         {activeTab === 'settings' && (
           <SettingsSurface
             corebaseStatus={corebaseReadStatus}
+            corebaseVerification={corebaseVerification}
             settings={studioSettings}
             onChange={onUpdateStudioSettings}
+            onVerifyGoogleCorebase={onVerifyGoogleCorebase}
+            verifyingCorebase={verifyingCorebase}
           />
         )}
       </div>

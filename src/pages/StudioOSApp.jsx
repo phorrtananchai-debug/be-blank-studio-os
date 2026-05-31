@@ -26,6 +26,7 @@ import {
   getProjects,
   getWorkScope,
 } from '../corebase/google/selectors.ts';
+import { verifyAllCoreResources } from '../corebase/google/verifyGoogleReadonlyEndpoint.js';
 import {
   buildConfirmationPayload,
   buildDocumentRevisionPayload,
@@ -164,6 +165,8 @@ export function StudioOSApp({ navigate, routePath }) {
   const [corebaseArtwork, setCorebaseArtwork] = useState([]);
   const [corebaseSiteUpdates, setCorebaseSiteUpdates] = useState([]);
   const [corebaseReadStatus, setCorebaseReadStatus] = useState(getCorebaseReadStatus());
+  const [corebaseVerification, setCorebaseVerification] = useState(null);
+  const [isVerifyingCorebase, setIsVerifyingCorebase] = useState(false);
 
   const dataMode = isFirebaseConfigured
     ? (studioUser ? 'firebase' : 'firebase-auth')
@@ -780,6 +783,34 @@ export function StudioOSApp({ navigate, routePath }) {
     openOverlay(overlayKinds.DOCUMENT_REVISION_DRAWER, buildDocumentRevisionPayload(firstDoc, routePath || '/os/documents'));
   };
 
+  const handleVerifyGoogleCorebase = async () => {
+    setIsVerifyingCorebase(true);
+    try {
+      const verification = await verifyAllCoreResources();
+      setCorebaseVerification(verification);
+      setCorebaseReadStatus(getCorebaseReadStatus());
+
+      if (!verification.endpointConfigured) {
+        showToast('Google endpoint is not configured. Running in mock mode.', 'info');
+      } else if (verification.ok) {
+        showToast('Google read-only verification passed.', 'success');
+      } else {
+        showToast(`Google verification failed (${verification.errorCode || 'unknown'}).`, 'warning');
+      }
+    } catch (error) {
+      setCorebaseVerification({
+        endpointConfigured: Boolean(corebaseReadStatus?.endpointConfigured),
+        errorCode: 'unknown',
+        message: String(error?.message || 'Verification failed.'),
+        mode: corebaseReadStatus?.mode || 'mock',
+        ok: false,
+      });
+      showToast('Google verification failed.', 'error');
+    } finally {
+      setIsVerifyingCorebase(false);
+    }
+  };
+
   const firebaseDebugInfo = getFirebaseDebugInfo();
   const commandPaletteCommands = [
     {
@@ -936,6 +967,7 @@ export function StudioOSApp({ navigate, routePath }) {
           corebaseDocuments={corebaseDocuments}
           corebaseReadStatus={corebaseReadStatus}
           corebaseSiteUpdates={corebaseSiteUpdates}
+          corebaseVerification={corebaseVerification}
           corebaseWorkScope={corebaseWorkScope}
           contentItems={contentItems}
           copiedId={copiedId}
@@ -963,8 +995,10 @@ export function StudioOSApp({ navigate, routePath }) {
           tasks={tasks}
           onCompleteTask={completeTask}
           onOpenGlobalDocumentRevision={openDocumentRevisionDrawer}
+          onVerifyGoogleCorebase={handleVerifyGoogleCorebase}
           onUpdateTask={updateTask}
           onUpdateStudioSettings={setStudioSettings}
+          verifyingCorebase={isVerifyingCorebase}
         />
 
         <StudioOSAnalysisPreview

@@ -20,6 +20,9 @@ This guide explains how to run BE BLANK OS in `google-readonly` mode using a Goo
    - `09_CalendarMirror`
 3. Import each CSV from:
    - `docs/google-corebase-templates/`
+4. Include all tabs for complete setup:
+   - `07_Team`
+   - `08_Settings`
 
 ## 2) Create Apps Script project
 1. In Google Sheet, open `Extensions -> Apps Script`.
@@ -71,6 +74,7 @@ Open `/os/settings` and check Corebase Sync Status:
 - Last sync / Last error
 - Fallback source / stale indicator
 - Retry metadata
+- `Verify Google Corebase` action is available for safe endpoint/resource checks.
 
 ## Security notes
 - Do not commit private production endpoints or credentials.
