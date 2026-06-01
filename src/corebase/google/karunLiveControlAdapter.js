@@ -107,6 +107,28 @@ function mapAlertRows(rows = []) {
   return rows.map((row) => mapAlertRow(row));
 }
 
+function extractRowsFromPayload(resource, payload) {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== 'object') return [];
+
+  if (Array.isArray(payload.data)) return payload.data;
+
+  const resourceCandidates = {
+    karun_all: ['workscope', 'karun_workscope', 'rows'],
+    karun_workscope: ['workscope', 'karun_workscope', 'rows'],
+    workscope: ['workscope', 'karun_workscope', 'rows'],
+  };
+  const candidates = resourceCandidates[resource] || ['rows'];
+  for (const key of candidates) {
+    if (Array.isArray(payload[key])) return payload[key];
+    if (payload[key] && typeof payload[key] === 'object' && Array.isArray(payload[key].rows)) {
+      return payload[key].rows;
+    }
+  }
+
+  return [];
+}
+
 function normalizeWriteResult(result, fallbackItem = null) {
   if (!result.ok) {
     return {
@@ -151,6 +173,7 @@ export function createKarunLiveControlAdapter(config = getGoogleCorebaseProvider
     endpointConfigured: config.endpointConfigured,
     lastErrorCode: null,
     lastErrorMessage: '',
+    lastWorkScopeSource: null,
     lastSyncAt: null,
     mode: config.mode,
     readOnly: false,
@@ -186,8 +209,25 @@ export function createKarunLiveControlAdapter(config = getGoogleCorebaseProvider
 
     status.lastSyncAt = result.updatedAt;
     setError(null);
-    const rows = Array.isArray(result.data) ? result.data : [];
+    const rows = extractRowsFromPayload(resource, result.data);
     return mapper(rows);
+  }
+
+  async function getResourceWithFallback(resources = [], mapper) {
+    let usedResource = null;
+    let rows = [];
+    for (const resource of resources) {
+      rows = await getResource(resource, (items) => items);
+      if (Array.isArray(rows) && rows.length) {
+        usedResource = resource;
+        break;
+      }
+    }
+    if (!usedResource && resources.length) usedResource = resources[0];
+    return {
+      source: usedResource,
+      rows: mapper(rows),
+    };
   }
 
   async function postAction(action, payload, fallbackItem) {
@@ -290,14 +330,16 @@ export function createKarunLiveControlAdapter(config = getGoogleCorebaseProvider
       return getResource('karun_alerts', (rows) => rows.map((row) => mapKarunAlertConfigRow(row)));
     },
     async listWorkScope() {
+      const workScopeResources = ['karun_workscope', 'workscope', 'karun_all'];
       const [masterRows, airRows, electricRows, facadeRows] = await Promise.all([
-        getResource('karun_workscope', mapWorkScopeRows),
-        getResource('karun_workscope', (rows) => mapWorkScopeRowsFromSystem(rows, 'karun-air-conditioning')),
-        getResource('karun_workscope', (rows) => mapWorkScopeRowsFromSystem(rows, 'karun-electrical-meter-upgrade')),
-        getResource('karun_workscope', (rows) => mapFacadeRows(rows).map((item) => item.workScope)),
+        getResourceWithFallback(workScopeResources, mapWorkScopeRows),
+        getResourceWithFallback(workScopeResources, (rows) => mapWorkScopeRowsFromSystem(rows, 'karun-air-conditioning')),
+        getResourceWithFallback(workScopeResources, (rows) => mapWorkScopeRowsFromSystem(rows, 'karun-electrical-meter-upgrade')),
+        getResourceWithFallback(workScopeResources, (rows) => mapFacadeRows(rows).map((item) => item.workScope)),
       ]);
 
-      return [...masterRows, ...airRows, ...electricRows, ...facadeRows];
+      status.lastWorkScopeSource = masterRows.source || null;
+      return [...masterRows.rows, ...airRows.rows, ...electricRows.rows, ...facadeRows.rows];
     },
     async acknowledgeAlert(alertId, options = {}) {
       const payload = createKarunWritePatchPayload({

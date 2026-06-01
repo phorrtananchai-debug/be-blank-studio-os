@@ -45,6 +45,7 @@ function buildResult({
   rowCount,
   workscopeCount,
   workscopeFirstItemId,
+  workscopeSource,
   calendarStatus,
   skippedResources,
 } = {}) {
@@ -63,6 +64,7 @@ function buildResult({
     suggestedRetryMs: Number.isFinite(Number(suggestedRetryMs)) ? Number(suggestedRetryMs) : undefined,
     workscopeCount: Number.isFinite(Number(workscopeCount)) ? Number(workscopeCount) : undefined,
     workscopeFirstItemId: workscopeFirstItemId || undefined,
+    workscopeSource: workscopeSource || undefined,
     calendarStatus: calendarStatus || undefined,
     skippedResources: Array.isArray(skippedResources) ? skippedResources : undefined,
   };
@@ -412,6 +414,7 @@ export async function verifyAllCoreResources(deps = {}) {
     const workScopeCheck = checks.find((check) => check.resource === 'workscope');
     const workscopeCount = workScopeCheck?.rowCount || 0;
     const workscopeFirstItemId = workScopeCheck?.firstItemId;
+    const workscopeSource = adapter.getStatus?.().lastWorkScopeSource || 'karun_workscope';
     if (!workscopeCount) {
       return buildResult({
         ok: false,
@@ -423,6 +426,7 @@ export async function verifyAllCoreResources(deps = {}) {
         checks,
         workscopeCount,
         workscopeFirstItemId,
+        workscopeSource,
         calendarStatus: 'skipped',
         skippedResources,
       });
@@ -438,6 +442,7 @@ export async function verifyAllCoreResources(deps = {}) {
       checks,
       workscopeCount,
       workscopeFirstItemId,
+      workscopeSource,
       calendarStatus: 'skipped',
       skippedResources,
     });
