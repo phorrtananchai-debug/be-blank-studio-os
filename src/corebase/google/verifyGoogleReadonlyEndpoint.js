@@ -45,6 +45,8 @@ function buildResult({
   rowCount,
   workscopeCount,
   workscopeFirstItemId,
+  calendarStatus,
+  skippedResources,
 } = {}) {
   return {
     checks,
@@ -61,6 +63,8 @@ function buildResult({
     suggestedRetryMs: Number.isFinite(Number(suggestedRetryMs)) ? Number(suggestedRetryMs) : undefined,
     workscopeCount: Number.isFinite(Number(workscopeCount)) ? Number(workscopeCount) : undefined,
     workscopeFirstItemId: workscopeFirstItemId || undefined,
+    calendarStatus: calendarStatus || undefined,
+    skippedResources: Array.isArray(skippedResources) ? skippedResources : undefined,
   };
 }
 
@@ -320,6 +324,122 @@ export async function verifyAllCoreResources(deps = {}) {
       endpointHost: '',
       message: 'Endpoint not configured. Mock mode is active.',
       checks: [],
+    });
+  }
+
+  if (configured.mode === 'karun-live-control') {
+    const { adapter } = resolveDeps(deps);
+    const checks = [];
+    const skippedResources = [];
+
+    const required = [
+      { key: 'workscope', read: () => adapter.listWorkScope(), expectedKeys: ['id', 'projectId', 'title', 'status'] },
+      { key: 'materials', read: () => adapter.listImages(), expectedKeys: ['id', 'projectId', 'title', 'mediaType'] },
+      { key: 'costdiff', read: () => adapter.listCostDiff(), expectedKeys: ['id', 'projectId'] },
+      { key: 'decisions', read: () => adapter.listDecisionLog(), expectedKeys: ['id', 'projectId', 'title'] },
+      {
+        key: 'alerts',
+        read: async () => {
+          if (typeof adapter.listAlerts === 'function') return adapter.listAlerts();
+          if (typeof adapter.listAll === 'function') return adapter.listAll();
+          return [];
+        },
+        expectedKeys: [],
+      },
+    ];
+
+    for (const item of required) {
+      try {
+        const rows = await item.read();
+        if (!Array.isArray(rows)) {
+          return buildResult({
+            ok: false,
+            mode: configured.mode,
+            endpointConfigured: true,
+            endpointHost: configured.endpointHost,
+            errorCode: 'invalid_response',
+            message: `Verification failed on ${item.key}: response is not an array.`,
+            checks,
+          });
+        }
+        if (rows[0] && item.expectedKeys.some((key) => !Object.prototype.hasOwnProperty.call(rows[0], key))) {
+          return buildResult({
+            ok: false,
+            mode: configured.mode,
+            endpointConfigured: true,
+            endpointHost: configured.endpointHost,
+            errorCode: 'invalid_response',
+            message: `Verification failed on ${item.key}: missing expected keys.`,
+            checks,
+          });
+        }
+        checks.push(buildResult({
+          ok: true,
+          mode: configured.mode,
+          endpointConfigured: true,
+          endpointHost: configured.endpointHost,
+          resource: item.key,
+          rowCount: rows.length,
+          firstItemId: rows[0]?.id ? String(rows[0].id) : undefined,
+          message: `${item.key} verified (${rows.length} row(s)).`,
+        }));
+      } catch (error) {
+        const status = adapter.getStatus?.() || {};
+        return buildResult({
+          ok: false,
+          mode: configured.mode,
+          endpointConfigured: true,
+          endpointHost: configured.endpointHost,
+          errorCode: status.lastErrorCode || 'unknown',
+          retryable: status.lastErrorRetryable,
+          suggestedRetryMs: status.lastErrorSuggestedRetryMs,
+          message: `Verification failed on ${item.key}: ${status.lastErrorMessage || String(error?.message || 'unknown error')}`,
+          checks,
+        });
+      }
+    }
+
+    checks.push(buildResult({
+      ok: true,
+      mode: configured.mode,
+      endpointConfigured: true,
+      endpointHost: configured.endpointHost,
+      resource: 'calendar',
+      message: 'Calendar verification skipped for Karun live-control mode',
+    }));
+    skippedResources.push('calendar');
+
+    const workScopeCheck = checks.find((check) => check.resource === 'workscope');
+    const workscopeCount = workScopeCheck?.rowCount || 0;
+    const workscopeFirstItemId = workScopeCheck?.firstItemId;
+    if (!workscopeCount) {
+      return buildResult({
+        ok: false,
+        mode: configured.mode,
+        endpointConfigured: true,
+        endpointHost: configured.endpointHost,
+        errorCode: 'not_found',
+        message: 'Verification failed on workscope: no rows available.',
+        checks,
+        workscopeCount,
+        workscopeFirstItemId,
+        calendarStatus: 'skipped',
+        skippedResources,
+      });
+    }
+
+    return buildResult({
+      ok: true,
+      mode: configured.mode,
+      endpointConfigured: true,
+      endpointHost: configured.endpointHost,
+      resource: 'all',
+      message: 'Karun live-control verification passed. Calendar verification skipped for Karun live-control mode',
+      checks,
+      workscopeCount,
+      workscopeFirstItemId,
+      calendarStatus: 'skipped',
+      skippedResources,
     });
   }
 

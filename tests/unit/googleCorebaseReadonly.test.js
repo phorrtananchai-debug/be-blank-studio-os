@@ -404,6 +404,33 @@ test('verifyAllCoreResources returns structured mock fallback result when endpoi
   assert.equal(Array.isArray(result.checks), true);
 });
 
+test('karun verifyAllCoreResources passes when workscope exists even if calendar is unavailable', async () => {
+  const adapter = {
+    listAlerts: async () => [{ id: 'AL-1', level: 'WATCH', message: 'ok' }],
+    listCostDiff: async () => [{ id: 'CD-1', projectId: 'KARUN-PHUKET-OLDTOWN' }],
+    listDecisionLog: async () => [{ id: 'DL-1', projectId: 'KARUN-PHUKET-OLDTOWN', title: 'Decision' }],
+    listImages: async () => [{ id: 'IMG-1', projectId: 'KARUN-PHUKET-OLDTOWN', title: 'Board', mediaType: 'image' }],
+    listWorkScope: async () => [{ id: 'WS-001', projectId: 'KARUN-PHUKET-OLDTOWN', title: 'Task', status: 'TODO' }],
+    getStatus: () => ({}),
+  };
+
+  const result = await verifyAllCoreResources({
+    adapter,
+    providerConfig: {
+      endpoint: 'https://script.google.com/macros/s/mock/exec',
+      endpointConfigured: true,
+      mode: 'karun-live-control',
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.mode, 'karun-live-control');
+  assert.equal(result.workscopeCount, 1);
+  assert.equal(result.workscopeFirstItemId, 'WS-001');
+  assert.equal(result.calendarStatus, 'skipped');
+  assert.equal(result.message.includes('Calendar verification skipped for Karun live-control mode'), true);
+});
+
 test('diagnostics include configured env metadata when endpoint is available', () => {
   const diagnostics = getGoogleReadonlyDiagnostics({
     adapterStatus: {
