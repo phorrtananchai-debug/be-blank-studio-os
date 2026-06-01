@@ -8,7 +8,12 @@ import {
   normalizeErrorCode,
 } from '../../src/corebase/google/googleReadonlyAdapter.js';
 import { getEndpointHost, getGoogleReadonlyDiagnostics } from '../../src/corebase/google/googleReadonlyDiagnostics.js';
-import { getGoogleCorebaseProviderConfig } from '../../src/corebase/google/providerConfig.js';
+import {
+  getGoogleCorebaseProviderConfig,
+  getGoogleCorebaseRuntimeOverride,
+  setGoogleCorebaseRuntimeOverride,
+  clearGoogleCorebaseRuntimeOverride,
+} from '../../src/corebase/google/providerConfig.js';
 import {
   mapAlertRow,
   mapCalendarRow,
@@ -41,6 +46,64 @@ test('provider config switches to google-readonly when endpoint exists', () => {
   assert.equal(config.mode, 'google-readonly');
   assert.equal(config.endpointConfigured, true);
   assert.equal(config.endpoint, 'https://script.google.com/macros/s/mock/exec');
+});
+
+test('provider config uses runtime override when env endpoint is absent', () => {
+  const previousWindow = globalThis.window;
+  const store = new Map();
+  globalThis.window = {
+    localStorage: {
+      getItem: (key) => (store.has(key) ? store.get(key) : null),
+      removeItem: (key) => store.delete(key),
+      setItem: (key, value) => store.set(key, String(value)),
+    },
+  };
+
+  setGoogleCorebaseRuntimeOverride({
+    mode: 'karun-live-control',
+    endpoint: 'https://script.google.com/macros/s/runtime/exec',
+  });
+  const override = getGoogleCorebaseRuntimeOverride();
+  assert.equal(override.mode, 'karun-live-control');
+
+  const config = getGoogleCorebaseProviderConfig({});
+  assert.equal(config.mode, 'karun-live-control');
+  assert.equal(config.endpointConfigured, true);
+  assert.equal(config.overrideActive, true);
+  assert.equal(config.source, 'localStorage-override');
+
+  clearGoogleCorebaseRuntimeOverride();
+  globalThis.window = previousWindow;
+});
+
+test('provider config keeps env priority over runtime override', () => {
+  const previousWindow = globalThis.window;
+  const store = new Map();
+  globalThis.window = {
+    localStorage: {
+      getItem: (key) => (store.has(key) ? store.get(key) : null),
+      removeItem: (key) => store.delete(key),
+      setItem: (key, value) => store.set(key, String(value)),
+    },
+  };
+
+  setGoogleCorebaseRuntimeOverride({
+    mode: 'mock',
+    endpoint: 'https://script.google.com/macros/s/override/exec',
+  });
+
+  const config = getGoogleCorebaseProviderConfig({
+    VITE_GOOGLE_COREBASE_MODE: 'karun-live-control',
+    VITE_GOOGLE_COREBASE_ENDPOINT: 'https://script.google.com/macros/s/env/exec',
+  });
+
+  assert.equal(config.source, 'env');
+  assert.equal(config.mode, 'karun-live-control');
+  assert.equal(config.endpoint, 'https://script.google.com/macros/s/env/exec');
+  assert.equal(config.endpointConfigured, true);
+
+  clearGoogleCorebaseRuntimeOverride();
+  globalThis.window = previousWindow;
 });
 
 test('google readonly adapter returns safe fallback without endpoint', async () => {
@@ -293,6 +356,41 @@ test('verifyResourceShape validates core resources with expected shape', async (
     const result = await verifyResourceShape(resource, { adapter, providerConfig });
     assert.equal(result.ok, true, `Expected ${resource} to validate`);
   }
+});
+
+test('verifyResourceShape uses karun adapter path when mode is karun-live-control', async () => {
+  let capturedUrl = '';
+  const fetchImpl = async (url) => {
+    capturedUrl = String(url);
+    return {
+      ok: true,
+      text: async () => JSON.stringify({
+        ok: true,
+        mode: 'karun-live-control',
+        resource: 'karun_workscope',
+        data: [{
+          ID: 'WS-001',
+          'Item / Scope': 'Scope',
+          Status: 'TODO',
+          Priority: 'HIGH',
+        }],
+      }),
+    };
+  };
+
+  const result = await verifyResourceShape('workscope', {
+    fetchImpl,
+    providerConfig: {
+      endpoint: 'https://script.google.com/macros/s/mock/exec',
+      endpointConfigured: true,
+      mode: 'karun-live-control',
+      timeoutMs: 1000,
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.mode, 'karun-live-control');
+  assert.equal(capturedUrl.includes('resource=karun_workscope'), true);
 });
 
 test('verifyAllCoreResources returns structured mock fallback result when endpoint missing', async () => {

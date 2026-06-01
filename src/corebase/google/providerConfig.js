@@ -12,18 +12,21 @@ function resolveEnvMode(runtimeEnv = import.meta?.env || {}) {
   return SUPPORTED_MODES.has(requestedMode) ? requestedMode : 'google-readonly';
 }
 
-function isProductionRuntime(runtimeEnv = import.meta?.env || {}) {
-  return String(runtimeEnv.MODE || '').toLowerCase() === 'production';
-}
-
-function resolveLocalOverride(runtimeEnv = import.meta?.env || {}) {
+function resolveLocalOverride() {
   if (typeof window === 'undefined') return null;
-  if (isProductionRuntime(runtimeEnv)) return null;
 
   try {
     const raw = window.localStorage.getItem(LOCAL_OVERRIDE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
+    return normalizeOverridePayload(raw);
+  } catch {
+    return null;
+  }
+}
+
+function normalizeOverridePayload(raw) {
+  if (!raw) return null;
+  try {
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
     if (!parsed || typeof parsed !== 'object') return null;
 
     const endpoint = String(parsed.endpoint || '').trim();
@@ -47,7 +50,7 @@ export function getGoogleCorebaseProviderConfig(runtimeEnv = import.meta?.env ||
   const envEndpointConfigured = Boolean(envEndpoint);
   const envRequestedMode = resolveEnvMode(runtimeEnv);
 
-  const override = resolveLocalOverride(runtimeEnv);
+  const override = resolveLocalOverride();
   const endpoint = envEndpointConfigured ? envEndpoint : (override?.endpoint || '');
   const endpointConfigured = Boolean(endpoint);
   const requestedMode = envEndpointConfigured ? envRequestedMode : (override?.mode || envRequestedMode);
@@ -74,4 +77,28 @@ export function getCorebaseModeLabel(config = getGoogleCorebaseProviderConfig())
 
 export function getGoogleCorebaseOverrideStorageKey() {
   return LOCAL_OVERRIDE_KEY;
+}
+
+export function getGoogleCorebaseRuntimeOverride() {
+  if (typeof window === 'undefined') return null;
+  const raw = window.localStorage.getItem(LOCAL_OVERRIDE_KEY);
+  return normalizeOverridePayload(raw);
+}
+
+export function setGoogleCorebaseRuntimeOverride({ mode, endpoint } = {}) {
+  if (typeof window === 'undefined') return false;
+  const requestedMode = String(mode || '').trim().toLowerCase();
+  const safeMode = SUPPORTED_MODES.has(requestedMode) ? requestedMode : 'google-readonly';
+  const safeEndpoint = String(endpoint || '').trim();
+  window.localStorage.setItem(LOCAL_OVERRIDE_KEY, JSON.stringify({
+    mode: safeMode,
+    endpoint: safeEndpoint,
+  }));
+  return true;
+}
+
+export function clearGoogleCorebaseRuntimeOverride() {
+  if (typeof window === 'undefined') return false;
+  window.localStorage.removeItem(LOCAL_OVERRIDE_KEY);
+  return true;
 }

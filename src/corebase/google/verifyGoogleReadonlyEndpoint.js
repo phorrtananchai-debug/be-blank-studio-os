@@ -41,6 +41,10 @@ function buildResult({
   message,
   suggestedRetryMs,
   checks,
+  firstItemId,
+  rowCount,
+  workscopeCount,
+  workscopeFirstItemId,
 } = {}) {
   return {
     checks,
@@ -51,8 +55,12 @@ function buildResult({
     mode: mode || 'mock',
     ok: Boolean(ok),
     resource: resource || undefined,
+    firstItemId: firstItemId || undefined,
     retryable: typeof retryable === 'boolean' ? retryable : undefined,
+    rowCount: Number.isFinite(Number(rowCount)) ? Number(rowCount) : undefined,
     suggestedRetryMs: Number.isFinite(Number(suggestedRetryMs)) ? Number(suggestedRetryMs) : undefined,
+    workscopeCount: Number.isFinite(Number(workscopeCount)) ? Number(workscopeCount) : undefined,
+    workscopeFirstItemId: workscopeFirstItemId || undefined,
   };
 }
 
@@ -166,7 +174,9 @@ export async function verifyResourceShape(resource, deps = {}) {
       endpointConfigured: true,
       endpointHost: configured.endpointHost,
       resource: normalizedResource,
+      firstItemId: rows[0]?.id ? String(rows[0].id) : undefined,
       message: `${normalizedResource} verified (${rows.length} row(s)).`,
+      rowCount: rows.length,
     });
   } catch (error) {
     const status = adapter.getStatus?.() || {};
@@ -323,6 +333,9 @@ export async function verifyAllCoreResources(deps = {}) {
   }
 
   const failed = checks.find((check) => !check.ok);
+  const workScopeCheck = checks.find((check) => check.resource === 'workscope');
+  const workscopeCount = workScopeCheck?.rowCount;
+  const workscopeFirstItemId = workScopeCheck?.firstItemId;
   if (failed) {
     return buildResult({
       ok: false,
@@ -334,6 +347,8 @@ export async function verifyAllCoreResources(deps = {}) {
       suggestedRetryMs: failed.suggestedRetryMs,
       message: `Verification failed on ${failed.resource}: ${failed.message}`,
       checks: [health, ...checks],
+      workscopeCount,
+      workscopeFirstItemId,
     });
   }
 
@@ -345,5 +360,7 @@ export async function verifyAllCoreResources(deps = {}) {
     resource: 'all',
     message: 'All core resources verified for read-only mode.',
     checks: [health, ...checks],
+    workscopeCount,
+    workscopeFirstItemId,
   });
 }

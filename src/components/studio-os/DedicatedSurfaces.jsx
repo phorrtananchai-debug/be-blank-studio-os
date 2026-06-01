@@ -186,6 +186,10 @@ export function SettingsSurface({
   onChange,
   corebaseStatus,
   corebaseVerification,
+  runtimeOverride,
+  onRuntimeOverrideChange,
+  onSaveRuntimeOverride,
+  onClearRuntimeOverride,
   onVerifyGoogleCorebase,
   verifyingCorebase = false,
 }) {
@@ -246,6 +250,7 @@ export function SettingsSurface({
           <p className="type-caption text-studio-muted">Corebase mode: {corebaseStatus?.mode || 'mock'}</p>
           <p className="type-caption text-studio-muted">Endpoint configured: {corebaseStatus?.endpointConfigured ? 'yes' : 'no'}</p>
           <p className="type-caption text-studio-muted">Endpoint host: {corebaseStatus?.endpointHost || 'n/a'}</p>
+          <p className="type-caption text-studio-muted">Override active: {corebaseStatus?.overrideActive ? 'yes' : 'no'}</p>
           <p className="type-caption text-studio-muted">Fallback source: {corebaseStatus?.fallback || 'none'}</p>
           <p className="type-caption text-studio-muted">Stale data: {corebaseStatus?.stale ? 'yes' : 'no'}</p>
           <p className="type-caption text-studio-muted">Last sync: {corebaseStatus?.lastSyncAt || 'not synced yet'}</p>
@@ -258,9 +263,46 @@ export function SettingsSurface({
         </p>
         {!corebaseStatus?.endpointConfigured && (
           <p className="mt-2 type-caption text-studio-muted">
-            Endpoint not configured. Set deployment env vars and redeploy.
+            Endpoint not configured. Set deployment env vars and redeploy. Or use Runtime Override below for browser-only testing.
           </p>
         )}
+      </div>
+      <div className="mt-6 rounded-3xl border border-black/[0.06] bg-white/70 p-6">
+        <p className="type-label text-studio-muted">Google Corebase Runtime Override</p>
+        <p className="mt-2 type-caption text-studio-muted">
+          Browser-only override for testing when deployment env vars are unavailable.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="grid gap-1">
+            <span className="type-label text-studio-muted">Mode</span>
+            <select
+              className="h-10 rounded-xl border border-black/[0.08] bg-white px-3 text-xs font-semibold text-studio-ink outline-none"
+              value={runtimeOverride?.mode || 'mock'}
+              onChange={(event) => onRuntimeOverrideChange?.({ ...runtimeOverride, mode: event.target.value })}
+            >
+              <option value="mock">mock</option>
+              <option value="google-readonly">google-readonly</option>
+              <option value="karun-live-control">karun-live-control</option>
+            </select>
+          </label>
+          <label className="grid gap-1 sm:col-span-2">
+            <span className="type-label text-studio-muted">Endpoint</span>
+            <input
+              type="url"
+              className="h-10 rounded-xl border border-black/[0.08] bg-white px-3 text-xs font-medium text-studio-ink outline-none"
+              value={runtimeOverride?.endpoint || ''}
+              onChange={(event) => onRuntimeOverrideChange?.({ ...runtimeOverride, endpoint: event.target.value })}
+              placeholder="https://script.google.com/macros/s/.../exec"
+            />
+          </label>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={onSaveRuntimeOverride}>Save Override</Button>
+          <Button variant="ghost" onClick={onClearRuntimeOverride}>Clear Override</Button>
+          <Button variant="secondary" onClick={onVerifyGoogleCorebase} disabled={verifyingCorebase}>
+            {verifyingCorebase ? 'Verifying...' : 'Verify Now'}
+          </Button>
+        </div>
       </div>
       <div className="mt-6 rounded-3xl border border-black/[0.06] bg-white/70 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -275,6 +317,11 @@ export function SettingsSurface({
         {corebaseVerification && (
           <div className="mt-4 rounded-2xl border border-black/[0.06] bg-studio-bone/30 p-4">
             <p className="type-caption text-studio-muted">Result: {corebaseVerification.ok ? 'pass' : 'fail'}</p>
+            <p className="type-caption text-studio-muted">Mode: {corebaseVerification.mode || 'mock'}</p>
+            <p className="type-caption text-studio-muted">Endpoint configured: {corebaseVerification.endpointConfigured ? 'yes' : 'no'}</p>
+            <p className="type-caption text-studio-muted">Endpoint host: {corebaseVerification.endpointHost || 'n/a'}</p>
+            <p className="type-caption text-studio-muted">WorkScope count: {corebaseVerification.workscopeCount ?? 0}</p>
+            <p className="type-caption text-studio-muted">First WorkScope item: {corebaseVerification.workscopeFirstItemId || 'n/a'}</p>
             <p className="type-caption text-studio-muted">Message: {corebaseVerification.message || 'No message'}</p>
             <p className="type-caption text-studio-muted">Error code: {corebaseVerification.errorCode || 'none'}</p>
           </div>
