@@ -431,6 +431,97 @@ test('karun verifyAllCoreResources passes when workscope exists even if calendar
   assert.equal(result.message.includes('Calendar verification skipped for Karun live-control mode'), true);
 });
 
+test('karun verifyAllCoreResources falls back to karun_all workscope data when direct resources are empty', async () => {
+  const fetchImpl = async (url) => {
+    const target = String(url);
+    const resource = new URL(target).searchParams.get('resource');
+    if (resource === 'karun_workscope' || resource === 'workscope') {
+      return {
+        ok: true,
+        text: async () => JSON.stringify({ ok: true, mode: 'karun-live-control', resource, data: [] }),
+      };
+    }
+    if (resource === 'karun_all') {
+      return {
+        ok: true,
+        text: async () => JSON.stringify({
+          ok: true,
+          mode: 'karun-live-control',
+          resource,
+          data: {
+            workscope: [
+              { ID: 'WS-001', 'Item / Scope': 'Scope A', Status: 'TODO', Priority: 'HIGH' },
+            ],
+          },
+        }),
+      };
+    }
+    if (resource === 'karun_materials') {
+      return {
+        ok: true,
+        text: async () => JSON.stringify({
+          ok: true,
+          mode: 'karun-live-control',
+          resource,
+          data: [{ 'Item ID': 'MAT-1', 'Image URL': 'https://example.com/a.jpg' }],
+        }),
+      };
+    }
+    if (resource === 'karun_costdiff') {
+      return {
+        ok: true,
+        text: async () => JSON.stringify({
+          ok: true,
+          mode: 'karun-live-control',
+          resource,
+          data: [{ 'Item ID': 'CD-1' }],
+        }),
+      };
+    }
+    if (resource === 'karun_decisions') {
+      return {
+        ok: true,
+        text: async () => JSON.stringify({
+          ok: true,
+          mode: 'karun-live-control',
+          resource,
+          data: [{ ID: 'DEC-1', 'Item / Scope': 'Decision A', Status: 'TODO', Priority: 'NORMAL' }],
+        }),
+      };
+    }
+    if (resource === 'karun_alerts') {
+      return {
+        ok: true,
+        text: async () => JSON.stringify({
+          ok: true,
+          mode: 'karun-live-control',
+          resource,
+          data: [{ ID: 'AL-1', Level: 'WATCH', Message: 'Alert' }],
+        }),
+      };
+    }
+    return {
+      ok: true,
+      text: async () => JSON.stringify({ ok: true, mode: 'karun-live-control', resource, data: [] }),
+    };
+  };
+
+  const result = await verifyAllCoreResources({
+    fetchImpl,
+    providerConfig: {
+      endpoint: 'https://script.google.com/macros/s/mock/exec',
+      endpointConfigured: true,
+      mode: 'karun-live-control',
+      timeoutMs: 1000,
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.workscopeCount >= 1, true);
+  assert.equal(result.workscopeFirstItemId, 'WS-001');
+  assert.equal(result.workscopeSource, 'karun_all');
+});
+
 test('diagnostics include configured env metadata when endpoint is available', () => {
   const diagnostics = getGoogleReadonlyDiagnostics({
     adapterStatus: {

@@ -322,6 +322,7 @@ export function SettingsSurface({
             <p className="type-caption text-studio-muted">Endpoint host: {corebaseVerification.endpointHost || 'n/a'}</p>
             <p className="type-caption text-studio-muted">WorkScope count: {corebaseVerification.workscopeCount ?? 0}</p>
             <p className="type-caption text-studio-muted">First WorkScope item: {corebaseVerification.workscopeFirstItemId || 'n/a'}</p>
+            <p className="type-caption text-studio-muted">WorkScope source: {corebaseVerification.workscopeSource || 'n/a'}</p>
             <p className="type-caption text-studio-muted">Message: {corebaseVerification.message || 'No message'}</p>
             <p className="type-caption text-studio-muted">Error code: {corebaseVerification.errorCode || 'none'}</p>
           </div>
