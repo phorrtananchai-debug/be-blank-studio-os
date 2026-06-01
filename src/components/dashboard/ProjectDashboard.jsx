@@ -38,6 +38,7 @@ export function ProjectDashboard({ projects, selectedProjectAlias = '', statusCo
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [unresolvedProjectAlias, setUnresolvedProjectAlias] = useState('');
   const { openOverlay, overlayKinds } = useOverlayContract();
 
   const filteredProjects = useMemo(() => {
@@ -56,7 +57,10 @@ export function ProjectDashboard({ projects, selectedProjectAlias = '', statusCo
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
 
   useEffect(() => {
-    if (!selectedProjectAlias) return;
+    if (!selectedProjectAlias) {
+      setUnresolvedProjectAlias('');
+      return;
+    }
     const normalizedAlias = selectedProjectAlias.trim().toLowerCase();
     const match = projects.find((project) => {
       const canonicalId = getCanonicalProjectId(project).toLowerCase();
@@ -65,11 +69,11 @@ export function ProjectDashboard({ projects, selectedProjectAlias = '', statusCo
     });
     if (match) {
       setSelectedProjectId(match.id);
+      setUnresolvedProjectAlias('');
       return;
     }
-    if (projects.length) {
-      setSelectedProjectId(projects[0].id);
-    }
+    setSelectedProjectId('');
+    setUnresolvedProjectAlias(normalizedAlias);
   }, [projects, selectedProjectAlias]);
 
   const deleteProject = (id) => {
@@ -103,6 +107,24 @@ export function ProjectDashboard({ projects, selectedProjectAlias = '', statusCo
         tasks={tasks}
         user={user}
       />
+    );
+  }
+
+  if (selectedProjectAlias && unresolvedProjectAlias) {
+    const isKarunAlias = unresolvedProjectAlias === 'karun-phuket' || unresolvedProjectAlias === 'karun-phuket-oldtown';
+    return (
+      <main className="grid gap-12">
+        <SectionCard
+          eyebrow="Project Workspace"
+          title={isKarunAlias ? 'Karun Phuket Workspace Unavailable' : 'Project Workspace Unavailable'}
+        >
+          <EmptyState
+            message={isKarunAlias
+              ? 'Karun live-control data is unavailable. Verify Google Corebase in Settings and retry.'
+              : 'This project alias could not be resolved from current data sources.'}
+          />
+        </SectionCard>
+      </main>
     );
   }
 

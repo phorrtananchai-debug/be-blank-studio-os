@@ -81,6 +81,7 @@ function ensureWorkScopeItems(workScope = [], projects = initialProjects) {
     notes: firstProject.notes || '',
     priority: 'NORMAL',
     projectId: normalizeProjectId(firstProject.id),
+    source: 'mock',
     status: 'OPEN',
     title: firstProject.nextAction || `Next action for ${firstProject.name}`,
     updatedAt: new Date().toISOString(),
@@ -94,6 +95,7 @@ function ensureDocuments(documents = [], projects = initialProjects) {
   return [{
     id: 'DOC-DETERMINISTIC-001',
     projectId: normalizeProjectId(firstProject.id),
+    source: 'mock',
     revision: firstProject.drawingVersion || 'R0',
     status: firstProject.drawingStatus || 'Draft',
     title: `${firstProject.name} drawing package`,
@@ -113,6 +115,7 @@ function ensureArtwork(projectImages = [], projects = initialProjects, portfolio
     previewUrl: firstPortfolio?.imageUrl || firstPortfolio?.coverImage?.url || '',
     projectId: normalizeProjectId(firstProject.id),
     role: 'board',
+    source: 'mock',
     title: `${firstProject.name} board`,
     updatedAt: new Date().toISOString(),
   }];
@@ -216,13 +219,14 @@ function mergeKarunRows(primaryRows = [], karunRows = []) {
   return [...withoutKarunDuplicates, ...karunRows];
 }
 
-function normalizeTaskRows(rows = []) {
+function normalizeTaskRows(rows = [], source = 'mock') {
   return rows.map((task) => ({
     id: task.id,
     notes: task.notes || task.description || '',
     priority: String(task.priority || 'NORMAL').toUpperCase(),
     projectId: normalizeProjectId(task.projectId),
     responsible: task.responsible || task.assignee || '',
+    source: task.source || source,
     status: task.status || 'OPEN',
     title: task.title || 'Untitled task',
     updatedAt: task.updatedAt || new Date().toISOString(),
@@ -231,11 +235,12 @@ function normalizeTaskRows(rows = []) {
   }));
 }
 
-function normalizeDocumentRows(rows = []) {
+function normalizeDocumentRows(rows = [], source = 'mock') {
   return rows.map((document) => ({
     id: document.id,
     projectId: normalizeProjectId(document.projectId),
     revision: document.revision || document.version || 'R0',
+    source: document.source || source,
     status: document.status || 'Draft',
     title: document.title || document.label || 'Untitled document',
     updatedAt: document.updatedAt || new Date().toISOString(),
@@ -243,13 +248,14 @@ function normalizeDocumentRows(rows = []) {
   }));
 }
 
-function normalizeArtworkRows(rows = []) {
+function normalizeArtworkRows(rows = [], source = 'mock') {
   return rows.map((artwork) => ({
     id: artwork.id,
     mediaType: artwork.mediaType || 'image',
     previewUrl: artwork.previewUrl || '',
     projectId: normalizeProjectId(artwork.projectId),
     role: artwork.role || 'board',
+    source: artwork.source || source,
     title: artwork.title || 'Artwork',
     updatedAt: artwork.updatedAt || new Date().toISOString(),
   }));
@@ -324,6 +330,7 @@ export async function getProjects() {
         id: normalizeProjectId(project.id),
         name: project.name,
         phase: project.phase || 'concept',
+        source: 'google-readonly',
       }));
     },
     async () => {
@@ -340,15 +347,20 @@ export async function getProjects() {
             ...project,
             aliases: [project.id, 'karun-phuket', 'karun-phuket-oldtown'].filter((alias) => isKarunProject(alias)),
             id: canonicalId,
+            source: 'mock',
           });
           return;
         }
         byId.set(canonicalId, {
           ...existing,
           aliases: Array.from(new Set([...(existing.aliases || []), project.id, ...(project.aliases || [])])),
+          source: existing.source || 'mock',
         });
       });
-      return Array.from(byId.values());
+      return Array.from(byId.values()).map((project) => ({
+        ...project,
+        source: project.source || 'mock',
+      }));
     },
   );
 }
@@ -373,22 +385,22 @@ export async function getWorkScope(projectId) {
     providerConfig,
     runtimeAdapters,
     normalizedProjectId,
-    async () => normalizeTaskRows(await karunLiveAdapter.listWorkScope()),
+    async () => normalizeTaskRows(await karunLiveAdapter.listWorkScope(), 'karun-live-control'),
     async () => loadWithReadonlyFallback(
       providerConfig,
       runtimeAdapters,
-      async () => normalizeTaskRows(await readonlyAdapter.listWorkScope(normalizedProjectId || undefined)),
+      async () => normalizeTaskRows(await readonlyAdapter.listWorkScope(normalizedProjectId || undefined), 'google-readonly'),
       async () => {
         const { workScope } = getLegacySnapshot();
         const mockTasks = await mockAdapters.sheets.listTasks(normalizedProjectId || undefined);
         const merged = workScope.length ? workScope : mockTasks;
-        return normalizeTaskRows(merged);
+        return normalizeTaskRows(merged, 'mock');
       },
     ),
   );
 
   const rows = !normalizedProjectId && shouldUseKarunLive(providerConfig)
-    ? mergeKarunRows(baseRows, normalizeTaskRows(await karunLiveAdapter.listWorkScope()))
+    ? mergeKarunRows(baseRows, normalizeTaskRows(await karunLiveAdapter.listWorkScope(), 'karun-live-control'))
     : baseRows;
 
   const ensured = ensureWorkScopeItems(rows);
@@ -401,6 +413,7 @@ export async function getWorkScope(projectId) {
       priority: 'NORMAL',
       projectId: normalizedProjectId,
       responsible: '',
+      source: 'karun-live-control',
       status: 'TODO',
       title: 'Initialize Karun WorkScope tracking row',
       updatedAt: new Date().toISOString(),
@@ -420,16 +433,16 @@ export async function getDocuments(projectId) {
     providerConfig,
     runtimeAdapters,
     normalizedProjectId,
-    async () => normalizeDocumentRows(await karunLiveAdapter.listDocuments()),
+    async () => normalizeDocumentRows(await karunLiveAdapter.listDocuments(), 'karun-live-control'),
     async () => loadWithReadonlyFallback(
       providerConfig,
       runtimeAdapters,
-      async () => normalizeDocumentRows(await readonlyAdapter.listDocuments(normalizedProjectId || undefined)),
+      async () => normalizeDocumentRows(await readonlyAdapter.listDocuments(normalizedProjectId || undefined), 'google-readonly'),
       async () => {
         const { documents } = getLegacySnapshot();
         const mockDocs = await mockAdapters.sheets.listDocuments(normalizedProjectId || undefined);
         const merged = documents.length ? documents : mockDocs;
-        return normalizeDocumentRows(merged);
+        return normalizeDocumentRows(merged, 'mock');
       },
     ),
   );
@@ -446,16 +459,16 @@ export async function getArtwork(projectId) {
     providerConfig,
     runtimeAdapters,
     normalizedProjectId,
-    async () => normalizeArtworkRows(await karunLiveAdapter.listImages()),
+    async () => normalizeArtworkRows(await karunLiveAdapter.listImages(), 'karun-live-control'),
     async () => loadWithReadonlyFallback(
       providerConfig,
       runtimeAdapters,
-      async () => normalizeArtworkRows(await readonlyAdapter.listImages(normalizedProjectId || undefined)),
+      async () => normalizeArtworkRows(await readonlyAdapter.listImages(normalizedProjectId || undefined), 'google-readonly'),
       async () => {
         const { projectImages } = getLegacySnapshot();
         const mockImages = await mockAdapters.drive.listArtwork(normalizedProjectId || undefined);
         const merged = projectImages.length ? projectImages : mockImages;
-        return normalizeArtworkRows(merged);
+        return normalizeArtworkRows(merged, 'mock');
       },
     ),
   );
