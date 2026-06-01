@@ -58,7 +58,13 @@ import {
   serializeMaterialApprovals,
 } from '../../utils/materialApprovals.js';
 import { getCanonicalProjectId } from '../../corebase/google/legacyToCorebase.ts';
-import { getArtwork, getDocuments, getWorkScope } from '../../corebase/google/selectors.ts';
+import {
+  addWorkScopeItem,
+  getArtwork,
+  getDocuments,
+  getWorkScope,
+  updateWorkScopeItem,
+} from '../../corebase/google/selectors.ts';
 import { useOverlayContract } from '../../overlays/useOverlayContract.js';
 import {
   buildConfirmationPayload,
@@ -437,11 +443,29 @@ function BillingMilestonePanel({ milestones, onUpdate }) {
   );
 }
 
-function ProjectTaskPanel({ onOpenTask, tasks }) {
+function ProjectTaskPanel({
+  onAddTask,
+  onOpenTask,
+  onSaveTaskField,
+  savingTaskMap = {},
+  tasks,
+  writeEnabled = false,
+}) {
   const visibleTasks = tasks.slice(0, 6);
+  const statusOptions = ['TODO', 'IN_PROGRESS', 'WAITING', 'BLOCKED', 'DONE'];
+  const priorityOptions = ['LOW', 'NORMAL', 'HIGH', 'CRITICAL'];
 
   return (
-    <SectionCard title="Project Tasks" eyebrow="Operational Queue">
+    <SectionCard
+      title="Project Tasks"
+      eyebrow="Operational Queue"
+      action={writeEnabled ? (
+        <Button variant="secondary" onClick={() => onAddTask?.()}>
+          <Plus size={14} />
+          Add WorkScope
+        </Button>
+      ) : null}
+    >
       {visibleTasks.length ? (
         <div className="divide-y divide-black/[0.06] border-y border-black/[0.06]">
           {visibleTasks.map((task) => (
@@ -463,6 +487,73 @@ function ProjectTaskPanel({ onOpenTask, tasks }) {
               </div>
               <p className="type-caption text-studio-muted">{task.dueDate || task.date || 'No date'}</p>
               <p className="type-control text-studio-muted md:text-right">{task.status || 'OPEN'}</p>
+              {writeEnabled && (
+                <div
+                  className="mt-2 grid gap-3 border-t border-black/[0.05] pt-3 md:col-span-3 md:grid-cols-2"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="grid gap-1">
+                      <span className="type-label text-studio-muted">Status</span>
+                      <select
+                        className="h-9 rounded-lg border border-black/[0.08] bg-white px-3 text-xs font-semibold text-studio-ink outline-none"
+                        value={task.status || 'TODO'}
+                        onChange={(event) => onSaveTaskField?.(task, { status: event.target.value })}
+                      >
+                        {statusOptions.map((status) => (
+                          <option key={status} value={status}>{status}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="type-label text-studio-muted">Priority</span>
+                      <select
+                        className="h-9 rounded-lg border border-black/[0.08] bg-white px-3 text-xs font-semibold text-studio-ink outline-none"
+                        value={String(task.priority || 'NORMAL').toUpperCase()}
+                        onChange={(event) => onSaveTaskField?.(task, { priority: event.target.value })}
+                      >
+                        {priorityOptions.map((priority) => (
+                          <option key={priority} value={priority}>{priority}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <div className="grid gap-2">
+                    <label className="grid gap-1">
+                      <span className="type-label text-studio-muted">Responsible</span>
+                      <input
+                        className="h-9 rounded-lg border border-black/[0.08] bg-white px-3 text-xs font-medium text-studio-ink outline-none"
+                        defaultValue={task.responsible || task.assignee || ''}
+                        onBlur={(event) => onSaveTaskField?.(task, { responsible: event.target.value })}
+                      />
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="type-label text-studio-muted">Due / Target</span>
+                      <input
+                        className="h-9 rounded-lg border border-black/[0.08] bg-white px-3 text-xs font-medium text-studio-ink outline-none"
+                        defaultValue={task.dueDate || ''}
+                        onBlur={(event) => onSaveTaskField?.(task, { due_date: event.target.value })}
+                        placeholder="YYYY-MM-DD"
+                      />
+                    </label>
+                  </div>
+                  <label className="grid gap-1 md:col-span-2">
+                    <span className="type-label text-studio-muted">Decision Needed / Notes</span>
+                    <textarea
+                      className="min-h-20 rounded-lg border border-black/[0.08] bg-white px-3 py-2 text-xs font-medium text-studio-ink outline-none"
+                      defaultValue={task.waitingFor || task.decisionNeeded || task.notes || ''}
+                      onBlur={(event) => onSaveTaskField?.(task, {
+                        decision_needed: event.target.value,
+                        notes: event.target.value,
+                        waiting_for: event.target.value,
+                      })}
+                    />
+                  </label>
+                  {!!savingTaskMap[task.id] && (
+                    <p className="type-caption text-studio-muted md:col-span-2">{savingTaskMap[task.id]}</p>
+                  )}
+                </div>
+              )}
             </article>
           ))}
         </div>
@@ -854,8 +945,10 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
   const [corebaseWorkScope, setCorebaseWorkScope] = useState([]);
   const [corebaseDocuments, setCorebaseDocuments] = useState([]);
   const [corebaseArtwork, setCorebaseArtwork] = useState([]);
+  const [savingTaskMap, setSavingTaskMap] = useState({});
   const { openOverlay, overlayKinds } = useOverlayContract();
   const canonicalProjectId = useMemo(() => getCanonicalProjectId(project), [project]);
+  const karunLiveEnabled = canonicalProjectId === 'KARUN-PHUKET-OLDTOWN';
   const timeline = calculateTimeline(project);
   const financials = calculateProjectFinancials(project);
   const localProjectTasks = useMemo(() => tasks.filter((task) => task.projectId === project.id), [project.id, tasks]);
@@ -966,6 +1059,73 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
       ...document,
       projectId: document?.projectId || project.id || '',
     }, '/os/projects'));
+  };
+
+  const saveTaskFieldPatch = async (task, patch = {}) => {
+    if (!karunLiveEnabled || !task?.id) return;
+
+    setSavingTaskMap((prev) => ({ ...prev, [task.id]: 'Saving...' }));
+    const result = await updateWorkScopeItem(task.id, patch, {
+      projectId: canonicalProjectId,
+      source: '/os/projects/karun-phuket',
+    });
+
+    if (result?.ok) {
+      const normalizedPatch = {
+        ...patch,
+        dueDate: patch.due_date ?? task.dueDate,
+        waitingFor: patch.waiting_for ?? patch.decision_needed ?? task.waitingFor,
+      };
+      setCorebaseWorkScope((rows) => rows.map((row) => (
+        row.id === task.id
+          ? { ...row, ...normalizedPatch, updatedAt: result.updatedAt || new Date().toISOString() }
+          : row
+      )));
+      setSavingTaskMap((prev) => ({ ...prev, [task.id]: 'Saved' }));
+      window.setTimeout(() => {
+        setSavingTaskMap((prev) => {
+          const next = { ...prev };
+          delete next[task.id];
+          return next;
+        });
+      }, 1400);
+      return;
+    }
+
+    const errorMessage = result?.errorCode ? `Save failed (${result.errorCode})` : 'Save failed';
+    setSavingTaskMap((prev) => ({ ...prev, [task.id]: errorMessage }));
+  };
+
+  const addKarunTask = async () => {
+    if (!karunLiveEnabled) return;
+    const payload = {
+      decision_needed: '',
+      due_date: '',
+      notes: '',
+      priority: 'NORMAL',
+      responsible: '',
+      status: 'TODO',
+      title: 'New WorkScope Item',
+    };
+    const result = await addWorkScopeItem(payload, {
+      projectId: canonicalProjectId,
+      source: '/os/projects/karun-phuket',
+    });
+
+    if (!result?.ok) return;
+    const nextId = result?.item?.id || `TASK-${Date.now()}`;
+    setCorebaseWorkScope((rows) => [{
+      id: nextId,
+      projectId: canonicalProjectId,
+      title: payload.title,
+      status: payload.status,
+      priority: payload.priority,
+      notes: payload.notes,
+      dueDate: payload.due_date,
+      updatedAt: result.updatedAt || new Date().toISOString(),
+      responsible: payload.responsible,
+      waitingFor: payload.decision_needed,
+    }, ...rows]);
   };
 
   return (
@@ -1115,7 +1275,14 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
 
               <BillingMilestonePanel milestones={billingMilestones} onUpdate={updateBillingMilestones} />
 
-              <ProjectTaskPanel tasks={projectTasks} onOpenTask={openTaskDetailDrawer} />
+              <ProjectTaskPanel
+                tasks={projectTasks}
+                onAddTask={addKarunTask}
+                onOpenTask={openTaskDetailDrawer}
+                onSaveTaskField={saveTaskFieldPatch}
+                savingTaskMap={savingTaskMap}
+                writeEnabled={karunLiveEnabled}
+              />
             </div>
 
             <div className="lg:col-span-4 space-y-8">

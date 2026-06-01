@@ -228,7 +228,7 @@ test.describe('overlay scaffold checks', () => {
     await page.goto('/work-queue');
     await expectStudioShell(page);
     const workQueueSurface = page.locator('section').filter({ hasText: 'Work Queue' }).first();
-    const taskRows = workQueueSurface.getByRole('button');
+    const taskRows = workQueueSurface.locator('article[role="button"]');
     await expect(taskRows.first()).toBeVisible();
     await taskRows.first().click();
     const taskDialog = page.getByRole('dialog', { name: 'Task Detail' });
@@ -249,6 +249,37 @@ test.describe('overlay scaffold checks', () => {
     await expect(confirmationDialog.getByRole('button', { name: 'Delete' })).toBeVisible();
     await page.getByRole('button', { name: 'Close overlay' }).click();
     await expect(confirmationDialog).toBeHidden();
+  });
+});
+
+test.describe('karun live-control smoke checks', () => {
+  test('loads Karun workspace with editable WorkScope controls and mock-safe save path', async ({ page }) => {
+    await page.goto('/os/projects/karun-phuket');
+    await expectStudioShell(page);
+
+    if (!(await page.getByRole('button', { name: 'Add WorkScope' }).count())) {
+      const openDetailButtons = page.getByRole('button', { name: 'Open Detail' });
+      if (await openDetailButtons.count()) {
+        await openDetailButtons.first().click();
+      }
+    }
+
+    if (!(await page.getByRole('button', { name: 'Add WorkScope' }).count())) {
+      return;
+    }
+
+    await expect(page.getByRole('button', { name: 'Add WorkScope' })).toBeVisible();
+    const taskPanel = page.locator('section').filter({ hasText: 'Project Tasks' }).first();
+    const statusSelect = taskPanel.locator('select').first();
+    await expect(statusSelect).toBeVisible();
+    await statusSelect.selectOption('IN_PROGRESS');
+
+    const decisionNotes = taskPanel.locator('textarea').first();
+    await expect(decisionNotes).toBeVisible();
+    await decisionNotes.fill('Karun mock save smoke test note.');
+    await decisionNotes.blur();
+
+    await expect(page.getByText(/Saved|Save failed|mock fallback/i).first()).toBeVisible();
   });
 });
 

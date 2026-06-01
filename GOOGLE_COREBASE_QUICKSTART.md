@@ -37,8 +37,18 @@ In the sample script, replace:
 ## 7) Set endpoint locally
 Create `.env.local` from `.env.local.example` and set:
 - `VITE_GOOGLE_COREBASE_ENDPOINT=<YOUR_WEB_APP_URL>`
+- `VITE_GOOGLE_COREBASE_MODE=google-readonly` (default readonly)
 
 Leave it blank to keep mock mode.
+
+## 7b) Karun live-control mode (first live project)
+For Karun Phuket scoped live-control (safe write patch actions only), set:
+- `VITE_GOOGLE_COREBASE_MODE=karun-live-control`
+
+Then verify:
+- `/os/settings` shows Corebase mode `karun-live-control`
+- `/projects/karun-phuket` loads and shows WorkScope edit controls
+- update one non-critical row first (status/priority/notes)
 
 ## 8) Run BE BLANK OS locally
 Start app normally and open internal OS.
