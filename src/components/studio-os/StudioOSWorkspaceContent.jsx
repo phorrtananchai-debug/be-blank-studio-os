@@ -49,6 +49,10 @@ export function StudioOSWorkspaceContent({
   tasks,
   onOpenGlobalDocumentRevision,
   onVerifyGoogleCorebase,
+  runtimeOverride,
+  onRuntimeOverrideChange,
+  onSaveRuntimeOverride,
+  onClearRuntimeOverride,
   onCompleteTask,
   onAddKarunTask,
   onSaveKarunTaskField,
@@ -211,8 +215,12 @@ export function StudioOSWorkspaceContent({
           <SettingsSurface
             corebaseStatus={corebaseReadStatus}
             corebaseVerification={corebaseVerification}
+            runtimeOverride={runtimeOverride}
             settings={studioSettings}
             onChange={onUpdateStudioSettings}
+            onRuntimeOverrideChange={onRuntimeOverrideChange}
+            onSaveRuntimeOverride={onSaveRuntimeOverride}
+            onClearRuntimeOverride={onClearRuntimeOverride}
             onVerifyGoogleCorebase={onVerifyGoogleCorebase}
             verifyingCorebase={verifyingCorebase}
           />

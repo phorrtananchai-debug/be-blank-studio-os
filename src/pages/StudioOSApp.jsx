@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CommandPalette } from '../components/CommandPalette.jsx';
 import { LoginPage } from '../components/LoginPage.jsx';
 import { QuickCapture } from '../components/dashboard/QuickCapture.jsx';
@@ -29,6 +29,11 @@ import {
   updateWorkScopeItem,
 } from '../corebase/google/selectors.ts';
 import { verifyAllCoreResources } from '../corebase/google/verifyGoogleReadonlyEndpoint.js';
+import {
+  clearGoogleCorebaseRuntimeOverride,
+  getGoogleCorebaseRuntimeOverride,
+  setGoogleCorebaseRuntimeOverride,
+} from '../corebase/google/providerConfig.js';
 import {
   buildConfirmationPayload,
   buildDocumentRevisionPayload,
@@ -169,6 +174,13 @@ export function StudioOSApp({ navigate, routePath }) {
   const [corebaseReadStatus, setCorebaseReadStatus] = useState(getCorebaseReadStatus());
   const [corebaseVerification, setCorebaseVerification] = useState(null);
   const [isVerifyingCorebase, setIsVerifyingCorebase] = useState(false);
+  const [runtimeOverride, setRuntimeOverride] = useState(() => {
+    const override = getGoogleCorebaseRuntimeOverride();
+    return {
+      endpoint: override?.endpoint || '',
+      mode: override?.mode || 'mock',
+    };
+  });
   const karunLiveControlEnabled = true;
 
   const dataMode = isFirebaseConfigured
@@ -182,53 +194,56 @@ export function StudioOSApp({ navigate, routePath }) {
 
   const statusCounts = useMemo(() => countByStatus(effectiveProjects, projectStatuses), [effectiveProjects]);
 
+  const reloadCorebaseReadPaths = useCallback(async () => {
+    const [readProjects, readWorkScope, readDocuments, readArtwork, readDecisions, readAlerts] = await Promise.all([
+      getProjects(),
+      getWorkScope(),
+      getDocuments(),
+      getArtwork(),
+      getDecisionLog(),
+      getAlerts(),
+    ]);
+
+    setCorebaseProjects(Array.isArray(readProjects) ? readProjects : []);
+    setCorebaseWorkScope(Array.isArray(readWorkScope) ? readWorkScope : []);
+    setCorebaseDocuments(Array.isArray(readDocuments) ? readDocuments : []);
+    setCorebaseArtwork(Array.isArray(readArtwork) ? readArtwork : []);
+
+    const siteUpdates = [
+      ...(Array.isArray(readDecisions)
+        ? readDecisions
+          .filter((item) => item?.type === 'site-update' || item?.source === 'site-watch')
+          .map((item) => ({
+            body: item.body || '',
+            createdAt: item.createdAt,
+            date: item.createdAt,
+            id: item.id,
+            projectId: item.projectId,
+            projectName: item.projectId,
+            title: item.title || 'Site update',
+          }))
+        : []),
+      ...(Array.isArray(readAlerts)
+        ? readAlerts.map((alert) => ({
+          body: alert.message || '',
+          createdAt: alert.createdAt,
+          date: alert.createdAt,
+          id: `alert-${alert.id}`,
+          projectId: alert.projectId,
+          projectName: alert.projectId,
+          title: `Alert (${alert.level || 'WATCH'})`,
+        }))
+        : []),
+    ];
+    setCorebaseSiteUpdates(siteUpdates);
+    setCorebaseReadStatus(getCorebaseReadStatus());
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     const loadCorebaseReadPaths = async () => {
       try {
-        const [readProjects, readWorkScope, readDocuments, readArtwork, readDecisions, readAlerts] = await Promise.all([
-          getProjects(),
-          getWorkScope(),
-          getDocuments(),
-          getArtwork(),
-          getDecisionLog(),
-          getAlerts(),
-        ]);
-
-        if (cancelled) return;
-        setCorebaseProjects(Array.isArray(readProjects) ? readProjects : []);
-        setCorebaseWorkScope(Array.isArray(readWorkScope) ? readWorkScope : []);
-        setCorebaseDocuments(Array.isArray(readDocuments) ? readDocuments : []);
-        setCorebaseArtwork(Array.isArray(readArtwork) ? readArtwork : []);
-
-        const siteUpdates = [
-          ...(Array.isArray(readDecisions)
-            ? readDecisions
-              .filter((item) => item?.type === 'site-update' || item?.source === 'site-watch')
-              .map((item) => ({
-                body: item.body || '',
-                createdAt: item.createdAt,
-                date: item.createdAt,
-                id: item.id,
-                projectId: item.projectId,
-                projectName: item.projectId,
-                title: item.title || 'Site update',
-              }))
-            : []),
-          ...(Array.isArray(readAlerts)
-            ? readAlerts.map((alert) => ({
-              body: alert.message || '',
-              createdAt: alert.createdAt,
-              date: alert.createdAt,
-              id: `alert-${alert.id}`,
-              projectId: alert.projectId,
-              projectName: alert.projectId,
-              title: `Alert (${alert.level || 'WATCH'})`,
-            }))
-            : []),
-        ];
-        setCorebaseSiteUpdates(siteUpdates);
-        setCorebaseReadStatus(getCorebaseReadStatus());
+        await reloadCorebaseReadPaths();
       } catch {
         if (!cancelled) {
           setCorebaseProjects([]);
@@ -244,7 +259,7 @@ export function StudioOSApp({ navigate, routePath }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadCorebaseReadPaths]);
 
   if (!studioUser && dataMode === 'firebase-auth') {
     return <LoginPage errorMessage={authMessage || projectsError} onBack={() => navigate('/')} onSignIn={handleFirebaseSignIn} />;
@@ -876,6 +891,32 @@ export function StudioOSApp({ navigate, routePath }) {
     }
   };
 
+  const handleSaveRuntimeOverride = async () => {
+    setGoogleCorebaseRuntimeOverride({
+      endpoint: runtimeOverride.endpoint,
+      mode: runtimeOverride.mode,
+    });
+    setCorebaseVerification(null);
+    try {
+      await reloadCorebaseReadPaths();
+      showToast('Runtime override saved.', 'success');
+    } catch {
+      showToast('Runtime override saved, but data refresh failed.', 'warning');
+    }
+  };
+
+  const handleClearRuntimeOverride = async () => {
+    clearGoogleCorebaseRuntimeOverride();
+    setRuntimeOverride({ mode: 'mock', endpoint: '' });
+    setCorebaseVerification(null);
+    try {
+      await reloadCorebaseReadPaths();
+      showToast('Runtime override cleared.', 'info');
+    } catch {
+      showToast('Runtime override cleared, but data refresh failed.', 'warning');
+    }
+  };
+
   const firebaseDebugInfo = getFirebaseDebugInfo();
   const commandPaletteCommands = [
     {
@@ -1061,6 +1102,10 @@ export function StudioOSApp({ navigate, routePath }) {
           onCompleteTask={completeTask}
           onOpenGlobalDocumentRevision={openDocumentRevisionDrawer}
           onVerifyGoogleCorebase={handleVerifyGoogleCorebase}
+          runtimeOverride={runtimeOverride}
+          onRuntimeOverrideChange={setRuntimeOverride}
+          onSaveRuntimeOverride={handleSaveRuntimeOverride}
+          onClearRuntimeOverride={handleClearRuntimeOverride}
           karunLiveControlEnabled={karunLiveControlEnabled}
           onAddKarunTask={addKarunTaskFromQueue}
           onUpdateTask={updateTask}
