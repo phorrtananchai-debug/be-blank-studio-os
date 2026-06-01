@@ -256,6 +256,11 @@ export function SettingsSurface({
         <p className="mt-3 type-control text-studio-muted">
           Read-only mode: {corebaseStatus?.mode === 'karun-live-control' ? 'partial (Karun write enabled)' : 'active'}
         </p>
+        {!corebaseStatus?.endpointConfigured && (
+          <p className="mt-2 type-caption text-studio-muted">
+            Endpoint not configured. Set deployment env vars and redeploy.
+          </p>
+        )}
       </div>
       <div className="mt-6 rounded-3xl border border-black/[0.06] bg-white/70 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
