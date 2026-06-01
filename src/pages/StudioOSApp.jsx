@@ -260,6 +260,9 @@ export function StudioOSApp({ navigate, routePath }) {
         canonicalProjectId: KARUN_PROJECT_ID,
         id: project.id || KARUN_PROJECT_ID,
         name: 'Karun Phuket Old Town',
+        source: hasKarunWorkScope && corebaseReadStatus?.mode === 'karun-live-control'
+          ? 'karun-live-control'
+          : (project.source || 'mock'),
       };
     });
   }, [projects, corebaseProjects, corebaseReadStatus?.mode, corebaseWorkScope, resolveProjectSource]);

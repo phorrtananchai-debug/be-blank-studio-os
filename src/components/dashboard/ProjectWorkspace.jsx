@@ -451,7 +451,7 @@ function ProjectTaskPanel({
   tasks,
   writeEnabled = false,
 }) {
-  const visibleTasks = tasks.slice(0, 6);
+  const visibleTasks = writeEnabled ? tasks : tasks.slice(0, 6);
   const statusOptions = ['TODO', 'IN_PROGRESS', 'WAITING', 'BLOCKED', 'DONE'];
   const priorityOptions = ['LOW', 'NORMAL', 'HIGH', 'CRITICAL'];
 
@@ -483,6 +483,9 @@ function ProjectTaskPanel({
             >
               <div>
                 <p className="type-card-title">{task.title || 'Untitled Task'}</p>
+                <p className="type-caption mt-1 text-studio-muted">
+                  {(task.id || 'TASK')} / {(task.projectId || 'UNASSIGNED')} / {(task.source || 'local')}
+                </p>
                 {(task.notes || task.detail) && <p className="type-caption mt-1 line-clamp-2 text-studio-muted">{task.notes || task.detail}</p>}
               </div>
               <p className="type-caption text-studio-muted">{task.dueDate || task.date || 'No date'}</p>
@@ -949,17 +952,66 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
   const { openOverlay, overlayKinds } = useOverlayContract();
   const canonicalProjectId = useMemo(() => getCanonicalProjectId(project), [project]);
   const karunLiveEnabled = canonicalProjectId === 'KARUN-PHUKET-OLDTOWN';
+  const isKarunLiveSource = karunLiveEnabled && project.source === 'karun-live-control';
   const timeline = calculateTimeline(project);
   const financials = calculateProjectFinancials(project);
-  const localProjectTasks = useMemo(() => tasks.filter((task) => task.projectId === project.id), [project.id, tasks]);
+  const localProjectTasks = useMemo(() => (
+    tasks.filter((task) => {
+      const taskProjectId = getCanonicalProjectId({ id: task.projectId || '', name: '' });
+      return task.projectId === project.id || taskProjectId === canonicalProjectId;
+    })
+  ), [canonicalProjectId, project.id, tasks]);
   const siteVisits = useMemo(() => normalizeSiteVisits(project.siteLogs), [project.siteLogs]);
   const materialApprovals = useMemo(() => normalizeMaterialApprovals(project.materialApprovals), [project.materialApprovals]);
   const billingMilestones = useMemo(() => normalizeBillingMilestones(project.billingMilestones), [project.billingMilestones]);
   const clientProject = createClientProjectProjection(project);
-  const projectTasks = localProjectTasks.length ? localProjectTasks : corebaseWorkScope.map((task) => ({
-    ...task,
-    detail: task.notes || '',
-  }));
+  const projectTasks = useMemo(() => {
+    const byId = new Map();
+    const addTask = (task) => {
+      if (!task) return;
+      const id = String(task.id || task.title || `task-${byId.size + 1}`);
+      const taskProjectId = getCanonicalProjectId({ id: task.projectId || '', name: '' });
+      if (taskProjectId && taskProjectId !== canonicalProjectId) return;
+      const existing = byId.get(id);
+      if (!existing) {
+        byId.set(id, {
+          ...task,
+          detail: task.notes || task.detail || '',
+          projectId: task.projectId || canonicalProjectId,
+        });
+        return;
+      }
+      byId.set(id, {
+        ...existing,
+        ...task,
+        detail: task.notes || task.detail || existing.detail || '',
+        projectId: task.projectId || existing.projectId || canonicalProjectId,
+      });
+    };
+    localProjectTasks.forEach(addTask);
+    corebaseWorkScope.forEach(addTask);
+
+    const rows = Array.from(byId.values());
+    const wsIdToOrder = (value = '') => {
+      const match = String(value).toUpperCase().match(/^WS-(\d+)/);
+      if (!match) return Number.MAX_SAFE_INTEGER;
+      return Number(match[1]);
+    };
+    return rows.sort((a, b) => {
+      const orderDiff = wsIdToOrder(a.id) - wsIdToOrder(b.id);
+      if (orderDiff !== 0) return orderDiff;
+      return String(a.id || '').localeCompare(String(b.id || ''));
+    });
+  }, [canonicalProjectId, corebaseWorkScope, localProjectTasks]);
+
+  const hasTimelineDates = Boolean(project.startDate || project.designCompleteDate || project.handoverDate || project.openingDate);
+  const liveControlTimelineMessage = isKarunLiveSource && !hasTimelineDates
+    ? 'Timeline dates are not provided by the live-control source yet.'
+    : '';
+  const workspaceClientLabel = project.client || (isKarunLiveSource ? 'TBD (live-control metadata not provided)' : 'Client TBD');
+  const workspaceLocationLabel = project.location || (isKarunLiveSource ? 'TBD (live-control metadata not provided)' : 'Location TBD');
+  const wsFirstItemId = projectTasks[0]?.id || 'n/a';
+  const wsContains003 = projectTasks.some((task) => String(task?.id || '').toUpperCase() === 'WS-003');
   const projectDocuments = useMemo(() => {
     const localDocuments = Array.isArray(project.documents) ? project.documents : [];
     if (localDocuments.length) return localDocuments;
@@ -1144,7 +1196,7 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
                    {activeTab === 'overview' && (
                       <div className="space-y-12">
                          <h1 className="text-8xl font-bold tracking-tight text-studio-ink">{project.name}</h1>
-                         <p className="text-3xl font-medium text-studio-muted leading-relaxed">{project.client} &bull; {project.location}</p>
+                         <p className="text-3xl font-medium text-studio-muted leading-relaxed">{workspaceClientLabel} &bull; {workspaceLocationLabel}</p>
                          <div className="grid grid-cols-2 gap-12 pt-12 border-t border-black/5">
                             <div>
                                <p className="text-[11px] font-bold uppercase tracking-widest text-studio-muted">Status</p>
@@ -1188,11 +1240,14 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
               <Badge tone={project.status}>{project.status}</Badge>
             </div>
             <p className="text-sm font-medium text-studio-muted/70 mt-1">
-              {project.client || 'Client TBD'} &bull; {project.location || 'Location TBD'}
+              {workspaceClientLabel} &bull; {workspaceLocationLabel}
             </p>
             <p className="text-[10px] font-bold uppercase tracking-wider text-studio-muted/60 mt-1">
               Project ID: {canonicalProjectId} / Source: {project.source || 'local'}
             </p>
+            {!!liveControlTimelineMessage && (
+              <p className="type-caption text-studio-muted mt-1">{liveControlTimelineMessage}</p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -1241,7 +1296,17 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
         {activeTab === 'overview' && (
           <div className="grid gap-8 lg:grid-cols-12">
             <div className="lg:col-span-8 space-y-8">
-              <NarrativePanel project={project} tasks={tasks} onUpdate={(id, updates) => onUpdate(updates)} />
+              <NarrativePanel project={project} tasks={projectTasks} onUpdate={(id, updates) => onUpdate(updates)} />
+              {karunLiveEnabled && (
+                <SectionCard title="Live-control Snapshot" eyebrow="Karun WorkScope">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <p className="type-caption text-studio-muted">WorkScope rows: {projectTasks.length}</p>
+                    <p className="type-caption text-studio-muted">First item: {wsFirstItemId}</p>
+                    <p className="type-caption text-studio-muted">WS-003 visible: {wsContains003 ? 'yes' : 'no'}</p>
+                    <p className="type-caption text-studio-muted">Timeline source: {hasTimelineDates ? 'project metadata' : 'not provided by live-control source'}</p>
+                  </div>
+                </SectionCard>
+              )}
 
               <SectionCard title="Studio Financials" eyebrow="Real-time Performance">
                 <div className="grid gap-8">
@@ -1305,6 +1370,9 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
 
               <div className="rounded-2xl border border-black/[0.08] bg-white p-8 shadow-studioSoft space-y-6">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-studio-muted">Key Milestones</p>
+                {!hasTimelineDates && isKarunLiveSource && (
+                  <p className="type-caption text-studio-muted">Milestone dates are not provided by the live-control source.</p>
+                )}
                 <KeyDate calendarLabel="Start date" label="Kickoff" project={project} value={project.startDate} />
                 <KeyDate label="Design Finalized" value={project.designCompleteDate} />
                 <KeyDate calendarLabel="Handover date" label="Client Handover" project={project} value={project.handoverDate} />
@@ -1317,29 +1385,38 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
         {activeTab === 'timeline' && (
           <div className="space-y-8">
             <SectionCard title="Project Schedule" eyebrow="Operational Timeline">
+              {!hasTimelineDates && isKarunLiveSource && (
+                <p className="type-caption mb-5 text-studio-muted">
+                  Timeline dates are not provided by live-control source data for this project.
+                </p>
+              )}
               <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
                 <Field
                   label="Start date"
                   type="date"
                   value={project.startDate}
+                  disabled={!hasTimelineDates && isKarunLiveSource}
                   onChange={(value) => onUpdate({ startDate: value })}
                 />
                 <Field
                   label="Design complete"
                   type="date"
                   value={project.designCompleteDate}
+                  disabled={!hasTimelineDates && isKarunLiveSource}
                   onChange={(value) => onUpdate({ designCompleteDate: value })}
                 />
                 <Field
                   label="Handover date"
                   type="date"
                   value={project.handoverDate}
+                  disabled={!hasTimelineDates && isKarunLiveSource}
                   onChange={(value) => onUpdate({ handoverDate: value })}
                 />
                 <Field
                   label="Opening date"
                   type="date"
                   value={project.openingDate}
+                  disabled={!hasTimelineDates && isKarunLiveSource}
                   onChange={(value) => onUpdate({ openingDate: value })}
                 />
               </div>
