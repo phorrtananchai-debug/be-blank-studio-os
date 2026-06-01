@@ -9,28 +9,46 @@ import { createMockGoogleCorebaseAdapters } from './mockAdapters';
 import { getCorebaseModeLabel, getGoogleCorebaseProviderConfig } from './providerConfig.js';
 
 const mockAdapters = createMockGoogleCorebaseAdapters();
-const providerConfig = getGoogleCorebaseProviderConfig();
-const readonlyAdapter = createGoogleReadonlyAdapter(
-  providerConfig,
-  typeof fetch === 'function' ? fetch.bind(globalThis) : async () => {
-    throw new Error('fetch unavailable');
-  },
-);
-const karunLiveAdapter = createKarunLiveControlAdapter(
-  providerConfig,
-  typeof fetch === 'function' ? fetch.bind(globalThis) : async () => {
-    throw new Error('fetch unavailable');
-  },
-);
+const adapterCache = new Map();
+
+function getProviderConfig() {
+  return getGoogleCorebaseProviderConfig();
+}
+
+function getFetchImpl() {
+  return typeof fetch === 'function'
+    ? fetch.bind(globalThis)
+    : async () => {
+      throw new Error('fetch unavailable');
+    };
+}
+
+function getRuntimeAdapters(providerConfig = getProviderConfig()) {
+  const cacheKey = `${providerConfig.mode}|${providerConfig.endpoint || ''}|${providerConfig.timeoutMs}`;
+  if (adapterCache.has(cacheKey)) return adapterCache.get(cacheKey);
+
+  const fetchImpl = getFetchImpl();
+  const adapters = {
+    karunLiveAdapter: createKarunLiveControlAdapter(providerConfig, fetchImpl),
+    readonlyAdapter: createGoogleReadonlyAdapter(providerConfig, fetchImpl),
+  };
+  adapterCache.set(cacheKey, adapters);
+  return adapters;
+}
 
 const corebaseReadStatus = {
-  endpointConfigured: Boolean(providerConfig.endpointConfigured),
-  endpointHost: getEndpointHost(providerConfig.endpoint || ''),
+  endpointConfigured: false,
+  endpointHost: '',
+  envEndpointConfigured: false,
+  envModeConfigured: false,
   fallback: null,
   lastErrorCode: null,
   lastSyncAt: null,
-  mode: getCorebaseModeLabel(providerConfig),
-  readOnly: providerConfig.mode !== 'karun-live-control',
+  mode: 'mock',
+  overrideActive: false,
+  providerSource: 'env',
+  readOnly: true,
+  requestedMode: 'google-readonly',
   retryable: false,
   stale: false,
   suggestedRetryMs: null,
@@ -100,17 +118,24 @@ function ensureArtwork(projectImages = [], projects = initialProjects, portfolio
   }];
 }
 
-function applyReadonlyStatus(fallback = null) {
+function applyReadonlyStatus(providerConfig, runtimeAdapters, fallback = null) {
+  const { karunLiveAdapter, readonlyAdapter } = runtimeAdapters;
+
   if (providerConfig.mode === 'karun-live-control') {
     const status = karunLiveAdapter.getStatus();
     Object.assign(corebaseReadStatus, {
       endpointConfigured: Boolean(providerConfig.endpointConfigured),
       endpointHost: getEndpointHost(providerConfig.endpoint || ''),
+      envEndpointConfigured: Boolean(providerConfig.envEndpointConfigured),
+      envModeConfigured: Boolean(providerConfig.envModeConfigured),
       fallback,
       lastErrorCode: status.lastErrorCode || null,
       lastSyncAt: status.lastSyncAt || null,
       mode: 'karun-live-control',
+      overrideActive: Boolean(providerConfig.overrideActive),
+      providerSource: providerConfig.source || 'env',
       readOnly: false,
+      requestedMode: providerConfig.requestedMode || 'karun-live-control',
       retryable: Boolean(status.retryable),
       stale: Boolean(fallback === 'mock' && status.lastErrorCode),
       suggestedRetryMs: status.suggestedRetryMs || null,
@@ -124,46 +149,53 @@ function applyReadonlyStatus(fallback = null) {
     fallback,
     providerConfig,
   });
-  Object.assign(corebaseReadStatus, nextStatus);
+  Object.assign(corebaseReadStatus, {
+    ...nextStatus,
+    envEndpointConfigured: Boolean(providerConfig.envEndpointConfigured),
+    envModeConfigured: Boolean(providerConfig.envModeConfigured),
+    overrideActive: Boolean(providerConfig.overrideActive),
+    providerSource: providerConfig.source || 'env',
+    requestedMode: providerConfig.requestedMode || 'google-readonly',
+  });
 }
 
-function shouldUseGoogleReadonly() {
+function shouldUseGoogleReadonly(providerConfig) {
   return providerConfig.mode === 'google-readonly' && providerConfig.endpointConfigured;
 }
 
-function shouldUseKarunLive() {
+function shouldUseKarunLive(providerConfig) {
   return providerConfig.mode === 'karun-live-control';
 }
-
-async function loadWithReadonlyFallback(readonlyLoader, fallbackLoader) {
-  if (!shouldUseGoogleReadonly()) {
+async function loadWithReadonlyFallback(providerConfig, runtimeAdapters, readonlyLoader, fallbackLoader) {
+  if (!shouldUseGoogleReadonly(providerConfig)) {
     const fallbackRows = await fallbackLoader();
-    applyReadonlyStatus(null);
+    applyReadonlyStatus(providerConfig, runtimeAdapters, null);
     return fallbackRows;
   }
   const readonlyRows = await readonlyLoader();
-  applyReadonlyStatus(null);
+  applyReadonlyStatus(providerConfig, runtimeAdapters, null);
   if (Array.isArray(readonlyRows) && readonlyRows.length) {
     return readonlyRows;
   }
   const fallbackRows = await fallbackLoader();
+  const { readonlyAdapter } = runtimeAdapters;
   const adapterStatus = readonlyAdapter.getStatus();
   const fallback = adapterStatus.lastErrorCode ? 'mock' : null;
-  applyReadonlyStatus(fallback);
+  applyReadonlyStatus(providerConfig, runtimeAdapters, fallback);
   return fallbackRows;
 }
 
-async function loadWithKarunFallback(projectId, karunLoader, fallbackLoader) {
-  if (!shouldUseKarunLive() || (projectId && !isKarunProject(projectId))) {
+async function loadWithKarunFallback(providerConfig, runtimeAdapters, projectId, karunLoader, fallbackLoader) {
+  if (!shouldUseKarunLive(providerConfig) || (projectId && !isKarunProject(projectId))) {
     const rows = await fallbackLoader();
-    applyReadonlyStatus(null);
+    applyReadonlyStatus(providerConfig, runtimeAdapters, null);
     return rows;
   }
 
   try {
     const karunRows = await karunLoader();
     if (Array.isArray(karunRows) && karunRows.length) {
-      applyReadonlyStatus(null);
+      applyReadonlyStatus(providerConfig, runtimeAdapters, null);
       return karunRows;
     }
   } catch {
@@ -171,7 +203,7 @@ async function loadWithKarunFallback(projectId, karunLoader, fallbackLoader) {
   }
 
   const fallbackRows = await fallbackLoader();
-  applyReadonlyStatus('mock');
+  applyReadonlyStatus(providerConfig, runtimeAdapters, 'mock');
   return fallbackRows;
 }
 
@@ -271,7 +303,7 @@ function normalizeDecisionRows(rows = []) {
 }
 
 export function getCorebaseProviderConfig() {
-  return { ...providerConfig };
+  return { ...getProviderConfig() };
 }
 
 export function getCorebaseReadStatus() {
@@ -279,7 +311,12 @@ export function getCorebaseReadStatus() {
 }
 
 export async function getProjects() {
+  const providerConfig = getProviderConfig();
+  const runtimeAdapters = getRuntimeAdapters(providerConfig);
+  const { readonlyAdapter } = runtimeAdapters;
   return loadWithReadonlyFallback(
+    providerConfig,
+    runtimeAdapters,
     async () => {
       const rows = await readonlyAdapter.listProjects();
       return rows.map((project) => ({
@@ -327,12 +364,19 @@ export async function getProjectById(projectId) {
 }
 
 export async function getWorkScope(projectId) {
+  const providerConfig = getProviderConfig();
+  const runtimeAdapters = getRuntimeAdapters(providerConfig);
+  const { karunLiveAdapter, readonlyAdapter } = runtimeAdapters;
   const normalizedProjectId = projectId ? normalizeProjectId(projectId) : '';
 
   const baseRows = await loadWithKarunFallback(
+    providerConfig,
+    runtimeAdapters,
     normalizedProjectId,
     async () => normalizeTaskRows(await karunLiveAdapter.listWorkScope()),
     async () => loadWithReadonlyFallback(
+      providerConfig,
+      runtimeAdapters,
       async () => normalizeTaskRows(await readonlyAdapter.listWorkScope(normalizedProjectId || undefined)),
       async () => {
         const { workScope } = getLegacySnapshot();
@@ -343,7 +387,7 @@ export async function getWorkScope(projectId) {
     ),
   );
 
-  const rows = !normalizedProjectId && shouldUseKarunLive()
+  const rows = !normalizedProjectId && shouldUseKarunLive(providerConfig)
     ? mergeKarunRows(baseRows, normalizeTaskRows(await karunLiveAdapter.listWorkScope()))
     : baseRows;
 
@@ -368,11 +412,18 @@ export async function getWorkScope(projectId) {
 }
 
 export async function getDocuments(projectId) {
+  const providerConfig = getProviderConfig();
+  const runtimeAdapters = getRuntimeAdapters(providerConfig);
+  const { karunLiveAdapter, readonlyAdapter } = runtimeAdapters;
   const normalizedProjectId = projectId ? normalizeProjectId(projectId) : '';
   const rows = await loadWithKarunFallback(
+    providerConfig,
+    runtimeAdapters,
     normalizedProjectId,
     async () => normalizeDocumentRows(await karunLiveAdapter.listDocuments()),
     async () => loadWithReadonlyFallback(
+      providerConfig,
+      runtimeAdapters,
       async () => normalizeDocumentRows(await readonlyAdapter.listDocuments(normalizedProjectId || undefined)),
       async () => {
         const { documents } = getLegacySnapshot();
@@ -387,11 +438,18 @@ export async function getDocuments(projectId) {
 }
 
 export async function getArtwork(projectId) {
+  const providerConfig = getProviderConfig();
+  const runtimeAdapters = getRuntimeAdapters(providerConfig);
+  const { karunLiveAdapter, readonlyAdapter } = runtimeAdapters;
   const normalizedProjectId = projectId ? normalizeProjectId(projectId) : '';
   const rows = await loadWithKarunFallback(
+    providerConfig,
+    runtimeAdapters,
     normalizedProjectId,
     async () => normalizeArtworkRows(await karunLiveAdapter.listImages()),
     async () => loadWithReadonlyFallback(
+      providerConfig,
+      runtimeAdapters,
       async () => normalizeArtworkRows(await readonlyAdapter.listImages(normalizedProjectId || undefined)),
       async () => {
         const { projectImages } = getLegacySnapshot();
@@ -406,11 +464,18 @@ export async function getArtwork(projectId) {
 }
 
 export async function getDecisionLog(projectId) {
+  const providerConfig = getProviderConfig();
+  const runtimeAdapters = getRuntimeAdapters(providerConfig);
+  const { karunLiveAdapter, readonlyAdapter } = runtimeAdapters;
   const normalizedProjectId = projectId ? normalizeProjectId(projectId) : '';
   const rows = await loadWithKarunFallback(
+    providerConfig,
+    runtimeAdapters,
     normalizedProjectId,
     async () => normalizeDecisionRows(await karunLiveAdapter.listDecisionLog()),
     async () => loadWithReadonlyFallback(
+      providerConfig,
+      runtimeAdapters,
       async () => normalizeDecisionRows(await readonlyAdapter.listDecisionLog(normalizedProjectId || undefined)),
       async () => {
         const { decisionLog } = getLegacySnapshot();
@@ -423,8 +488,13 @@ export async function getDecisionLog(projectId) {
 }
 
 export async function getCalendarEvents(projectId) {
+  const providerConfig = getProviderConfig();
+  const runtimeAdapters = getRuntimeAdapters(providerConfig);
+  const { readonlyAdapter } = runtimeAdapters;
   const normalizedProjectId = projectId ? normalizeProjectId(projectId) : '';
   const rows = await loadWithReadonlyFallback(
+    providerConfig,
+    runtimeAdapters,
     async () => normalizeCalendarRows(await readonlyAdapter.listCalendar(normalizedProjectId || undefined)),
     async () => {
       const { calendarEvents } = getLegacySnapshot();
@@ -436,11 +506,18 @@ export async function getCalendarEvents(projectId) {
 }
 
 export async function getAlerts(projectId) {
+  const providerConfig = getProviderConfig();
+  const runtimeAdapters = getRuntimeAdapters(providerConfig);
+  const { karunLiveAdapter, readonlyAdapter } = runtimeAdapters;
   const normalizedProjectId = projectId ? normalizeProjectId(projectId) : '';
   const rows = await loadWithKarunFallback(
+    providerConfig,
+    runtimeAdapters,
     normalizedProjectId,
     async () => normalizeAlertRows(await karunLiveAdapter.listAlerts()),
     async () => loadWithReadonlyFallback(
+      providerConfig,
+      runtimeAdapters,
       async () => normalizeAlertRows(await readonlyAdapter.listAlerts(normalizedProjectId || undefined)),
       async () => {
         const { alerts } = getLegacySnapshot();
@@ -452,11 +529,18 @@ export async function getAlerts(projectId) {
 }
 
 export async function getCostDiff(projectId) {
+  const providerConfig = getProviderConfig();
+  const runtimeAdapters = getRuntimeAdapters(providerConfig);
+  const { karunLiveAdapter, readonlyAdapter } = runtimeAdapters;
   const normalizedProjectId = projectId ? normalizeProjectId(projectId) : '';
   const rows = await loadWithKarunFallback(
+    providerConfig,
+    runtimeAdapters,
     normalizedProjectId,
     async () => normalizeCostDiffRows(await karunLiveAdapter.listCostDiff()),
     async () => loadWithReadonlyFallback(
+      providerConfig,
+      runtimeAdapters,
       async () => normalizeCostDiffRows(await readonlyAdapter.listCostDiff(normalizedProjectId || undefined)),
       async () => {
         const { costDiff } = getLegacySnapshot();
@@ -468,6 +552,8 @@ export async function getCostDiff(projectId) {
 }
 
 export async function updateWorkScopeItem(itemId, patch = {}, options = {}) {
+  const providerConfig = getProviderConfig();
+  const { karunLiveAdapter } = getRuntimeAdapters(providerConfig);
   if (options?.projectId && !isKarunProject(options.projectId)) {
     return {
       ok: false,
@@ -483,6 +569,8 @@ export async function updateWorkScopeItem(itemId, patch = {}, options = {}) {
 }
 
 export async function addWorkScopeItem(payload = {}, options = {}) {
+  const providerConfig = getProviderConfig();
+  const { karunLiveAdapter } = getRuntimeAdapters(providerConfig);
   if (options?.projectId && !isKarunProject(options.projectId)) {
     return {
       ok: false,
@@ -498,25 +586,36 @@ export async function addWorkScopeItem(payload = {}, options = {}) {
 }
 
 export async function updateWorkScopeStatus(itemId, status, options = {}) {
+  const providerConfig = getProviderConfig();
+  const { karunLiveAdapter } = getRuntimeAdapters(providerConfig);
   return karunLiveAdapter.updateStatus(itemId, status, { projectId: KARUN_PROJECT_ID, ...options });
 }
 
 export async function updateWorkScopePriority(itemId, priority, options = {}) {
+  const providerConfig = getProviderConfig();
+  const { karunLiveAdapter } = getRuntimeAdapters(providerConfig);
   return karunLiveAdapter.updatePriority(itemId, priority, { projectId: KARUN_PROJECT_ID, ...options });
 }
 
 export async function updateWorkScopeNotes(itemId, notes, options = {}) {
+  const providerConfig = getProviderConfig();
+  const { karunLiveAdapter } = getRuntimeAdapters(providerConfig);
   return karunLiveAdapter.updateNotes(itemId, notes, { projectId: KARUN_PROJECT_ID, ...options });
 }
 
 export async function acknowledgeKarunAlert(alertId, options = {}) {
+  const providerConfig = getProviderConfig();
+  const { karunLiveAdapter } = getRuntimeAdapters(providerConfig);
   return karunLiveAdapter.acknowledgeAlert(alertId, { projectId: KARUN_PROJECT_ID, ...options });
 }
 
 export function isKarunLiveControlEnabled() {
+  const providerConfig = getProviderConfig();
   return providerConfig.mode === 'karun-live-control';
 }
 
 export function getKarunLiveControlBlockedCapabilities() {
+  const providerConfig = getProviderConfig();
+  const { karunLiveAdapter } = getRuntimeAdapters(providerConfig);
   return { ...karunLiveAdapter.blockedMutations };
 }
