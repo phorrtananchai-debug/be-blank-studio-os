@@ -13,9 +13,9 @@
 
 const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID_HERE';
 
-const TAB_NAMES = {
+const TAB_NAME_ALIASES = {
   ALERT_SETUP: 'Alert Automation Setup',
-  COSTDIFF: '03 Flooring Diff - 2F / Kitchen',
+  COSTDIFF: ['03 Flooring Diff - 2F / Kitchen', '03 Flooring Diff — 2F / Kitchen'],
   DASHBOARD: 'Dashboard',
   DECISIONS_AC: '04 Air Conditioning System',
   DECISIONS_ELEC: '05 Electrical / Meter Upgrade',
@@ -23,6 +23,15 @@ const TAB_NAMES = {
   MATERIALS: '02 Material Board',
   WORKSCOPE: '01 Work Scope Master',
 };
+
+function getSheetByAlias(ss, tabAlias) {
+  const aliases = Array.isArray(tabAlias) ? tabAlias : [tabAlias];
+  for (const alias of aliases) {
+    const sheet = ss.getSheetByName(alias);
+    if (sheet) return sheet;
+  }
+  return null;
+}
 
 const READ_RESOURCES = new Set([
   'karun_dashboard',
@@ -107,8 +116,8 @@ function sheetToObjects(sheet) {
   }).filter((row) => Object.values(row).some((value) => String(value || '').trim() !== ''));
 }
 
-function getSheetRowsByTabName(ss, tabName) {
-  const sheet = ss.getSheetByName(tabName);
+function getSheetRowsByTabName(ss, tabAlias) {
+  const sheet = getSheetByAlias(ss, tabAlias);
   return sheetToObjects(sheet);
 }
 
@@ -127,8 +136,9 @@ function asProjectRows(rows, projectId) {
 }
 
 function buildHealthData(ss) {
-  const tabs = Object.values(TAB_NAMES).reduce((acc, tabName) => {
-    acc[tabName] = Boolean(ss.getSheetByName(tabName));
+  const tabs = Object.entries(TAB_NAME_ALIASES).reduce((acc, [key, tabAlias]) => {
+    const aliases = Array.isArray(tabAlias) ? tabAlias : [tabAlias];
+    acc[key] = aliases.some((name) => Boolean(ss.getSheetByName(name)));
     return acc;
   }, {});
 
@@ -146,45 +156,45 @@ function loadResource(resource, projectId) {
   }
 
   if (resource === 'karun_dashboard') {
-    return getSheetRowsByTabName(ss, TAB_NAMES.DASHBOARD);
+    return getSheetRowsByTabName(ss, TAB_NAME_ALIASES.DASHBOARD);
   }
 
   if (resource === 'karun_workscope') {
-    return asProjectRows(getSheetRowsByTabName(ss, TAB_NAMES.WORKSCOPE), projectId);
+    return asProjectRows(getSheetRowsByTabName(ss, TAB_NAME_ALIASES.WORKSCOPE), projectId);
   }
 
   if (resource === 'karun_materials') {
-    return asProjectRows(getSheetRowsByTabName(ss, TAB_NAMES.MATERIALS), projectId);
+    return asProjectRows(getSheetRowsByTabName(ss, TAB_NAME_ALIASES.MATERIALS), projectId);
   }
 
   if (resource === 'karun_costdiff') {
-    return asProjectRows(getSheetRowsByTabName(ss, TAB_NAMES.COSTDIFF), projectId);
+    return asProjectRows(getSheetRowsByTabName(ss, TAB_NAME_ALIASES.COSTDIFF), projectId);
   }
 
   if (resource === 'karun_decisions') {
     return [
-      ...asProjectRows(getSheetRowsByTabName(ss, TAB_NAMES.DECISIONS_AC), projectId),
-      ...asProjectRows(getSheetRowsByTabName(ss, TAB_NAMES.DECISIONS_ELEC), projectId),
-      ...asProjectRows(getSheetRowsByTabName(ss, TAB_NAMES.DECISIONS_FACADE), projectId),
+      ...asProjectRows(getSheetRowsByTabName(ss, TAB_NAME_ALIASES.DECISIONS_AC), projectId),
+      ...asProjectRows(getSheetRowsByTabName(ss, TAB_NAME_ALIASES.DECISIONS_ELEC), projectId),
+      ...asProjectRows(getSheetRowsByTabName(ss, TAB_NAME_ALIASES.DECISIONS_FACADE), projectId),
     ];
   }
 
   if (resource === 'karun_alerts') {
-    return getSheetRowsByTabName(ss, TAB_NAMES.ALERT_SETUP);
+    return getSheetRowsByTabName(ss, TAB_NAME_ALIASES.ALERT_SETUP);
   }
 
   if (resource === 'karun_all') {
     return {
-      alerts: getSheetRowsByTabName(ss, TAB_NAMES.ALERT_SETUP),
-      costdiff: asProjectRows(getSheetRowsByTabName(ss, TAB_NAMES.COSTDIFF), projectId),
-      dashboard: getSheetRowsByTabName(ss, TAB_NAMES.DASHBOARD),
+      alerts: getSheetRowsByTabName(ss, TAB_NAME_ALIASES.ALERT_SETUP),
+      costdiff: asProjectRows(getSheetRowsByTabName(ss, TAB_NAME_ALIASES.COSTDIFF), projectId),
+      dashboard: getSheetRowsByTabName(ss, TAB_NAME_ALIASES.DASHBOARD),
       decisions: [
-        ...asProjectRows(getSheetRowsByTabName(ss, TAB_NAMES.DECISIONS_AC), projectId),
-        ...asProjectRows(getSheetRowsByTabName(ss, TAB_NAMES.DECISIONS_ELEC), projectId),
-        ...asProjectRows(getSheetRowsByTabName(ss, TAB_NAMES.DECISIONS_FACADE), projectId),
+        ...asProjectRows(getSheetRowsByTabName(ss, TAB_NAME_ALIASES.DECISIONS_AC), projectId),
+        ...asProjectRows(getSheetRowsByTabName(ss, TAB_NAME_ALIASES.DECISIONS_ELEC), projectId),
+        ...asProjectRows(getSheetRowsByTabName(ss, TAB_NAME_ALIASES.DECISIONS_FACADE), projectId),
       ],
-      materials: asProjectRows(getSheetRowsByTabName(ss, TAB_NAMES.MATERIALS), projectId),
-      workscope: asProjectRows(getSheetRowsByTabName(ss, TAB_NAMES.WORKSCOPE), projectId),
+      materials: asProjectRows(getSheetRowsByTabName(ss, TAB_NAME_ALIASES.MATERIALS), projectId),
+      workscope: asProjectRows(getSheetRowsByTabName(ss, TAB_NAME_ALIASES.WORKSCOPE), projectId),
     };
   }
 
@@ -267,9 +277,9 @@ function handleWrite(requestBody) {
   }
 
   const ss = getSpreadsheet();
-  const sheet = ss.getSheetByName(TAB_NAMES.WORKSCOPE);
+  const sheet = getSheetByAlias(ss, TAB_NAME_ALIASES.WORKSCOPE);
   if (!sheet) {
-    return fail('not_found', `Sheet tab not found: ${TAB_NAMES.WORKSCOPE}`, false);
+    return fail('not_found', 'Sheet tab not found: 01 Work Scope Master', false);
   }
 
   const values = sheet.getDataRange().getValues();

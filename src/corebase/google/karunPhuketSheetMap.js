@@ -14,7 +14,7 @@ export const KARUN_SHEET_TAB_ALIASES = {
   systemAirConditioning: ['04 Air Conditioning System'],
   systemElectrical: ['05 Electrical / Meter Upgrade'],
   systemFacade: ['06 Facade / Front Elevation'],
-  workScopeCostDiff: ['03 Flooring Diff - 2F / Kitchen'],
+  workScopeCostDiff: ['03 Flooring Diff - 2F / Kitchen', '03 Flooring Diff — 2F / Kitchen'],
   workScopeMaster: ['01 Work Scope Master'],
 };
 
