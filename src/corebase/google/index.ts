@@ -35,6 +35,23 @@ export {
   mapLegacyToCorebase,
 } from './legacyToCorebase';
 export {
+  KARUN_PROJECT_ID,
+  KARUN_SHEET_TAB_ALIASES,
+  createKarunWritePatchPayload,
+  isBlockedKarunMutation,
+  mapKarunAlertConfigRow,
+  mapKarunCostDiffRow,
+  mapKarunFacadeRow,
+  mapKarunMaterialRow,
+  mapKarunSystemRow,
+  mapKarunWorkScopeMasterRow,
+  sanitizeKarunPatch,
+} from './karunPhuketSheetMap';
+export {
+  buildKarunWritePayloadForTest,
+  createKarunLiveControlAdapter,
+} from './karunLiveControlAdapter';
+export {
   getEndpointHost,
   getGoogleReadonlyDiagnostics,
 } from './googleReadonlyDiagnostics';
@@ -55,4 +72,13 @@ export {
   getProjectById,
   getProjects,
   getWorkScope,
+  updateWorkScopeItem,
+  addWorkScopeItem,
+  updateWorkScopeStatus,
+  updateWorkScopePriority,
+  updateWorkScopeNotes,
+  acknowledgeKarunAlert,
+  isKarunLiveControlEnabled,
+  getCorebaseProviderConfig,
+  getKarunLiveControlBlockedCapabilities,
 } from './selectors';

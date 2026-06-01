@@ -47,7 +47,14 @@ export function DocumentsSurface({ documents = [], onOpenDocument, projects = []
   );
 }
 
-export function WorkQueueSurface({ tasks = [], onOpenTask, projects = [] }) {
+export function WorkQueueSurface({
+  tasks = [],
+  onAddKarunTask,
+  onOpenTask,
+  onSaveKarunTaskField,
+  projects = [],
+  writeEnabled = false,
+}) {
   const taskRows = tasks.length ? tasks : projects.map((project, index) => ({
     dueDate: project.handoverDate || project.openingDate || '',
     id: `work-queue-fallback-${project.id || index + 1}`,
@@ -56,8 +63,22 @@ export function WorkQueueSurface({ tasks = [], onOpenTask, projects = [] }) {
     title: project.nextAction || `Next action for ${project.name || 'project'}`,
   }));
   const orderedTasks = useMemo(() => [...taskRows].sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || ''))), [taskRows]);
+  const statusOptions = ['TODO', 'IN_PROGRESS', 'WAITING', 'BLOCKED', 'DONE'];
+  const priorityOptions = ['LOW', 'NORMAL', 'HIGH', 'CRITICAL'];
+  const isKarunTask = (task) => {
+    const value = String(task?.projectId || '').toLowerCase();
+    return value === 'karun-phuket' || value === 'karun-phuket-oldtown';
+  };
   return (
-    <SectionCard title="Work Queue" eyebrow="Dedicated Surface">
+    <SectionCard
+      title="Work Queue"
+      eyebrow="Dedicated Surface"
+      action={writeEnabled ? (
+        <Button variant="secondary" onClick={() => onAddKarunTask?.()}>
+          Add Karun Item
+        </Button>
+      ) : null}
+    >
       {orderedTasks.length ? (
         <div className="divide-y divide-black/[0.06] border-y border-black/[0.06]">
           {orderedTasks.map((task) => (
@@ -77,6 +98,44 @@ export function WorkQueueSurface({ tasks = [], onOpenTask, projects = [] }) {
               </div>
               <p className="type-caption text-studio-muted">{task.dueDate || 'No date'}</p>
               <p className="type-control text-studio-muted md:text-right">{task.status || 'OPEN'}</p>
+              {writeEnabled && isKarunTask(task) && (
+                <div className="mt-2 grid gap-3 border-t border-black/[0.05] pt-3 md:col-span-3" onClick={(event) => event.stopPropagation()}>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="grid gap-1">
+                      <span className="type-label text-studio-muted">Status</span>
+                      <select
+                        className="h-9 rounded-lg border border-black/[0.08] bg-white px-3 text-xs font-semibold text-studio-ink outline-none"
+                        value={task.status || 'TODO'}
+                        onChange={(event) => onSaveKarunTaskField?.(task, { status: event.target.value })}
+                      >
+                        {statusOptions.map((status) => (
+                          <option key={status} value={status}>{status}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="type-label text-studio-muted">Priority</span>
+                      <select
+                        className="h-9 rounded-lg border border-black/[0.08] bg-white px-3 text-xs font-semibold text-studio-ink outline-none"
+                        value={String(task.priority || 'NORMAL').toUpperCase()}
+                        onChange={(event) => onSaveKarunTaskField?.(task, { priority: event.target.value })}
+                      >
+                        {priorityOptions.map((priority) => (
+                          <option key={priority} value={priority}>{priority}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <label className="grid gap-1">
+                    <span className="type-label text-studio-muted">Notes</span>
+                    <textarea
+                      className="min-h-16 rounded-lg border border-black/[0.08] bg-white px-3 py-2 text-xs font-medium text-studio-ink outline-none"
+                      defaultValue={task.notes || ''}
+                      onBlur={(event) => onSaveKarunTaskField?.(task, { notes: event.target.value })}
+                    />
+                  </label>
+                </div>
+              )}
             </article>
           ))}
         </div>
@@ -152,8 +211,8 @@ export function SettingsSurface({
       label: 'First sync successful',
     },
     {
-      done: true,
-      label: 'Write-back disabled',
+      done: corebaseStatus?.mode === 'karun-live-control' ? false : true,
+      label: corebaseStatus?.mode === 'karun-live-control' ? 'Write-back limited to Karun only' : 'Write-back disabled',
     },
   ];
 
@@ -194,7 +253,9 @@ export function SettingsSurface({
           <p className="type-caption text-studio-muted">Retryable: {corebaseStatus?.retryable ? 'yes' : 'no'}</p>
           <p className="type-caption text-studio-muted">Suggested retry: {corebaseStatus?.suggestedRetryMs ? `${corebaseStatus.suggestedRetryMs}ms` : 'n/a'}</p>
         </div>
-        <p className="mt-3 type-control text-studio-muted">Read-only mode: active</p>
+        <p className="mt-3 type-control text-studio-muted">
+          Read-only mode: {corebaseStatus?.mode === 'karun-live-control' ? 'partial (Karun write enabled)' : 'active'}
+        </p>
       </div>
       <div className="mt-6 rounded-3xl border border-black/[0.06] bg-white/70 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">

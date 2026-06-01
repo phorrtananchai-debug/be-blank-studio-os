@@ -50,6 +50,9 @@ export function StudioOSWorkspaceContent({
   onOpenGlobalDocumentRevision,
   onVerifyGoogleCorebase,
   onCompleteTask,
+  onAddKarunTask,
+  onSaveKarunTaskField,
+  karunLiveControlEnabled = false,
   onUpdateTask,
   onUpdateStudioSettings,
   verifyingCorebase = false,
@@ -166,6 +169,9 @@ export function StudioOSWorkspaceContent({
             projects={projects}
             tasks={corebaseWorkScope.length ? corebaseWorkScope : tasks}
             onOpenTask={openTaskDetail}
+            onAddKarunTask={onAddKarunTask}
+            onSaveKarunTaskField={onSaveKarunTaskField}
+            writeEnabled={karunLiveControlEnabled}
           />
         )}
 

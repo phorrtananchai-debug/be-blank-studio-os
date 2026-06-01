@@ -310,3 +310,54 @@
 - Add optional authenticated request header strategy (no OAuth).
 - Add richer per-resource verification detail UI in Settings (still minimal style).
 - Add integration runbook for rotating Apps Script deployments safely.
+
+---
+
+## Karun Phuket Live-control Integration (Step 7)
+
+### What was implemented
+- Added Karun tab/column alias mapping without renaming the existing sheet:
+  - `/src/corebase/google/karunPhuketSheetMap.js`
+- Added Karun scoped live-control adapter (read + safe write patch actions):
+  - `/src/corebase/google/karunLiveControlAdapter.js`
+- Extended provider modes:
+  - `mock`
+  - `google-readonly`
+  - `karun-live-control`
+  - file: `/src/corebase/google/providerConfig.js`
+- Extended selectors with Karun-aware read/write behavior while preserving fallback:
+  - `/src/corebase/google/selectors.ts`
+- UI wiring for first live project scope:
+  - `/projects/karun-phuket`
+  - `/os/projects/karun-phuket`
+  - `/os/work-queue` (Karun rows)
+  - files:
+    - `/src/components/dashboard/ProjectWorkspace.jsx`
+    - `/src/components/studio-os/DedicatedSurfaces.jsx`
+    - `/src/components/studio-os/StudioOSWorkspaceContent.jsx`
+    - `/src/pages/StudioOSApp.jsx`
+
+### Safety model
+- No delete actions.
+- No bulk overwrite actions.
+- Row updates by `ID/item_id` only.
+- Whitelisted patch columns only.
+- Mock fallback preserved when endpoint is missing/unavailable.
+
+### Contract and sample
+- Contract doc:
+  - `/GOOGLE_APPS_SCRIPT_KARUN_LIVE_CONTROL_CONTRACT.md`
+- Apps Script sample:
+  - `/docs/google-corebase-apps-script/karun-live-control.sample.js`
+  - uses `YOUR_SPREADSHEET_ID_HERE` placeholder only
+  - no webhook/secret values in source
+
+### Manual setup notes
+- Keep existing sheet/tabs as-is.
+- Do not rename tabs.
+- Paste sample script and replace only `YOUR_SPREADSHEET_ID_HERE`.
+- Deploy Apps Script Web App.
+- Set env:
+  - `VITE_GOOGLE_COREBASE_ENDPOINT=...`
+  - `VITE_GOOGLE_COREBASE_MODE=karun-live-control`
+- Verify in `/os/settings`, then test one non-critical WorkScope row in `/projects/karun-phuket`.

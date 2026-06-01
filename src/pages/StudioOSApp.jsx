@@ -18,6 +18,7 @@ import { useToastMessage } from '../hooks/useToastMessage.js';
 import { OverlayHost } from '../overlays/OverlayHost.jsx';
 import { useOverlayContract } from '../overlays/useOverlayContract.js';
 import {
+  addWorkScopeItem,
   getAlerts,
   getArtwork,
   getCorebaseReadStatus,
@@ -25,6 +26,7 @@ import {
   getDocuments,
   getProjects,
   getWorkScope,
+  updateWorkScopeItem,
 } from '../corebase/google/selectors.ts';
 import { verifyAllCoreResources } from '../corebase/google/verifyGoogleReadonlyEndpoint.js';
 import {
@@ -167,6 +169,7 @@ export function StudioOSApp({ navigate, routePath }) {
   const [corebaseReadStatus, setCorebaseReadStatus] = useState(getCorebaseReadStatus());
   const [corebaseVerification, setCorebaseVerification] = useState(null);
   const [isVerifyingCorebase, setIsVerifyingCorebase] = useState(false);
+  const karunLiveControlEnabled = true;
 
   const dataMode = isFirebaseConfigured
     ? (studioUser ? 'firebase' : 'firebase-auth')
@@ -783,6 +786,68 @@ export function StudioOSApp({ navigate, routePath }) {
     openOverlay(overlayKinds.DOCUMENT_REVISION_DRAWER, buildDocumentRevisionPayload(firstDoc, routePath || '/os/documents'));
   };
 
+  const saveKarunTaskFieldFromQueue = async (task, patch = {}) => {
+    if (!task?.id) return;
+    const result = await updateWorkScopeItem(task.id, patch, {
+      projectId: task.projectId || 'KARUN-PHUKET-OLDTOWN',
+      source: routePath || '/os/work-queue',
+    });
+
+    if (!result?.ok) {
+      showToast(`Karun save failed (${result?.errorCode || 'unknown'}).`, 'error');
+      return;
+    }
+
+    setCorebaseWorkScope((rows) => rows.map((row) => (
+      row.id === task.id
+        ? {
+          ...row,
+          ...patch,
+          dueDate: patch.due_date ?? row.dueDate,
+          waitingFor: patch.waiting_for ?? patch.decision_needed ?? row.waitingFor,
+          updatedAt: result.updatedAt || new Date().toISOString(),
+        }
+        : row
+    )));
+    showToast(result?.fallback ? 'Saved in mock fallback mode.' : 'Karun WorkScope updated.');
+  };
+
+  const addKarunTaskFromQueue = async () => {
+    const payload = {
+      decision_needed: '',
+      due_date: '',
+      notes: '',
+      priority: 'NORMAL',
+      responsible: '',
+      status: 'TODO',
+      title: 'New WorkScope Item',
+    };
+    const result = await addWorkScopeItem(payload, {
+      projectId: 'KARUN-PHUKET-OLDTOWN',
+      source: routePath || '/os/work-queue',
+    });
+
+    if (!result?.ok) {
+      showToast(`Karun item add failed (${result?.errorCode || 'unknown'}).`, 'error');
+      return;
+    }
+
+    const createdId = result?.item?.id || `TASK-${Date.now()}`;
+    setCorebaseWorkScope((rows) => [{
+      id: createdId,
+      projectId: 'KARUN-PHUKET-OLDTOWN',
+      title: payload.title,
+      status: payload.status,
+      priority: payload.priority,
+      notes: payload.notes,
+      dueDate: payload.due_date,
+      updatedAt: result.updatedAt || new Date().toISOString(),
+      responsible: payload.responsible,
+      waitingFor: payload.decision_needed,
+    }, ...rows]);
+    showToast(result?.fallback ? 'Added in mock fallback mode.' : 'Karun WorkScope item added.');
+  };
+
   const handleVerifyGoogleCorebase = async () => {
     setIsVerifyingCorebase(true);
     try {
@@ -996,7 +1061,10 @@ export function StudioOSApp({ navigate, routePath }) {
           onCompleteTask={completeTask}
           onOpenGlobalDocumentRevision={openDocumentRevisionDrawer}
           onVerifyGoogleCorebase={handleVerifyGoogleCorebase}
+          karunLiveControlEnabled={karunLiveControlEnabled}
+          onAddKarunTask={addKarunTaskFromQueue}
           onUpdateTask={updateTask}
+          onSaveKarunTaskField={saveKarunTaskFieldFromQueue}
           onUpdateStudioSettings={setStudioSettings}
           verifyingCorebase={isVerifyingCorebase}
         />

@@ -175,3 +175,45 @@
 1. Optional request-level auth token strategy (still no OAuth).
 2. Deployment governance for private/internal endpoint sharing policy.
 3. Future write-back contract PR (strictly separate scope).
+
+---
+
+## Phase 7 Additions - Karun Phuket Live-control (First Real Sheet-backed Project)
+
+### Implemented
+1. Existing-sheet alias mapping (no tab rename)
+   - `src/corebase/google/karunPhuketSheetMap.js`
+   - Maps current Karun tabs/columns into Corebase-compatible shapes.
+
+2. Karun live-control adapter (safe write patch)
+   - `src/corebase/google/karunLiveControlAdapter.js`
+   - Supports read resources:
+     - `karun_dashboard`, `karun_workscope`, `karun_materials`, `karun_costdiff`, `karun_decisions`, `karun_alerts`, `karun_all`
+   - Supports write actions:
+     - `update_workscope_item`, `add_workscope_item`, `update_status`, `update_priority`, `update_notes`, `acknowledge_alert`
+   - Blocks:
+     - delete
+     - bulk overwrite
+
+3. Provider mode extension
+   - `src/corebase/google/providerConfig.js`
+   - Adds `karun-live-control` mode.
+   - Default remains `mock` if endpoint is missing.
+
+4. Karun-first UI integration
+   - `src/components/dashboard/ProjectWorkspace.jsx`
+   - `src/components/studio-os/DedicatedSurfaces.jsx`
+   - `src/components/studio-os/StudioOSWorkspaceContent.jsx`
+   - `src/pages/StudioOSApp.jsx`
+   - Enables scoped edit/add for Karun WorkScope fields only.
+
+5. Contract and sample docs
+   - `GOOGLE_APPS_SCRIPT_KARUN_LIVE_CONTROL_CONTRACT.md`
+   - `docs/google-corebase-apps-script/karun-live-control.sample.js`
+
+### Remaining before wider rollout
+1. Add production-grade conflict/version checks for concurrent edits.
+2. Add per-action audit logging and user identity policy.
+3. Expand write scope from Karun-only to multi-project after guardrails are validated.
+4. Keep alert webhook secrets in Script Properties (never source).
+5. Keep OAuth/backend/write-back outside this phase.
