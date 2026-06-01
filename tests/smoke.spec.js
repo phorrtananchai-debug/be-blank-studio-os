@@ -266,6 +266,8 @@ test.describe('karun live-control smoke checks', () => {
     await page.goto('/os/projects/karun-phuket');
     await expectStudioShell(page);
     await expect(page.getByText(/Project ID:\s*KARUN-PHUKET-OLDTOWN/i).first()).toBeVisible();
+    await expect(page.getByText('Live-control Snapshot')).toBeVisible();
+    await expect(page.getByText(/WorkScope rows:/)).toBeVisible();
 
     if (!(await page.getByRole('button', { name: 'Add WorkScope' }).count())) {
       const openDetailButtons = page.getByRole('button', { name: 'Open Detail' });
@@ -290,6 +292,10 @@ test.describe('karun live-control smoke checks', () => {
     await decisionNotes.blur();
 
     await expect(page.getByText(/Saved|Save failed|mock fallback/i).first()).toBeVisible();
+    const ws003 = page.getByText('WS-003');
+    if (await ws003.count()) {
+      await expect(ws003.first()).toBeVisible();
+    }
   });
 });
 
