@@ -213,6 +213,21 @@ test('verifyEndpointConfigured returns mock mode when endpoint is missing', () =
   assert.equal(result.endpointConfigured, false);
 });
 
+test('verifyEndpointConfigured keeps karun-live-control mode when endpoint is configured', () => {
+  const result = verifyEndpointConfigured({
+    providerConfig: {
+      endpoint: 'https://script.google.com/macros/s/mock/exec',
+      endpointConfigured: true,
+      mode: 'karun-live-control',
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.mode, 'karun-live-control');
+  assert.equal(result.endpointConfigured, true);
+  assert.equal(result.endpointHost, 'script.google.com');
+});
+
 test('verifyEndpointHealth supports health success response', async () => {
   const result = await verifyEndpointHealth({
     fetchImpl: async () => ({
@@ -289,4 +304,26 @@ test('verifyAllCoreResources returns structured mock fallback result when endpoi
   assert.equal(result.mode, 'mock');
   assert.equal(result.endpointConfigured, false);
   assert.equal(Array.isArray(result.checks), true);
+});
+
+test('diagnostics include configured env metadata when endpoint is available', () => {
+  const diagnostics = getGoogleReadonlyDiagnostics({
+    adapterStatus: {
+      mode: 'karun-live-control',
+    },
+    providerConfig: {
+      endpoint: 'https://script.google.com/macros/s/mock/exec',
+      endpointConfigured: true,
+      envEndpointConfigured: true,
+      envModeConfigured: true,
+      mode: 'karun-live-control',
+      source: 'env',
+      overrideActive: false,
+      requestedMode: 'karun-live-control',
+    },
+  });
+
+  assert.equal(diagnostics.endpointConfigured, true);
+  assert.equal(diagnostics.endpointHost, 'script.google.com');
+  assert.equal(diagnostics.mode, 'karun-live-control');
 });

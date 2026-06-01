@@ -1,5 +1,6 @@
 const DEFAULT_TIMEOUT_MS = 8000;
 const SUPPORTED_MODES = new Set(['mock', 'google-readonly', 'karun-live-control']);
+const LOCAL_OVERRIDE_KEY = 'beBlank.googleCorebase.override';
 
 function resolveEnvEndpoint(runtimeEnv = import.meta?.env || {}) {
   return String(runtimeEnv.VITE_GOOGLE_COREBASE_ENDPOINT || '').trim();
@@ -11,16 +12,57 @@ function resolveEnvMode(runtimeEnv = import.meta?.env || {}) {
   return SUPPORTED_MODES.has(requestedMode) ? requestedMode : 'google-readonly';
 }
 
+function isProductionRuntime(runtimeEnv = import.meta?.env || {}) {
+  return String(runtimeEnv.MODE || '').toLowerCase() === 'production';
+}
+
+function resolveLocalOverride(runtimeEnv = import.meta?.env || {}) {
+  if (typeof window === 'undefined') return null;
+  if (isProductionRuntime(runtimeEnv)) return null;
+
+  try {
+    const raw = window.localStorage.getItem(LOCAL_OVERRIDE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+
+    const endpoint = String(parsed.endpoint || '').trim();
+    const requestedMode = String(parsed.mode || '').trim().toLowerCase();
+    const mode = SUPPORTED_MODES.has(requestedMode) ? requestedMode : 'google-readonly';
+
+    return {
+      endpoint,
+      endpointConfigured: Boolean(endpoint),
+      mode,
+      overrideActive: true,
+      source: 'localStorage-override',
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function getGoogleCorebaseProviderConfig(runtimeEnv = import.meta?.env || {}) {
-  const endpoint = resolveEnvEndpoint(runtimeEnv);
+  const envEndpoint = resolveEnvEndpoint(runtimeEnv);
+  const envEndpointConfigured = Boolean(envEndpoint);
+  const envRequestedMode = resolveEnvMode(runtimeEnv);
+
+  const override = resolveLocalOverride(runtimeEnv);
+  const endpoint = envEndpointConfigured ? envEndpoint : (override?.endpoint || '');
   const endpointConfigured = Boolean(endpoint);
-  const requestedMode = resolveEnvMode(runtimeEnv);
+  const requestedMode = envEndpointConfigured ? envRequestedMode : (override?.mode || envRequestedMode);
   const mode = endpointConfigured ? requestedMode : 'mock';
+  const source = envEndpointConfigured ? 'env' : (override?.source || 'env');
+
   return {
     endpoint,
     endpointConfigured,
+    envEndpointConfigured,
+    envModeConfigured: Boolean(String(runtimeEnv.VITE_GOOGLE_COREBASE_MODE || '').trim()),
     mode,
+    overrideActive: Boolean(override?.overrideActive),
     requestedMode,
+    source,
     timeoutMs: DEFAULT_TIMEOUT_MS,
   };
 }
@@ -28,4 +70,8 @@ export function getGoogleCorebaseProviderConfig(runtimeEnv = import.meta?.env ||
 export function getCorebaseModeLabel(config = getGoogleCorebaseProviderConfig()) {
   if (config.mode === 'karun-live-control') return 'karun-live-control';
   return config.mode === 'google-readonly' ? 'google-readonly' : 'mock';
+}
+
+export function getGoogleCorebaseOverrideStorageKey() {
+  return LOCAL_OVERRIDE_KEY;
 }

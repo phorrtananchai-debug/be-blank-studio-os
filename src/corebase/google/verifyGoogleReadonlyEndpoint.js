@@ -1,5 +1,6 @@
 import { createGoogleReadonlyAdapter } from './googleReadonlyAdapter.js';
 import { getEndpointHost } from './googleReadonlyDiagnostics.js';
+import { createKarunLiveControlAdapter } from './karunLiveControlAdapter.js';
 import { getGoogleCorebaseProviderConfig } from './providerConfig.js';
 
 const RESOURCE_HANDLERS = {
@@ -58,9 +59,14 @@ function buildResult({
 function resolveDeps(deps = {}) {
   const providerConfig = deps.providerConfig || getGoogleCorebaseProviderConfig();
   const fetchImpl = deps.fetchImpl || (typeof fetch === 'function' ? fetch.bind(globalThis) : null);
-  const adapter = deps.adapter || createGoogleReadonlyAdapter(providerConfig, fetchImpl || (async () => {
+  const safeFetch = fetchImpl || (async () => {
     throw new Error('fetch unavailable');
-  }));
+  });
+  const adapter = deps.adapter || (
+    providerConfig.mode === 'karun-live-control'
+      ? createKarunLiveControlAdapter(providerConfig, safeFetch)
+      : createGoogleReadonlyAdapter(providerConfig, safeFetch)
+  );
   return { adapter, fetchImpl, providerConfig };
 }
 
