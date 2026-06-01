@@ -71,6 +71,15 @@ test.describe('route smoke checks', () => {
 
     await page.goto('/projects/karun-phuket');
     await expectStudioShell(page);
+    await expect(page.getByText('Karun Phuket Old Town').first()).toBeVisible();
+    await expect(page.getByText(/Project ID:\s*KARUN-PHUKET-OLDTOWN/i).first()).toBeVisible();
+    await expect(page.getByText('Aurum Residence')).toBeHidden();
+
+    await page.goto('/os/projects/karun-phuket');
+    await expectStudioShell(page);
+    await expect(page.getByText('Karun Phuket Old Town').first()).toBeVisible();
+    await expect(page.getByText(/Project ID:\s*KARUN-PHUKET-OLDTOWN/i).first()).toBeVisible();
+    await expect(page.getByText('Aurum Residence')).toBeHidden();
 
     await page.goto('/work-queue');
     await expectStudioShell(page);
@@ -256,6 +265,7 @@ test.describe('karun live-control smoke checks', () => {
   test('loads Karun workspace with editable WorkScope controls and mock-safe save path', async ({ page }) => {
     await page.goto('/os/projects/karun-phuket');
     await expectStudioShell(page);
+    await expect(page.getByText(/Project ID:\s*KARUN-PHUKET-OLDTOWN/i).first()).toBeVisible();
 
     if (!(await page.getByRole('button', { name: 'Add WorkScope' }).count())) {
       const openDetailButtons = page.getByRole('button', { name: 'Open Detail' });
@@ -351,7 +361,7 @@ test.describe('backup import and export smoke checks', () => {
     await expect(page.getByText(/Void Cafe/).first()).toBeVisible();
     await expect(page.getByText('Concept Reel')).toBeVisible();
     await expect(page.getByText('Untitled Content Item')).toBeVisible();
-    await expect(page.getByText('Karun Phuket')).toBeVisible();
+    await expect(page.getByText(/Karun Phuket( Old Town)?/).first()).toBeVisible();
     await expect(page.getByText('Backup restored.')).toBeHidden();
 
     await page.getByRole('button', { name: 'Cancel' }).click();

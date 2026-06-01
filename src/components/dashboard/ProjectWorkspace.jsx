@@ -1190,6 +1190,9 @@ export function ProjectWorkspace({ project, tasks = [], onBack, onDelete, onUpda
             <p className="text-sm font-medium text-studio-muted/70 mt-1">
               {project.client || 'Client TBD'} &bull; {project.location || 'Location TBD'}
             </p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-studio-muted/60 mt-1">
+              Project ID: {canonicalProjectId} / Source: {project.source || 'local'}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3">

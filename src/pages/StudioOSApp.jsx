@@ -28,6 +28,8 @@ import {
   getWorkScope,
   updateWorkScopeItem,
 } from '../corebase/google/selectors.ts';
+import { KARUN_PROJECT_ID } from '../corebase/google/karunPhuketSheetMap.js';
+import { getCanonicalProjectId } from '../corebase/google/legacyToCorebase.ts';
 import { verifyAllCoreResources } from '../corebase/google/verifyGoogleReadonlyEndpoint.js';
 import {
   clearGoogleCorebaseRuntimeOverride,
@@ -183,14 +185,84 @@ export function StudioOSApp({ navigate, routePath }) {
   });
   const karunLiveControlEnabled = true;
 
+  const resolveProjectSource = useCallback((project) => {
+    if (project?.source) return project.source;
+    if (isFirebaseConfigured) return studioUser ? 'firebase/firestore' : 'local';
+    return 'local';
+  }, [isFirebaseConfigured, studioUser]);
+
   const dataMode = isFirebaseConfigured
     ? (studioUser ? 'firebase' : 'firebase-auth')
     : 'checking';
 
-  const effectiveProjects = useMemo(
-    () => (projects.length ? projects : corebaseProjects),
-    [corebaseProjects, projects],
-  );
+  const effectiveProjects = useMemo(() => {
+    const byCanonicalId = new Map();
+
+    const upsert = (project, fallbackSource) => {
+      const canonicalId = getCanonicalProjectId(project);
+      const source = project?.source || fallbackSource;
+      const aliases = Array.isArray(project?.aliases) ? project.aliases : [];
+      const existing = byCanonicalId.get(canonicalId);
+
+      if (!existing) {
+        byCanonicalId.set(canonicalId, {
+          ...project,
+          aliases,
+          canonicalProjectId: canonicalId,
+          source,
+        });
+        return;
+      }
+
+      const preferIncomingKarunLive = canonicalId === KARUN_PROJECT_ID && source === 'karun-live-control';
+      const nextBase = preferIncomingKarunLive ? existing : project;
+      const nextIncoming = preferIncomingKarunLive ? project : existing;
+
+      byCanonicalId.set(canonicalId, {
+        ...nextBase,
+        ...nextIncoming,
+        aliases: Array.from(new Set([...(existing.aliases || []), ...aliases])),
+        canonicalProjectId: canonicalId,
+        source: preferIncomingKarunLive ? 'karun-live-control' : (existing.source || source),
+      });
+    };
+
+    projects.forEach((project) => upsert(project, resolveProjectSource(project)));
+    corebaseProjects.forEach((project) => {
+      const isKarun = getCanonicalProjectId(project) === KARUN_PROJECT_ID;
+      const fallbackSource = isKarun && corebaseReadStatus?.mode === 'karun-live-control'
+        ? 'karun-live-control'
+        : 'mock';
+      upsert(project, fallbackSource);
+    });
+
+    const hasKarunProject = byCanonicalId.has(KARUN_PROJECT_ID);
+    const hasKarunWorkScope = corebaseWorkScope.some((task) => String(task?.projectId || '').toUpperCase() === KARUN_PROJECT_ID);
+    if (!hasKarunProject && hasKarunWorkScope) {
+      byCanonicalId.set(KARUN_PROJECT_ID, {
+        aliases: ['karun-phuket', 'karun-phuket-oldtown'],
+        canonicalProjectId: KARUN_PROJECT_ID,
+        id: KARUN_PROJECT_ID,
+        name: 'Karun Phuket Old Town',
+        phase: 'live-control',
+        source: corebaseReadStatus?.mode === 'karun-live-control' ? 'karun-live-control' : 'mock',
+        status: 'design',
+      });
+    }
+
+    const rows = Array.from(byCanonicalId.values());
+    return rows.map((project) => {
+      const canonicalId = getCanonicalProjectId(project);
+      if (canonicalId !== KARUN_PROJECT_ID) return project;
+      return {
+        ...project,
+        aliases: Array.from(new Set([...(project.aliases || []), 'karun-phuket', 'karun-phuket-oldtown'])),
+        canonicalProjectId: KARUN_PROJECT_ID,
+        id: project.id || KARUN_PROJECT_ID,
+        name: 'Karun Phuket Old Town',
+      };
+    });
+  }, [projects, corebaseProjects, corebaseReadStatus?.mode, corebaseWorkScope, resolveProjectSource]);
 
   const statusCounts = useMemo(() => countByStatus(effectiveProjects, projectStatuses), [effectiveProjects]);
 

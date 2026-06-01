@@ -94,7 +94,7 @@ export function WorkQueueSurface({
             >
               <div>
                 <p className="type-card-title">{task.title || 'Untitled task'}</p>
-                <p className="type-caption mt-1 text-studio-muted">{task.projectId || 'Unassigned'}</p>
+                <p className="type-caption mt-1 text-studio-muted">{task.projectId || 'Unassigned'} / {task.source || 'local'}</p>
               </div>
               <p className="type-caption text-studio-muted">{task.dueDate || 'No date'}</p>
               <p className="type-control text-studio-muted md:text-right">{task.status || 'OPEN'}</p>
