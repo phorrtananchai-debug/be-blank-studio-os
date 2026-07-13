@@ -8,6 +8,7 @@ const PortfolioDetailPage = lazy(() => import('./pages/PortfolioDetailPage.jsx')
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage.jsx').then((module) => ({ default: module.PortfolioPage })));
 const PublicHomepage = lazy(() => import('./pages/PublicHomepage.jsx').then((module) => ({ default: module.PublicHomepage })));
 const AequitasOSApp = lazy(() => import('./pages/AequitasOSApp.jsx').then((module) => ({ default: module.AequitasOSApp })));
+const VisualMaterialMapper = lazy(() => import('./App.tsx'));
 
 function isMobileDevice() {
   if (typeof window === 'undefined') return false;
@@ -86,6 +87,14 @@ function App() {
       <Route path="/portfolio/:portfolioId" element={<PortfolioDetailRoute portfolioItems={publicPortfolioItems} navigate={navigate} />} />
       <Route path="/dashboard" element={<StudioOSRoute navigate={navigate} routePath={location.pathname} />} />
       <Route path="/os/*" element={<StudioOSRoute navigate={navigate} routePath={location.pathname} />} />
+      <Route
+        path="/visual-local"
+        element={(
+          <RouteFallback>
+            <VisualMaterialMapper />
+          </RouteFallback>
+        )}
+      />
       <Route
         path="/m"
         element={(

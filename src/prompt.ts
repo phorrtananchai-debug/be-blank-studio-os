@@ -1,4 +1,5 @@
-import { Scene, Slot, SlotCategory } from './types';
+import { ProjectSourceOfTruth, Scene, Slot, SlotCategory } from './types';
+import { materialRuleNegativeLines, materialRulePromptLines, scopedColorCastCorrectionLine } from './projectSourceOfTruth';
 
 const defaultNamePattern = /^(materials|props|lighting|environment)\s+\d+$|^untitled\s+(material|prop|lighting|environment)$/i;
 
@@ -109,7 +110,7 @@ function categoryLines(slots: Slot[], category: SlotCategory) {
   return { lines: configured.map((slot) => formatSlot(slot)), ignored };
 }
 
-export function generateLocalPrompt(scene: Scene): string {
+export function generateLocalPrompt(scene: Scene, sourceOfTruth?: ProjectSourceOfTruth): string {
   const slots = normalizeSlots(scene);
   const byCategory = (category: SlotCategory) => slots.filter((slot) => slot.category === category);
   const material = categoryLines(byCategory('materials'), 'materials');
@@ -135,6 +136,7 @@ export function generateLocalPrompt(scene: Scene): string {
     '',
     '2. Preserve Rules',
     `STRICT: ${scene.preserveRules || 'Medium Design Lock'}. Preserve geometry, camera perspective, architectural form, furniture layout, and mapped placement.`,
+    scopedColorCastCorrectionLine(sourceOfTruth),
     '',
     '3. Scene / Design Language',
     scene.type || 'Interior',
@@ -142,6 +144,7 @@ export function generateLocalPrompt(scene: Scene): string {
     hasDirectorNotes ? `Missing slot details may be inferred according to inferenceMode: ${(director?.inferenceMode || 'balanced').replace(/^./, (c) => c.toUpperCase())}.` : '',
     '',
     '4. Material Mapping',
+    ...(materialRulePromptLines(sourceOfTruth).length ? ['Project Source of Truth material rules:', ...materialRulePromptLines(sourceOfTruth)] : []),
     director?.materialInterpretationNotes?.trim() ? `Material interpretation guidance: ${director.materialInterpretationNotes.trim()}` : '',
     ...material.lines,
     '',
@@ -169,6 +172,7 @@ export function generateLocalPrompt(scene: Scene): string {
     '',
     '11. Negative Constraints',
     'Do not alter primary geometry, camera perspective, or mapped material zones. Avoid extra unrealistic objects, text artifacts, bad anatomy, low-quality textures.',
+    ...materialRuleNegativeLines(sourceOfTruth),
     director?.preserveDoNotChangeNotes?.trim() ? `Preserve / Do not change: ${director.preserveDoNotChangeNotes.trim()}` : '',
   ].filter(Boolean).join('\n').trim();
 }

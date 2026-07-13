@@ -30,7 +30,8 @@ const ctx = await browser.newContext({ acceptDownloads: true });
 const page = await ctx.newPage();
 
 try {
-  await page.goto('http://127.0.0.1:5173', { waitUntil: 'networkidle' });
+  await page.goto('http://127.0.0.1:5173/visual-local', { waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: 'Advanced Mapper' }).click();
   await page.getByRole('button', { name: 'AI Prompt', exact: true }).click();
   await page.locator('textarea[placeholder="Paste visual-brief-ai-import-v1 JSON"]').fill(JSON.stringify(sample, null, 2));
   await page.getByRole('button', { name: 'Validate' }).click();
@@ -44,7 +45,7 @@ try {
   const copyFullBtn = page.getByRole('button', { name: 'Copy Full Render Prompt' });
   if (!(await copyFullBtn.isVisible())) throw new Error('Copy Full Render Prompt button not found');
   const dlPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export Draft ZIP' }).click();
+  await page.getByRole('button', { name: 'Archive ZIP' }).click();
   const dl = await dlPromise;
   const zipPath = path.join(outDir, 'prompt-package-import-test.zip');
   await dl.saveAs(zipPath);
