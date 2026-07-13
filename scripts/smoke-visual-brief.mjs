@@ -39,7 +39,7 @@ async function addSlot(tab, slotName, thaiText, withRef = false) {
 
 async function exportZip(filename) {
   const dlPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export Draft ZIP' }).click();
+  await page.getByRole('button', { name: 'Archive ZIP' }).click();
   const dl = await dlPromise;
   const zipPath = path.join(downloadsDir, filename);
   await dl.saveAs(zipPath);
@@ -82,7 +82,7 @@ function invalidRegionsFromMapping(mapping = []) {
 }
 
 try {
-  await page.goto('http://127.0.0.1:5173', { waitUntil: 'networkidle' });
+  await page.goto('http://127.0.0.1:5173/visual-local', { waitUntil: 'networkidle' });
   ok('open_app');
 
   await setTopNames();
@@ -98,6 +98,9 @@ try {
     throw new Error('Empty-state drag/drop or paste helper text is not visible');
   }
   ok('verify_base_upload_controls');
+
+  await page.getByRole('button', { name: 'Advanced Mapper' }).click();
+
   for (const label of ['Materials', 'Props', 'Lighting', 'Environment', 'People', 'Output', 'Boards', 'AI Prompt']) {
     if (!(await page.getByRole('button', { name: label, exact: true }).isVisible())) {
       throw new Error(`Mode tab label is not visible: ${label}`);
@@ -190,17 +193,21 @@ try {
   await page.getByText('Region reassigned to M01').waitFor({ state: 'visible', timeout: 3000 });
   ok('reassign_region_to_slot');
 
-  await page.getByRole('button', { name: /Generate Local Prompt/i }).click();
-  const promptText = await page.locator('aside').last().locator('textarea').last().inputValue();
-  if (!promptText || promptText.length < 30) throw new Error('Generated prompt is empty or too short');
-  ok('generate_local_prompt', `prompt_length=${promptText.length}`);
+  await page.getByRole('button', { name: 'Prompt', exact: true }).click();
+  await page.getByRole('button', { name: /Prompt Block/i }).click();
+  const promptReady = page.getByText(/characters ready/i).first();
+  await promptReady.waitFor({ state: 'visible', timeout: 3000 });
+  const promptSummary = await promptReady.textContent();
+  const promptLength = Number((promptSummary || '').match(/(\d+)/)?.[1] || 0);
+  if (promptLength < 30) throw new Error('Generated prompt is empty or too short');
+  ok('generate_local_prompt', `prompt_length=${promptLength}`);
 
   await page.getByRole('button', { name: 'Boards', exact: true }).click();
   await page.getByRole('button', { name: 'Generate Boards' }).first().click();
   await page.getByText('Boards generated').waitFor({ state: 'visible', timeout: 3000 });
   ok('generate_boards_updates_ui');
 
-  await page.getByRole('button', { name: /Save Local Draft/i }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
   ok('save_local_draft');
 
   const zip1 = await exportZip('smoke-export-1.zip');
@@ -229,7 +236,7 @@ try {
   }
   ok('assert_m01_region_before_export', `pins=${beforePins}, rects=${beforeRects}, exportedRects=${exportedRects}`);
 
-  await page.locator('label:has-text("Import ZIP") input[type=file]').setInputFiles(zip1);
+  await page.locator('label:has-text("Import") input[type=file]').setInputFiles(zip1);
   await page.getByRole('button', { name: 'Import as New Project' }).click();
   ok('import_zip');
 

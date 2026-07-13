@@ -1,5 +1,6 @@
 import Dexie, { Table } from 'dexie';
 import { Project } from './types';
+import { normalizeProjectWithSourceOfTruth } from './projectSourceOfTruth';
 
 type DraftRecord = { id: string; project: Project; updatedAt: string };
 
@@ -30,17 +31,17 @@ export async function loadAllDrafts(): Promise<Project[]> {
 function normalizeProject(project: any): Project | null {
   if (!project) return null;
   if (Array.isArray(project.scenes) && project.activeSceneId) {
-    return { ...project, scenes: project.scenes.map(normalizeScene) } as Project;
+    return normalizeProjectWithSourceOfTruth({ ...project, scenes: project.scenes.map(normalizeScene) } as Project);
   }
   if (project.scene) {
     const scene = normalizeScene(project.scene);
-    return {
+    return normalizeProjectWithSourceOfTruth({
       id: project.id,
       name: project.name,
       updatedAt: project.updatedAt ?? new Date().toISOString(),
       scenes: [scene],
       activeSceneId: scene.id,
-    } as Project;
+    } as Project);
   }
   return null;
 }
