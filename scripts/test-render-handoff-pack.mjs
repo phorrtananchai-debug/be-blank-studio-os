@@ -30,13 +30,22 @@ async function addSlot(tab, slotName, thaiText) {
   await page.getByRole('button', { name: tab, exact: true }).click();
   await page.getByRole('button', { name: /Add Slot|Add Material|Add Prop|Add Lighting|Add Environment/i }).first().click();
   const inspector = page.locator('aside').last();
-  await inspector.locator('input').first().fill(slotName);
-  await inspector.locator('textarea[placeholder="Thai description"]').fill(thaiText);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await inspector.locator('input').first().waitFor({ state: 'visible', timeout: 3000 });
+      await inspector.locator('input').first().fill(slotName);
+      await inspector.locator('textarea[placeholder="Thai description"]').fill(thaiText);
+      return;
+    } catch (error) {
+      if (attempt === 2) throw error;
+      await page.waitForTimeout(250);
+    }
+  }
 }
 
 async function exportHandoff(filename) {
   const dlPromise = page.waitForEvent('download');
-  await page.locator('header').getByRole('button', { name: 'Export Render Handoff Pack' }).click();
+  await page.locator('header').getByRole('button', { name: 'AI Handoff' }).click();
   const dl = await dlPromise;
   const zipPath = path.join(outDir, filename);
   await dl.saveAs(zipPath);
@@ -68,16 +77,18 @@ async function readHandoff(zipPath) {
 }
 
 try {
-  await page.goto('http://127.0.0.1:5173', { waitUntil: 'networkidle' });
+  await page.goto('http://127.0.0.1:5173/visual-local', { waitUntil: 'networkidle' });
   await page.locator('header input').nth(0).fill('Handoff Test Project');
   await page.locator('header input').nth(1).fill('Handoff Scene');
   await page.getByTestId('base-image-input').setInputFiles(baseImagePath);
+  await page.getByRole('button', { name: 'Advanced Mapper' }).click();
 
   await addSlot('Materials', 'Warm Oak', 'ไม้โอ๊คโทนอุ่น');
   await addSlot('Materials', 'White Brick', 'อิฐทาสีขาว');
   await addSlot('Lighting', 'Daylight Left', 'แสงธรรมชาติจากซ้าย');
   await addSlot('Environment', 'Garden Context', 'บริบทสวนสีเขียว');
-  await page.locator('header').getByRole('button', { name: 'Generate Local Prompt' }).click();
+  await page.getByRole('button', { name: 'Prompt', exact: true }).click();
+  await page.getByRole('button', { name: /Prompt Block/i }).click();
 
   const zipLocal = await exportHandoff('handoff-local.zip');
   const localPack = await readHandoff(zipLocal);

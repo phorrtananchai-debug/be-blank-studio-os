@@ -1,0 +1,3 @@
+import { SceneSet, SpaceType } from '../types';
+export function createSceneSet(projectId: string, name: string, spaceType: SpaceType, viewId: string): SceneSet { const now = new Date().toISOString(); return { id: crypto.randomUUID(), projectId, name, spaceType, sharedMaterialRecipeIds: [], viewIds: [viewId], createdAt: now, updatedAt: now }; }
+export function sceneSetMismatchWarning(sceneSet: SceneSet | undefined, activeDirectionVersionId?: string) { return Boolean(sceneSet?.sharedVisualDirectionVersionId && activeDirectionVersionId && sceneSet.sharedVisualDirectionVersionId !== activeDirectionVersionId) ? 'This view uses a different Visual Direction snapshot from its Scene Set.' : undefined; }

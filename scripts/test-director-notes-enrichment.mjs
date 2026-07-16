@@ -82,30 +82,41 @@ async function readZipJson(zipPath, innerPath) {
 }
 
 try {
-  await page.goto('http://127.0.0.1:5173', { waitUntil: 'networkidle' });
+  await page.goto('http://127.0.0.1:5173/visual-local', { waitUntil: 'networkidle' });
+  await page.evaluate(() => {
+    localStorage.setItem('visual-local-copilot-ui-state-v1', 'hidden');
+  });
+  await page.reload({ waitUntil: 'networkidle' });
   await page.locator('header input').nth(0).fill('Director Notes Test');
   await page.locator('header input').nth(1).fill('Winter Retreat Living');
   await page.getByTestId('base-image-input').setInputFiles(baseImagePath);
+  await page.getByRole('button', { name: 'Advanced Mapper' }).click();
 
   await page.getByRole('button', { name: 'Materials', exact: true }).click();
   await page.getByRole('button', { name: /Add Slot|Add Material/i }).first().click();
   await page.locator('aside').last().locator('input').first().fill('Warm Oak');
 
   await page.getByRole('button', { name: 'Brief', exact: true }).click();
-  await page.locator('textarea[placeholder*=\"overall mood\"]').fill('Warm winter retreat, Scandinavian + Japandi influence, calm architectural photography.');
-  await page.locator('textarea[placeholder*=\"overall material direction\"]').fill('Use warm oak, white painted brick, matte black steel, off-white textile.');
-  await page.locator('textarea[placeholder*=\"daylight, artificial light\"]').fill('Soft morning daylight from left side, gentle shadow falloff.');
-  await page.locator('textarea[placeholder*=\"must not change\"]').fill('Preserve camera angle, cabinetry rhythm, ceiling beams, furniture placement.');
+  const overallNotes = page.locator('textarea[placeholder="Describe the overall mood, design language, target feeling, or client presentation direction..."]');
+  const materialNotes = page.locator('textarea[placeholder="Describe overall material direction if some slots are not fully filled..."]');
+  const lightingNotes = page.locator('textarea[placeholder="Describe daylight, artificial light, fireplace glow, shadow softness, time of day..."]');
+  const preserveNotes = page.locator('textarea[placeholder="List anything that must not change..."]');
+  await overallNotes.fill('Warm winter retreat, Scandinavian + Japandi influence, calm architectural photography.');
+  await materialNotes.fill('Use warm oak, white painted brick, matte black steel, off-white textile.');
+  await lightingNotes.fill('Soft morning daylight from left side, gentle shadow falloff.');
+  await preserveNotes.fill('Preserve camera angle, cabinetry rhythm, ceiling beams, furniture placement.');
+  if (!(await overallNotes.inputValue()).includes('Warm winter retreat')) throw new Error('Director Notes textarea did not retain overall scene direction.');
   await page.locator('select').filter({ hasText: 'Conservative' }).first().selectOption('balanced');
 
-  await page.locator('header').getByRole('button', { name: 'Generate Local Prompt' }).click();
-  const promptText = await page.locator('textarea[placeholder=\"Generated local prompt\"]').inputValue();
+  await page.getByRole('button', { name: 'Prompt', exact: true }).click();
+  await page.getByRole('button', { name: /Prompt Block/i }).click();
+  const promptText = await page.locator('aside').last().textContent();
   if (!promptText.includes('Director Notes: Warm winter retreat')) throw new Error('Prompt did not include overall scene direction note.');
   if (!promptText.includes('Material interpretation guidance:')) throw new Error('Prompt did not include material interpretation notes.');
   if (!promptText.includes('Lighting/Atmosphere guidance:')) throw new Error('Prompt did not include lighting atmosphere notes.');
   if (!promptText.includes('Preserve / Do not change:')) throw new Error('Prompt did not include preserve notes.');
 
-  const visualBriefZip = await exportZip('director-notes-brief.zip', 'Export Draft ZIP');
+  const visualBriefZip = await exportZip('director-notes-brief.zip', 'Archive ZIP');
   const aiBrief = await readZipJson(visualBriefZip, 'visual-brief-package/data/ai-brief.json');
   const sceneJson = await readZipJson(visualBriefZip, 'visual-brief-package/data/scene.json');
   if (!aiBrief?.directorNotes?.overallSceneDirection) throw new Error('ai-brief.json missing directorNotes.');
@@ -121,17 +132,18 @@ try {
   await page.getByRole('button', { name: 'Props', exact: true }).click();
   if (!(await page.getByText(/Subtle Persian Rug/i).first().isVisible())) throw new Error('Applied Persian Rug suggestion did not create a visible slot.');
 
-  await page.locator('header').getByRole('button', { name: 'Generate Local Prompt' }).click();
-  const promptAfterApply = await page.locator('textarea[placeholder=\"Generated local prompt\"]').inputValue();
+  await page.getByRole('button', { name: 'Prompt', exact: true }).click();
+  await page.getByRole('button', { name: /Prompt Block/i }).click();
+  const promptAfterApply = await page.locator('aside').last().textContent();
   if (!promptAfterApply.includes('Subtle Persian Rug')) throw new Error('Prompt did not include applied suggestion slot.');
 
-  const visualBriefAfterApply = await exportZip('director-notes-after-apply.zip', 'Export Draft ZIP');
+  const visualBriefAfterApply = await exportZip('director-notes-after-apply.zip', 'Archive ZIP');
   const sceneAfterApply = await readZipJson(visualBriefAfterApply, 'visual-brief-package/data/scene.json');
   const rugSlot = (sceneAfterApply?.slots || []).find((slot) => slot.name === 'Subtle Persian Rug' || slot.code === 'P01');
   if (!rugSlot) throw new Error('Applied suggestion slot not found in exported scene.');
   if (!(rugSlot.regions?.length > 0)) throw new Error('Applied suggestion mapping region not found.');
 
-  const handoffZip = await exportZip('director-notes-handoff.zip', 'Export Render Handoff Pack');
+  const handoffZip = await exportZip('director-notes-handoff.zip', 'AI Handoff');
   const handoffSummary = await readZipJson(handoffZip, 'render-handoff-pack/handoff-summary.json');
   if (!handoffSummary?.directorNotes?.overallSceneDirection) throw new Error('handoff-summary missing directorNotes.');
   if (!(handoffSummary?.appliedSuggestionsCount > 0)) throw new Error('handoff-summary missing appliedSuggestionsCount.');

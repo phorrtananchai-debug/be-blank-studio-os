@@ -1,4 +1,5 @@
-import { ImportedPromptPackage, PromptPackageHistoryEntry, RevisionPromptEntry, Scene } from './types';
+import { ImportedPromptPackage, ProjectSourceOfTruth, PromptPackageHistoryEntry, RevisionPromptEntry, Scene } from './types';
+import { materialRuleNegativeLines, materialRulePromptLines, scopedColorCastCorrectionLine } from './projectSourceOfTruth';
 
 export function validatePromptImportJson(input: string): { status: 'valid' | 'warning' | 'error'; parsed?: ImportedPromptPackage; errors: string[]; warnings: string[] } {
   const errors: string[] = [];
@@ -38,7 +39,7 @@ export function toHistoryEntry(parsed: ImportedPromptPackage): PromptPackageHist
   };
 }
 
-export function buildRevisionPrompt(scene: Scene, active: PromptPackageHistoryEntry | null, input: Omit<RevisionPromptEntry, 'id' | 'createdAt' | 'prompt'>): string {
+export function buildRevisionPrompt(scene: Scene, active: PromptPackageHistoryEntry | null, input: Omit<RevisionPromptEntry, 'id' | 'createdAt' | 'prompt'>, sourceOfTruth?: ProjectSourceOfTruth): string {
   const materialMap = scene.slots.filter((s) => s.category === 'materials').map((s) => `${s.code} ${s.name}: ${s.descriptionThai || '-'}`).join('\n');
   const propMap = scene.slots.filter((s) => s.category === 'props').map((s) => `${s.code} ${s.name}: ${s.descriptionThai || '-'}`).join('\n');
   const lightMap = scene.slots.filter((s) => s.category === 'lighting').map((s) => `${s.code} ${s.name}: ${s.descriptionThai || '-'}`).join('\n');
@@ -61,6 +62,10 @@ export function buildRevisionPrompt(scene: Scene, active: PromptPackageHistoryEn
     '3. Preserve geometry',
     `STRICT preserve rules: ${scene.preserveRules}`,
     '',
+    '3A. Project material source of truth',
+    ...(materialRulePromptLines(sourceOfTruth).length ? materialRulePromptLines(sourceOfTruth) : ['No project-specific material rules active.']),
+    `Scoped color-cast correction: ${scopedColorCastCorrectionLine(sourceOfTruth)}`,
+    '',
     '4. Correct material mapping',
     materialMap || '-',
     '',
@@ -70,6 +75,7 @@ export function buildRevisionPrompt(scene: Scene, active: PromptPackageHistoryEn
     '',
     '6. Negative constraints',
     active?.promptPackage.negativePrompt || 'Do not alter geometry, camera perspective, and mapped placement.',
+    ...materialRuleNegativeLines(sourceOfTruth).map((line) => `- ${line}`),
     '',
     '7. Output size/crop reminder',
     `${scene.outputSpec.targetWidth}x${scene.outputSpec.targetHeight} | ${scene.outputSpec.aspectRatio} | crop: ${scene.outputSpec.cropBehavior} | format: ${scene.outputSpec.finalFormat}`,

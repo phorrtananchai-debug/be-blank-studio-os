@@ -8,6 +8,7 @@ const PortfolioDetailPage = lazy(() => import('./pages/PortfolioDetailPage.jsx')
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage.jsx').then((module) => ({ default: module.PortfolioPage })));
 const PublicHomepage = lazy(() => import('./pages/PublicHomepage.jsx').then((module) => ({ default: module.PublicHomepage })));
 const StudioOSApp = lazy(() => import('./pages/StudioOSApp.jsx').then((module) => ({ default: module.StudioOSApp })));
+const VisualMaterialMapper = lazy(() => import('./App.tsx'));
 
 function isMobileDevice() {
   if (typeof window === 'undefined') return false;
@@ -104,6 +105,14 @@ function App() {
       <Route path="/settings" element={<StudioOSAliasRoute navigate={navigate} routePath="/os/settings" />} />
       <Route path="/os/projects/:projectAlias" element={<StudioOSRoute navigate={navigate} routePath={location.pathname} />} />
       <Route path="/journal" element={<Navigate replace to="/os/content" />} />
+      <Route
+        path="/visual-local"
+        element={(
+          <RouteFallback>
+            <VisualMaterialMapper />
+          </RouteFallback>
+        )}
+      />
       <Route
         path="/m"
         element={(
