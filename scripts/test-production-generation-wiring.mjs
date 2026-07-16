@@ -72,7 +72,10 @@ try {
   await page.getByTestId('production-flow').waitFor({ state: 'visible', timeout: 5000 });
   await page.getByText('Google Lite Image', { exact: true }).waitFor({ state: 'visible', timeout: 5000 });
   await page.getByTestId('base-image-input').setInputFiles(baseImagePath);
-  await page.getByTestId('production-primary-action').getByText(/Generate Preview/).waitFor({ state: 'visible', timeout: 5000 });
+  await page.getByTestId('production-primary-action').getByText(/Set Visual Direction|Generate Preview/).waitFor({ state: 'visible', timeout: 5000 });
+  await page.getByTestId('production-primary-action').click();
+  await page.getByTestId('general-reference-workspace').waitFor({ state: 'visible', timeout: 5000 });
+  await page.getByTestId('generate-without-references').click();
   await page.getByTestId('production-primary-action').click();
   await page.waitForFunction(() => window.__productionGenerationCalls?.length === 1, null, { timeout: 5000 });
   await page.getByTestId('qc-compare-main').waitFor({ state: 'visible', timeout: 5000 });

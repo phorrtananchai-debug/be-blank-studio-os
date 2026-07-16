@@ -30,7 +30,10 @@ try {
   await page.getByText('Source of Truth', { exact: true }).waitFor({ state: 'visible', timeout: 5000 });
 
   await page.getByTestId('base-image-input').setInputFiles(baseImagePath);
-  await page.getByTestId('production-primary-action').getByText(/Generate Preview|Generate Revision/).waitFor({ state: 'visible', timeout: 5000 });
+  await page.getByTestId('production-primary-action').getByText(/Set Visual Direction|Generate Preview|Generate Revision/).waitFor({ state: 'visible', timeout: 5000 });
+  await page.getByTestId('production-primary-action').click();
+  await page.getByTestId('general-reference-workspace').waitFor({ state: 'visible', timeout: 5000 });
+  await page.getByTestId('generate-without-references').click();
   await page.getByTestId('production-primary-action').click();
   await page.getByTestId('qc-compare-main').waitFor({ state: 'visible', timeout: 5000 });
   await page.getByText('Review Mode', { exact: true }).waitFor({ state: 'visible', timeout: 5000 });

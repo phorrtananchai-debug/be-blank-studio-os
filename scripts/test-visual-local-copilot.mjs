@@ -12,6 +12,21 @@ page.on('dialog', async (dialog) => dialog.accept());
 
 try {
   await page.goto('http://127.0.0.1:5173/visual-local', { waitUntil: 'networkidle' });
+  await page.evaluate(async () => {
+    localStorage.clear();
+    if ('databases' in indexedDB) {
+      const databases = await indexedDB.databases();
+      await Promise.all(databases.map((database) => database.name ? new Promise((resolve) => {
+        const request = indexedDB.deleteDatabase(database.name);
+        request.onsuccess = request.onerror = request.onblocked = () => resolve(undefined);
+      }) : undefined));
+    }
+    localStorage.setItem('visual-local-product-mode', 'quick');
+    localStorage.setItem('visual-local-production-stage-v1', 'project');
+  });
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.getByTestId('project-profile-selector').waitFor({ state: 'visible', timeout: 5000 });
+  await page.getByTestId('project-profile-selector').getByRole('button').filter({ hasText: 'Karun' }).click();
   await page.evaluate(() => {
     localStorage.setItem('visual-local-generation-key:google_lite_image', 'AIzaTEST_COPILOT_KEY_SHOULD_NOT_APPEAR_IN_COPILOT_HISTORY');
   });
