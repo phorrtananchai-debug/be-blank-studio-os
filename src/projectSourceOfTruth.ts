@@ -5,6 +5,7 @@ import {
   MaterialRuleProtectionLevel,
   MaterialRuleReferenceScope,
   Project,
+  ProjectProfile,
   ProjectMaterialRule,
   ProjectSourceOfTruth,
 } from './types';
@@ -160,6 +161,83 @@ export function createKarunSourceOfTruth(projectId?: string, profileName = 'Karu
   };
 }
 
+export const GENERAL_ARCHITECTURE_BASELINE = [
+  'The Base Render is the primary design source of truth.',
+  'Preserve camera, composition, architecture, geometry, layout, openings, furniture placement, built-ins, fixtures, equipment, and material zoning unless explicitly requested.',
+  'Do not invent or redesign architectural elements.',
+  'References are directional evidence, not replacement designs. Do not copy reference architecture, geometry, furniture form, composition, camera, or signage unless explicitly allowed.',
+  'Improve only requested aspects. No global brand palette is assumed.',
+  'Do not introduce Karun maroon, brass, oak, checkerboard floor, or any other Karun-specific characteristic automatically.',
+];
+
+export function createGeneralSourceOfTruth(projectId?: string, profileName = 'General / Custom'): ProjectSourceOfTruth {
+  const createdAt = nowIso();
+  return {
+    schemaVersion: SOURCE_SCHEMA,
+    profileId: 'general',
+    profileName,
+    active: true,
+    materialRules: [makeRule({
+      id: 'general-base-render-preservation',
+      name: 'General Base Render Preservation',
+      category: 'custom',
+      protectionLevel: 'protected',
+      description: 'Neutral preservation baseline for custom architectural visualization projects.',
+      approvedCharacteristics: ['base render architecture', 'camera', 'composition', 'material zoning', 'furniture placement'],
+      forbiddenCharacteristics: ['invented architecture', 'copied reference geometry', 'copied reference furniture form', 'copied reference composition', 'copied reference camera'],
+      colorGuidance: 'No brand palette is assumed. Preserve intentional material colors visible in the Base Render.',
+      finishGuidance: 'Improve only requested material and photographic qualities.',
+      usageGuidance: 'Apply to all General / Custom generations. Reference influence must remain within its selected scope.',
+      promptInjection: GENERAL_ARCHITECTURE_BASELINE.join(' '),
+      qcValidationGuidance: 'Flag architecture drift, camera changes, geometry changes, copied reference forms, or unrequested material zoning changes.',
+      priority: 1,
+      sourceOfTruthNotes: 'Default General / Custom baseline.',
+    })],
+    promptPriorityPolicy: [...PROJECT_PROMPT_PRIORITY_POLICY],
+    updatedAt: createdAt,
+  };
+}
+
+export function createProjectProfile(projectId: string, kind: 'karun' | 'general' = 'general'): ProjectProfile {
+  const createdAt = nowIso();
+  return kind === 'karun'
+    ? {
+      id: `${projectId}-profile-karun`,
+      displayName: 'Karun',
+      profileType: 'branded',
+      sourceOfTruthProfileId: 'karun',
+      projectSpecificOverrides: [],
+      defaultWorkflowPreset: 'karun_production',
+      createdAt,
+      updatedAt: createdAt,
+    }
+    : {
+      id: `${projectId}-profile-general`,
+      displayName: 'General / Custom',
+      profileType: 'general',
+      sourceOfTruthProfileId: 'general',
+      projectSpecificOverrides: [],
+      defaultWorkflowPreset: 'general_reference_first',
+      createdAt,
+      updatedAt: createdAt,
+    };
+}
+
+export function normalizeProjectProfile(project: Project): ProjectProfile {
+  const isKarun = /karun/i.test(project.name || '') || project.sourceOfTruth?.profileId === 'karun' || project.profile?.sourceOfTruthProfileId === 'karun';
+  const fallback = createProjectProfile(project.id, isKarun ? 'karun' : 'general');
+  const input = project.profile || fallback;
+  return {
+    ...fallback,
+    ...input,
+    profileType: input.profileType || fallback.profileType,
+    sourceOfTruthProfileId: input.sourceOfTruthProfileId || fallback.sourceOfTruthProfileId,
+    projectSpecificOverrides: input.projectSpecificOverrides || [],
+    defaultWorkflowPreset: input.defaultWorkflowPreset || fallback.defaultWorkflowPreset,
+    updatedAt: input.updatedAt || fallback.updatedAt,
+  };
+}
+
 function normalizeRule(projectId: string, rule: Partial<ProjectMaterialRule>, index: number): ProjectMaterialRule {
   const createdAt = rule.createdAt || nowIso();
   const name = rule.name?.trim() || `Material Rule ${index + 1}`;
@@ -195,16 +273,9 @@ function normalizeRule(projectId: string, rule: Partial<ProjectMaterialRule>, in
 }
 
 export function normalizeProjectSourceOfTruth(project: Project): ProjectSourceOfTruth {
-  const isKarun = /karun/i.test(project.name || '') || project.sourceOfTruth?.profileId === 'karun';
-  const fallback = isKarun ? createKarunSourceOfTruth(project.id, 'Karun') : {
-    schemaVersion: SOURCE_SCHEMA,
-    profileId: 'default',
-    profileName: project.name || 'Project',
-    active: true,
-    materialRules: [],
-    promptPriorityPolicy: [...PROJECT_PROMPT_PRIORITY_POLICY],
-    updatedAt: nowIso(),
-  } satisfies ProjectSourceOfTruth;
+  const profile = normalizeProjectProfile(project);
+  const isKarun = profile.sourceOfTruthProfileId === 'karun';
+  const fallback = isKarun ? createKarunSourceOfTruth(project.id, 'Karun') : createGeneralSourceOfTruth(project.id, profile.displayName || 'General / Custom');
   const input = project.sourceOfTruth || fallback;
   const baseRules = input.materialRules?.length ? input.materialRules : fallback.materialRules;
   return {
@@ -219,7 +290,8 @@ export function normalizeProjectSourceOfTruth(project: Project): ProjectSourceOf
 }
 
 export function normalizeProjectWithSourceOfTruth(project: Project): Project {
-  return { ...project, sourceOfTruth: normalizeProjectSourceOfTruth(project) };
+  const profile = normalizeProjectProfile(project);
+  return { ...project, profile, sourceOfTruth: normalizeProjectSourceOfTruth({ ...project, profile }) };
 }
 
 export function enabledMaterialRules(source?: ProjectSourceOfTruth) {
@@ -279,6 +351,13 @@ export function compileProjectPromptTrace(args: {
   suppressedProjectRules?: string;
   commentEvidence?: string;
   scopedReferences?: string;
+  visualDirection?: string;
+  referenceDirectionUsage?: string;
+  generationIntent?: string;
+  sceneContract?: string;
+  atmosphereRecipe?: string;
+  referenceBorrowMap?: string;
+  spaceBaseline?: string;
 }): CompiledPromptTrace {
   const source = args.sourceOfTruth;
   const activeRules = enabledMaterialRules(source);
@@ -294,6 +373,13 @@ export function compileProjectPromptTrace(args: {
     args.suppressedProjectRules ? section('suppressed-project-rules', 'Suppressed project rules', 'Agent rule filter', 3.1, args.suppressedProjectRules) : undefined,
     args.commentEvidence ? section('comment-evidence', 'Comment evidence', 'Review comments as evidence', 3.2, args.commentEvidence) : undefined,
     args.scopedReferences ? section('scoped-references', 'Scoped references', 'Review reference scope', 3.3, args.scopedReferences) : undefined,
+    args.visualDirection ? section('applied-visual-direction', 'Applied Visual Direction', 'General reference analysis', 3.25, args.visualDirection) : undefined,
+    args.referenceDirectionUsage ? section('general-reference-usage', 'Reference usage', 'General reference analysis', 3.26, args.referenceDirectionUsage) : undefined,
+    args.generationIntent ? section('generation-intent', 'Generation Intent', 'General production workflow', 2.15, args.generationIntent) : undefined,
+    args.sceneContract ? section('scene-contract', 'Scene Contract critical locks', 'General production workflow', 2.2, args.sceneContract) : undefined,
+    args.atmosphereRecipe ? section('atmosphere-recipe', 'Atmosphere Recipe', 'General production workflow', 3.27, args.atmosphereRecipe) : undefined,
+    args.referenceBorrowMap ? section('reference-borrow-map', 'Structured Reference Borrow Map', 'General production workflow', 3.28, args.referenceBorrowMap) : undefined,
+    args.spaceBaseline ? section('space-specific-baseline', 'Space-specific baseline', 'General production workflow', 3.29, args.spaceBaseline) : undefined,
     args.revisionCorrections ? section('revision-corrections', 'Revision corrections', 'Current revision/QC notes', 3.4, args.revisionCorrections) : undefined,
     args.userRequest ? section('user-request', 'User request', 'User input', 4, args.userRequest) : undefined,
     args.activeGoals?.length ? section('active-goals', 'Active goals', 'Quick Generate goal cards', 6, args.activeGoals.join(', ')) : undefined,
@@ -330,7 +416,7 @@ export function validateProjectSourceOfTruth(source?: ProjectSourceOfTruth) {
   const warnings: string[] = [];
   const rules = enabledMaterialRules(source);
   if (!source || !rules.length) return warnings;
-  if (!rules.some((rule) => rule.category === 'brand_accent')) warnings.push('No brand accent exception rule is active.');
+  if (source?.profileId === 'karun' && !rules.some((rule) => rule.category === 'brand_accent')) warnings.push('No brand accent exception rule is active.');
   rules.forEach((rule) => {
     if (!rule.promptInjection.trim()) warnings.push(`${rule.name} has no prompt injection text.`);
     if (rule.protectionLevel === 'protected' && !rule.qcValidationGuidance.trim()) warnings.push(`${rule.name} is protected but has no QC validation guidance.`);
@@ -357,4 +443,8 @@ export function referenceScopeLabel(scope: MaterialRuleReferenceScope) {
 
 export function cloneKarunDefaults(projectId?: string) {
   return createKarunSourceOfTruth(projectId, 'Karun');
+}
+
+export function cloneGeneralDefaults(projectId?: string) {
+  return createGeneralSourceOfTruth(projectId, 'General / Custom');
 }

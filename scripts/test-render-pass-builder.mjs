@@ -132,15 +132,14 @@ try {
   if (materialPrompt.includes('woodGrain:') || materialPrompt.includes('microRoughness:')) throw new Error('Material pass leaked numeric-only material profile in standard mode');
   for (const expected of [
     'PROJECT SOURCE OF TRUTH - MATERIAL RULES',
-    'Karun Bench Upholstery',
-    'Karun Floor Accent Pattern',
-    'Karun Brand Color Exception',
-    'approved Karun red/maroon upholstery',
-    'Correct unwanted yellow/orange cast in neutral surfaces',
-    'Do not reduce, recolor, neutralize, desaturate',
+    'General Base Render Preservation',
+    'Base Render is the primary design source of truth',
+    'Do not invent or redesign architectural elements',
+    'Do not copy reference architecture',
   ]) {
-    if (!materialPrompt.toLowerCase().includes(expected.toLowerCase())) throw new Error(`Material pass missing Karun source-of-truth text: ${expected}`);
+    if (!materialPrompt.toLowerCase().includes(expected.toLowerCase())) throw new Error(`Material pass missing General source-of-truth text: ${expected}`);
   }
+  if (/Karun Bench Upholstery|Karun Brand Color Exception/.test(materialPrompt)) throw new Error('General render-pass prompt inherited Karun-specific rules.');
   await page.locator('aside').first().locator('label').filter({ hasText: 'Lighting Direction' }).getByRole('button').click();
   const lightingPrompt = await page.locator('aside').last().locator('textarea').evaluateAll((items) => {
     return items.map((item) => item.value).find((value) => value.includes('Lighting Mode')) || '';
@@ -190,8 +189,9 @@ try {
   if (!resultRevisionPrompt.includes('Use the base render as the source of truth')) throw new Error('Result QC revision prompt missing source-of-truth instruction');
   if (!resultRevisionPrompt.includes('Object ID Pass as a segmentation guide')) throw new Error('Result QC revision prompt missing Object ID guidance');
   if (!resultRevisionPrompt.includes('Material ID Pass as a guide')) throw new Error('Result QC revision prompt missing Material ID guidance');
-  if (!resultRevisionPrompt.includes('Karun Bench Upholstery')) throw new Error('Result QC revision prompt missing Karun material rule');
-  if (!resultRevisionPrompt.includes('protected Karun red/maroon upholstery')) throw new Error('Result QC revision prompt missing protected red/maroon safeguard');
+  if (!resultRevisionPrompt.includes('General Base Render Preservation')) throw new Error('Result QC revision prompt missing General material rule');
+  if (!resultRevisionPrompt.includes('Do not invent or redesign architectural elements')) throw new Error('Result QC revision prompt missing General architectural safeguard');
+  if (/Karun Bench Upholstery|protected Karun red\/maroon upholstery/.test(resultRevisionPrompt)) throw new Error('General QC revision prompt inherited Karun-specific safeguards.');
 
   const promptText = await page.locator('aside').last().locator('textarea').evaluateAll((items) => {
     return items.map((item) => item.value).find((value) => value.includes('ARCHVIZ AI WORKFLOW')) || '';
@@ -242,7 +242,8 @@ try {
   if (promptPackage.schemaVersion !== 'visual-local-render-pass-prompts-v2') throw new Error(`Unexpected prompt package schema: ${promptPackage.schemaVersion}`);
   if (!promptPackage.passes?.length) throw new Error('Prompt package contains no generated passes');
   if (!promptPackage.cameraSystem || !promptPackage.lightingGraph || !promptPackage.materialProfiles) throw new Error('Prompt package missing production workflow nodes');
-  if (!promptPackage.projectSourceOfTruth?.materialRules?.some((rule) => rule.id === 'karun-bench-upholstery')) throw new Error('Prompt package missing Karun source-of-truth rules');
+  if (!promptPackage.projectSourceOfTruth?.materialRules?.some((rule) => rule.id === 'general-base-render-preservation')) throw new Error('Prompt package missing General source-of-truth rules');
+  if (promptPackage.projectSourceOfTruth?.materialRules?.some((rule) => /^karun-/.test(rule.id))) throw new Error('General prompt package exported Karun rules.');
   const jarvisResultQc = JSON.parse(await jarvisZip.file('jarvis-review-pack/data/result-qc.json').async('text'));
   if (!jarvisResultQc.activeResultRound?.qc?.revisionPrompt?.includes('Counter geometry changed')) throw new Error('Jarvis review pack missing Result QC revision prompt');
   const jarvisLegend = JSON.parse(await jarvisZip.file('jarvis-review-pack/render-passes/render-pass-legend.json').async('text'));
@@ -279,7 +280,8 @@ try {
   if (summary.renderPassInputs?.enabledCount < 2) throw new Error('Render pass handoff summary missing render pass input counts');
   if (summary.resultRoundsCount !== 2) throw new Error(`Render pass handoff summary unexpected result round count: ${summary.resultRoundsCount}`);
   if (!summary.activeRules?.some((rule) => rule.id === 'lock-kiosk-geometry')) throw new Error('Render handoff summary missing active rule IDs');
-  if (!summary.projectSourceOfTruth?.activeRuleIds?.includes('karun-bench-upholstery')) throw new Error('Render handoff summary missing Karun active material rule IDs');
+  if (!summary.projectSourceOfTruth?.activeRuleIds?.includes('general-base-render-preservation')) throw new Error('Render handoff summary missing General active material rule IDs');
+  if (summary.projectSourceOfTruth?.activeRuleIds?.some((id) => /^karun-/.test(id))) throw new Error('General handoff summary exported Karun active material rules.');
   if (!summary.projectSourceOfTruth?.scopedColorCastCorrection?.includes('neutral surfaces')) throw new Error('Render handoff summary missing scoped color-cast correction');
   if (!summary.telemetrySummary || summary.telemetrySummary.totalEvents < 1) throw new Error('Render handoff summary missing telemetry summary');
   const selectedPrompt = await handoffZip.file('render-handoff-pack/selected_pass_prompt.txt').async('text');

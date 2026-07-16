@@ -89,6 +89,17 @@ import {
   SlotCategory,
   SceneReferenceImage,
   VisualLocalAiComposerResponse,
+  GeneralReferenceDirection,
+  GeneralReferenceRole,
+  GeneralReferenceScope,
+  ProjectProfile,
+  VisualDirectionApplyScope,
+  GeneralProductionState,
+  SpaceType,
+  GenerationIntent,
+  DesignFreedom,
+  ProviderCapabilitySummary,
+  SceneSet,
 } from './types';
 import { sceneHealth, zipHealth } from './packageHealth';
 import { generateBoards, generateRenderHandoffBoard } from './boardGenerator';
@@ -150,8 +161,11 @@ import {
 } from './geminiComposer';
 import {
   applicableProjectRuleReferences,
+  cloneGeneralDefaults,
   cloneKarunDefaults,
   compileProjectPromptTrace,
+  createGeneralSourceOfTruth,
+  createProjectProfile,
   enabledMaterialRules,
   materialRuleNegativeLines,
   materialRulePromptLines,
@@ -161,6 +175,23 @@ import {
   scopedColorCastCorrectionLine,
   validateProjectSourceOfTruth,
 } from './projectSourceOfTruth';
+import {
+  analyzeGeneralReferences,
+  enrichVisualDirectionWithVision,
+  generalReferenceRoleOptions,
+  generalReferenceScopeOptions,
+  normalizeReferenceDirectionState,
+  safeGeneralReferenceScopes,
+  visualDirectionPromptLines,
+} from './referenceDirection';
+import { ReferenceDirectionWorkspace } from './components/production/ReferenceDirectionWorkspace';
+import { spaceTypeLabel, spaceTypeOptions } from './general/spaceTypes';
+import { createSceneContract, baselinePromptLines } from './general/sceneContract';
+import { createAtmosphereRecipe, atmospherePromptLines } from './general/atmosphereRecipe';
+import { borrowMapPromptLines, createBorrowMaps, detectReferenceConflicts, hasUnresolvedCriticalConflicts } from './general/referenceBorrowMap';
+import { createGeneralProductionState, normalizeGeneralProductionState } from './general/generalMigrations';
+import { providerCapabilitySummary } from './general/providerCapability';
+import { createSceneSet, sceneSetMismatchWarning } from './general/sceneSets';
 import { CompiledPromptInspector } from './components/prompt/CompiledPromptInspector';
 import { ProjectMaterialRulesSettings } from './components/settings/ProjectMaterialRulesSettings';
 import { VisualLocalCopilot } from './features/copilot/VisualLocalCopilotPanel';
@@ -171,7 +202,7 @@ const baseSpec: OutputSpec = { targetUse: 'ai_review', outputPreset: 'AI Review 
 const slotColors = ['#D39D5A', '#5BA6E6', '#8CCB7E', '#D27878', '#C28AE6', '#E0C75A'];
 const slotTabs: SlotCategory[] = ['materials', 'props', 'lighting', 'environment'];
 const topTabs = [...slotTabs, 'render-pass', 'brief', 'people', 'output', 'boards', 'ai-prompt'] as const;
-type ProductionStage = 'project' | 'upload' | 'preview' | 'review' | 'revise' | 'approve';
+type ProductionStage = 'project' | 'upload' | 'references' | 'analyze' | 'direction' | 'preview' | 'review' | 'revise' | 'approve';
 type ProductionCommentReferenceDraft = {
   id: string;
   name: string;
@@ -542,13 +573,22 @@ function createScene(name = 'Scene 01'): Scene {
     renderPassBuilder: defaultRenderPassBuilderState(),
   };
 }
-function createInitialProject(): Project {
+function createInitialProject(profileKind: 'karun' | 'general' = 'general'): Project {
   const scene = createScene();
   const projectId = id();
-  return normalizeProjectWithSourceOfTruth({ id: projectId, name: 'New Project', updatedAt: new Date().toISOString(), scenes: [scene], activeSceneId: scene.id, sourceOfTruth: cloneKarunDefaults(projectId) });
+  const profile = createProjectProfile(projectId, profileKind);
+  return normalizeProjectWithSourceOfTruth({
+    id: projectId,
+    name: profileKind === 'karun' ? 'Karun Project' : 'New General Project',
+    updatedAt: new Date().toISOString(),
+    scenes: [scene],
+    activeSceneId: scene.id,
+    profile,
+    sourceOfTruth: profileKind === 'karun' ? cloneKarunDefaults(projectId) : cloneGeneralDefaults(projectId),
+  });
 }
 
-function normalizeSceneRuntime(input: Scene): Scene {
+function normalizeSceneRuntime(input: Scene, projectId = ''): Scene {
   return {
     ...input,
     directorNotes: { ...defaultDirectorNotes, ...(input.directorNotes || {}) },
@@ -556,15 +596,35 @@ function normalizeSceneRuntime(input: Scene): Scene {
     revisionPrompts: input.revisionPrompts || [],
     slotEnrichmentSuggestions: (input.slotEnrichmentSuggestions || []).map((item) => ({ ...item, id: item.id || id(), status: item.status || 'pending' })),
     aiEnrichmentSuggestions: (input.aiEnrichmentSuggestions || []).map((item) => ({ ...item, id: item.id || id(), status: item.status || 'pending' })),
-    renderPassBuilder: normalizeRenderPassBuilderState(input.renderPassBuilder),
+    renderPassBuilder: normalizeRenderPassBuilderState({ ...input.renderPassBuilder, generalProduction: input.renderPassBuilder?.generalProduction ? normalizeGeneralProductionState(projectId || 'legacy-project', input, input.renderPassBuilder.generalProduction) : input.renderPassBuilder?.generalProduction }),
   };
 }
 
 function normalizeProjectRuntime(input: Project): Project {
-  return normalizeProjectWithSourceOfTruth({
+  const normalized = normalizeProjectWithSourceOfTruth({
     ...input,
-    scenes: (input.scenes || []).map(normalizeSceneRuntime),
+    scenes: (input.scenes || []).map((scene) => normalizeSceneRuntime(scene, input.id)),
   });
+  const defaultDirection = normalized.generalVisualDirectionDefault;
+  if (normalized.profile?.sourceOfTruthProfileId === 'karun') return normalized;
+  const generalReady = {
+    ...normalized,
+    backupSchemaVersion: 'visual-local-project-backup-v2' as const,
+    sceneSets: normalized.sceneSets || [],
+    scenes: normalized.scenes.map((scene) => {
+      const state = normalizeRenderPassBuilderState(scene.renderPassBuilder);
+      return { ...scene, spaceType: scene.spaceType || state.generalProduction?.spaceType || 'other' as SpaceType, renderPassBuilder: { ...state, generalProduction: normalizeGeneralProductionState(normalized.id, scene, state.generalProduction) } };
+    }),
+  };
+  if (!defaultDirection) return generalReady;
+  return {
+    ...generalReady,
+    scenes: generalReady.scenes.map((scene) => {
+      const state = normalizeRenderPassBuilderState(scene.renderPassBuilder);
+      if (state.referenceDirection?.appliedAnalysis) return scene;
+      return { ...scene, renderPassBuilder: { ...state, referenceDirection: { ...normalizeReferenceDirectionState(state.referenceDirection), appliedAnalysis: defaultDirection, appliedScope: 'project' } } };
+    }),
+  };
 }
 
 export default function App() {
@@ -608,7 +668,7 @@ export default function App() {
   const [renderPassViewMode, setRenderPassViewMode] = useState<'basic' | 'work' | 'advanced' | 'qc-studio'>('basic');
   const [productionStage, setProductionStage] = useState<ProductionStage>(() => {
     const stored = localStorage.getItem(PRODUCTION_STAGE_STORAGE_KEY);
-    return stored === 'project' || stored === 'upload' || stored === 'preview' || stored === 'review' || stored === 'revise' || stored === 'approve' ? stored : 'project';
+    return stored === 'project' || stored === 'upload' || stored === 'references' || stored === 'analyze' || stored === 'direction' || stored === 'preview' || stored === 'review' || stored === 'revise' || stored === 'approve' ? stored : 'project';
   });
   const [productionCommentMode, setProductionCommentMode] = useState<'off' | 'point' | 'global'>('off');
   const [selectedProductionCommentId, setSelectedProductionCommentId] = useState('');
@@ -636,6 +696,7 @@ export default function App() {
   const [lastProductionGeneratedRound, setLastProductionGeneratedRound] = useState<ResultRound | null>(null);
   const [conversationPrompt, setConversationPrompt] = useState('');
   const [analysisProgress, setAnalysisProgress] = useState<'idle' | 'uploading' | 'analyzing' | 'architecture' | 'materials' | 'ready'>('idle');
+  const [isReferenceAnalyzing, setIsReferenceAnalyzing] = useState(false);
   const [generationProgress, setGenerationProgress] = useState<'idle' | 'parsed' | 'rules' | 'compiled' | 'calling' | 'received' | 'review'>('idle');
   const [pendingConfirmation, setPendingConfirmation] = useState<{
     request: string;
@@ -668,17 +729,22 @@ export default function App() {
 
   const scene = useMemo(() => project.scenes.find((s) => s.id === project.activeSceneId) || project.scenes[0], [project]);
   const projectSourceOfTruth = useMemo(() => project.sourceOfTruth || normalizeProjectWithSourceOfTruth(project).sourceOfTruth, [project]);
+  const projectProfile = useMemo(() => normalizeProjectWithSourceOfTruth(project).profile as ProjectProfile, [project]);
+  const isGeneralProject = projectProfile.sourceOfTruthProfileId !== 'karun';
   const activeMaterialRules = useMemo(() => enabledMaterialRules(projectSourceOfTruth), [projectSourceOfTruth]);
   const projectSourceWarnings = useMemo(() => validateProjectSourceOfTruth(projectSourceOfTruth), [projectSourceOfTruth]);
   const selectedSlot = useMemo(() => scene?.slots.find((s) => s.id === selectedSlotId), [scene, selectedSlotId]);
   const activePromptPackage = useMemo(() => scene?.promptPackages?.find((p) => p.id === scene.activePromptPackageId) || null, [scene]);
   const directorNotes = scene?.directorNotes || defaultDirectorNotes;
   const renderPassState = scene?.renderPassBuilder || defaultRenderPassBuilderState();
+  const referenceDirectionState = useMemo(() => normalizeReferenceDirectionState(renderPassState.referenceDirection), [renderPassState.referenceDirection]);
+  const generalProductionState = useMemo(() => normalizeGeneralProductionState(project.id, scene, renderPassState.generalProduction), [project.id, scene, renderPassState.generalProduction]);
   const selectedGenerationProviderId = renderPassState.quickGenerateProvider || 'mock_local';
   const selectedGenerationAdapter = quickGenerationAdapters.find((adapter) => adapter.id === selectedGenerationProviderId) || quickGenerationAdapters[0];
   const quickGenerateMode = renderPassState.quickGenerateMode || 'draft';
   const selectedGoogleImageModel = selectedGenerationProviderId === 'google_pro_image' ? GOOGLE_PRO_IMAGE_MODEL_ID : selectedGenerationProviderId === 'google_lite_image' ? GOOGLE_LITE_IMAGE_MODEL_ID : selectedGenerationProviderId;
   const isGoogleImageProvider = selectedGenerationProviderId === 'google_lite_image' || selectedGenerationProviderId === 'google_pro_image';
+  const generalProviderCapability = useMemo(() => providerCapabilitySummary({ providerId: selectedGenerationProviderId, providerLabel: selectedGenerationAdapter.label, model: selectedGoogleImageModel, references: referenceDirectionState.references, baseImageSent: Boolean(scene?.baseImage) && selectedGenerationProviderId !== 'mock_local', editableResultSent: Boolean(renderPassState.activeResultRoundId) && selectedGenerationProviderId !== 'mock_local', mode: quickGenerateMode }), [selectedGenerationProviderId, selectedGenerationAdapter.label, selectedGoogleImageModel, referenceDirectionState.references, scene?.baseImage, renderPassState.activeResultRoundId, quickGenerateMode]);
 
   useEffect(() => {
     loadLatestDraft().then((d) => d && setProject(normalizeProjectRuntime(d)));
@@ -863,6 +929,171 @@ export default function App() {
   };
   const updateRenderPassBuilderNested = <K extends keyof RenderPassBuilderState>(key: K, patch: Partial<RenderPassBuilderState[K]>) => {
     updateRenderPassBuilder({ [key]: { ...(renderPassState[key] as any), ...patch } } as Partial<RenderPassBuilderState>);
+  };
+  const updateGeneralProduction = (patch: Partial<GeneralProductionState>, scenePatch: Partial<Scene> = {}) => {
+    const next = { ...generalProductionState, ...patch, sceneContract: patch.sceneContract ? { ...generalProductionState.sceneContract, ...patch.sceneContract } : generalProductionState.sceneContract, atmosphereRecipe: patch.atmosphereRecipe ? { ...generalProductionState.atmosphereRecipe, ...patch.atmosphereRecipe } : generalProductionState.atmosphereRecipe };
+    updateScene({ ...scenePatch, spaceType: next.spaceType, customSpaceTypeLabel: next.customSpaceTypeLabel, renderPassBuilder: normalizeRenderPassBuilderState({ ...renderPassState, generalProduction: next }) });
+  };
+  const setGeneralSpaceType = (spaceType: SpaceType) => {
+    const nextContract = createSceneContract(project.id, scene.id, spaceType);
+    updateGeneralProduction({ spaceType, sceneContract: nextContract, generationIntent: generalProductionState.generationIntent || 'develop', designFreedom: generalProductionState.designFreedom || 'strict' }, { spaceType });
+    showToast(`${spaceTypeLabel(spaceType)} baseline and strict Scene Contract prepared.`);
+  };
+  const setGeneralIntent = (generationIntent: GenerationIntent, designFreedom: DesignFreedom = generalProductionState.designFreedom) => {
+    const isStrictIntent = generationIntent === 'polish' || generationIntent === 'fix';
+    const contract = { ...generalProductionState.sceneContract, explicitlyEditableElements: generationIntent === 'fix' ? generalProductionState.sceneContract.explicitlyEditableElements : [], updatedAt: new Date().toISOString() };
+    updateGeneralProduction({ generationIntent, designFreedom: isStrictIntent ? 'strict' : designFreedom, sceneContract: contract });
+  };
+  const assignSceneToSet = () => {
+    const existing = (project.sceneSets || []).find((set) => set.id === generalProductionState.sceneSetId);
+    if (existing) {
+      showToast(`This scene is already assigned to ${existing.name}.`);
+      return;
+    }
+    const name = prompt('Scene Set name', `${scene.name} set`);
+    if (!name?.trim()) return;
+    const set = createSceneSet(project.id, name.trim(), generalProductionState.spaceType, scene.id);
+    set.sharedSceneContractId = generalProductionState.sceneContract.id;
+    set.sharedVisualDirectionVersionId = generalProductionState.activeVisualDirectionVersionId;
+    set.sharedAtmosphereRecipeId = generalProductionState.atmosphereRecipe.id;
+    setProject((current) => ({ ...current, updatedAt: new Date().toISOString(), sceneSets: [...(current.sceneSets || []), set] }));
+    updateGeneralProduction({ sceneSetId: set.id });
+    showToast(`Assigned to Scene Set: ${set.name}.`);
+  };
+  const updateGeneralQc = (section: 'preservation' | 'direction' | 'artifacts', key: string, value: 'pass' | 'warning' | 'fail' | 'unchecked') => {
+    const current = generalProductionState.generalQc;
+    if (!current) return;
+    updateGeneralProduction({ generalQc: { ...current, [section]: { ...current[section], [key]: value } } });
+  };
+  const updateProjectProfile = (kind: 'karun' | 'general') => {
+    const nextProfile = createProjectProfile(project.id, kind);
+    const isChanging = projectProfile.sourceOfTruthProfileId !== nextProfile.sourceOfTruthProfileId;
+    if (!isChanging) {
+      setProductionStage('upload');
+      return;
+    }
+    if (isChanging && !confirm(`Switch this project to ${nextProfile.displayName}? Existing rules, visual directions, references, and generated versions remain stored but inactive until you switch back.`)) return;
+    updateProject({
+      ...project,
+      profile: nextProfile,
+      sourceOfTruth: kind === 'karun' ? cloneKarunDefaults(project.id) : createGeneralSourceOfTruth(project.id, 'General / Custom'),
+      backupSchemaVersion: kind === 'general' ? 'visual-local-project-backup-v2' : project.backupSchemaVersion,
+      sceneSets: kind === 'general' ? (project.sceneSets || []) : project.sceneSets,
+      scenes: kind === 'general' ? project.scenes.map((currentScene) => ({ ...currentScene, spaceType: currentScene.spaceType || 'other', renderPassBuilder: normalizeRenderPassBuilderState({ ...currentScene.renderPassBuilder, generalProduction: normalizeGeneralProductionState(project.id, currentScene, currentScene.renderPassBuilder?.generalProduction) }) })) : project.scenes,
+    });
+    setProductionStage('project');
+    showToast(kind === 'karun' ? 'Karun branded profile activated.' : 'General / Custom profile activated.');
+  };
+  const addGeneralReferences = async (files: FileList | null) => {
+    const picked = imageFilesFromList(files);
+    if (!picked.length) {
+      showToast('Only image files are supported.', 'warn');
+      return;
+    }
+    const now = new Date().toISOString();
+    const additions: GeneralReferenceDirection[] = await Promise.all(picked.map(async (file) => ({
+      id: id(),
+      name: file.name.replace(/\.[^.]+$/, '') || 'Reference image',
+      dataUrl: await fileToDataURL(file),
+      role: 'overall_mood' as GeneralReferenceRole,
+      included: true,
+      priority: 'medium' as const,
+      scopes: [...safeGeneralReferenceScopes],
+      userNote: '',
+      allowedInfluence: '',
+      forbiddenInfluence: 'Do not copy architecture, geometry, furniture form, composition, camera, or signage/branding.',
+      createdAt: now,
+      updatedAt: now,
+    })));
+    updateRenderPassBuilder({ referenceDirection: { ...referenceDirectionState, references: [...referenceDirectionState.references, ...additions], latestAnalysis: undefined, skippedForFirstGeneration: false } });
+    setProductionStage('references');
+    showToast(`${additions.length} reference${additions.length === 1 ? '' : 's'} added.`);
+  };
+  const updateGeneralReference = (referenceId: string, patch: Partial<GeneralReferenceDirection>) => {
+    updateRenderPassBuilder({ referenceDirection: { ...referenceDirectionState, references: referenceDirectionState.references.map((reference) => reference.id === referenceId ? { ...reference, ...patch, updatedAt: new Date().toISOString() } : reference), latestAnalysis: undefined, skippedForFirstGeneration: false } });
+  };
+  const removeGeneralReference = (referenceId: string) => {
+    updateRenderPassBuilder({ referenceDirection: { ...referenceDirectionState, references: referenceDirectionState.references.filter((reference) => reference.id !== referenceId), latestAnalysis: undefined, skippedForFirstGeneration: false } });
+  };
+  const analyzeReferencesForGeneralProject = async () => {
+    if (!scene.baseImage) {
+      showToast('Upload a raw render before analyzing references.', 'warn');
+      setProductionStage('upload');
+      return;
+    }
+    if (!referenceDirectionState.references.some((reference) => reference.included)) {
+      showToast('Add an included reference or choose Generate without references.', 'warn');
+      return;
+    }
+    setIsReferenceAnalyzing(true);
+    setProductionStage('analyze');
+    try {
+      // Vision is opt-in. Without consent or a configured provider this remains a metadata/text analysis.
+      let analysis = analyzeGeneralReferences(scene, referenceDirectionState, 'metadata');
+      if (referenceDirectionState.visionApproved && geminiApiKey.trim()) {
+        const roleMap: Record<GeneralReferenceRole, SceneReferenceImage['role']> = {
+          overall_mood: 'lighting_mood', lighting: 'lighting_mood', time_of_day: 'lighting_mood', materials: 'material_mood', color_palette: 'color_grade', landscape: 'environment_mood', people_activity: 'people_activity', styling_props: 'material_mood', photography_camera: 'lighting_mood', environment_site: 'environment_mood', custom: 'do_not_copy_design',
+        };
+        const composerState = {
+          ...renderPassState,
+          aiComposer: {
+            ...renderPassState.aiComposer,
+            references: referenceDirectionState.references.filter((reference) => reference.included).map((reference) => ({ id: reference.id, name: reference.name, dataUrl: reference.dataUrl, role: roleMap[reference.role], notes: `${reference.userNote || ''}\nAllowed: ${reference.allowedInfluence || '-'}\nForbidden: ${reference.forbiddenInfluence || '-'}`, included: true })),
+          },
+        };
+        const vision = await callGeminiSceneComposer({ apiKey: geminiApiKey, model: renderPassState.aiComposer.model, scene, state: composerState, sourceOfTruth: projectSourceOfTruth });
+        if (vision.parsed) {
+          analysis = enrichVisualDirectionWithVision(analysis, vision.parsed, 'Gemini vision', renderPassState.aiComposer.model);
+        } else {
+          showToast('Vision analysis was unavailable; prepared a metadata/text direction instead.', 'warn');
+        }
+      }
+      const borrowMaps = createBorrowMaps(referenceDirectionState.references, generalProductionState.sceneContract, analysis);
+      const conflicts = detectReferenceConflicts(referenceDirectionState.references);
+      updateRenderPassBuilder({ referenceDirection: { ...referenceDirectionState, latestAnalysis: analysis, skippedForFirstGeneration: false }, generalProduction: { ...generalProductionState, borrowMaps, conflicts, atmosphereRecipe: createAtmosphereRecipe(analysis) } });
+      setProductionStage('direction');
+      showToast('Reference analysis ready for review.');
+    } finally {
+      setIsReferenceAnalyzing(false);
+    }
+  };
+  const applyGeneralVisualDirection = (scope: VisualDirectionApplyScope) => {
+    const latest = referenceDirectionState.latestAnalysis;
+    if (!latest) return;
+    if (hasUnresolvedCriticalConflicts(generalProductionState.conflicts)) {
+      showToast('Resolve the critical reference conflict before applying Visual Direction.', 'warn');
+      return;
+    }
+    const applied = { ...latest, status: 'applied' as const, updatedAt: new Date().toISOString() };
+    const nextReferenceDirection = { ...referenceDirectionState, latestAnalysis: applied, appliedAnalysis: applied, appliedScope: scope, skippedForFirstGeneration: false };
+    const version = { id: id(), parentVersionId: generalProductionState.activeVisualDirectionVersionId, changeSummary: `Applied ${spaceTypeLabel(generalProductionState.spaceType)} visual direction.`, scope, sceneContractVersion: generalProductionState.sceneContract.version, atmosphereRecipeVersion: generalProductionState.atmosphereRecipe.version, borrowMaps: generalProductionState.borrowMaps, analysisMode: applied.analysisSource, provider: applied.provider, model: applied.model, createdAt: new Date().toISOString() };
+    const nextGeneralProduction = { ...generalProductionState, atmosphereRecipe: { ...generalProductionState.atmosphereRecipe, ...createAtmosphereRecipe(applied), version: generalProductionState.atmosphereRecipe.version + 1 }, visualDirectionVersions: [...generalProductionState.visualDirectionVersions, version], activeVisualDirectionVersionId: version.id };
+    if (scope === 'project') {
+      setProject((currentProject) => ({
+        ...currentProject,
+        updatedAt: new Date().toISOString(),
+        generalVisualDirectionDefault: applied,
+        scenes: currentProject.scenes.map((currentScene) => currentScene.id === scene.id ? { ...currentScene, renderPassBuilder: normalizeRenderPassBuilderState({ ...currentScene.renderPassBuilder, referenceDirection: nextReferenceDirection, generalProduction: nextGeneralProduction }) } : currentScene),
+      }));
+    } else {
+      updateRenderPassBuilder({ referenceDirection: nextReferenceDirection, generalProduction: nextGeneralProduction });
+    }
+    setProductionStage('preview');
+    showToast(scope === 'project' ? 'Visual Direction saved as project default.' : scope === 'scene' ? 'Visual Direction applied to this scene.' : 'Visual Direction applied to this image.');
+  };
+  const skipGeneralReferenceDirection = () => {
+    updateRenderPassBuilder({ referenceDirection: { ...referenceDirectionState, skippedForFirstGeneration: true } });
+    setProductionStage('preview');
+    showToast('Generating without references. General preservation baseline remains active.');
+  };
+  const setGeneralReferenceVisionApproval = (visionApproved: boolean) => {
+    updateRenderPassBuilder({ referenceDirection: { ...referenceDirectionState, visionApproved } });
+  };
+  const resolveGeneralReferenceConflict = (conflictId: string, referenceId: string) => {
+    const conflicts = generalProductionState.conflicts.map((conflict) => conflict.id === conflictId ? { ...conflict, resolvedReferenceId: referenceId } : conflict);
+    const borrowMaps = generalProductionState.borrowMaps.map((map) => map.conflictGroup === generalProductionState.conflicts.find((conflict) => conflict.id === conflictId)?.type ? { ...map, selectedResolution: map.referenceId === referenceId ? 'winner' as const : 'suppressed' as const, active: map.referenceId === referenceId } : map);
+    updateGeneralProduction({ conflicts, borrowMaps });
+    showToast('Reference conflict resolved. The losing influence is suppressed.');
   };
   const localTelemetry = renderPassState.localTelemetry || [];
   const activeRules = activeGenerationRules(renderPassState);
@@ -1909,6 +2140,13 @@ export default function App() {
       suppressedProjectRules: isAgentRevisionPrompt ? 'Suppress any Source of Truth rule that would invent, expand, intensify, or introduce colors, patterns, or material zones not clearly present in the Base Render or explicitly requested by the user.' : undefined,
       commentEvidence: isAgentRevisionPrompt ? 'Saved point/global comments are location/evidence cues for the Agent revision plan, not raw prompt instructions.' : undefined,
       scopedReferences: isAgentRevisionPrompt ? 'Reference images attached to comments may be used only for their selected scopes and must not transfer form, composition, architecture, lighting, camera, or background.' : undefined,
+      visualDirection: visualDirectionPromptLines(referenceDirectionState.appliedAnalysis).join('\n'),
+      referenceDirectionUsage: referenceDirectionState.appliedAnalysis?.referenceUsageMap.map((reference) => `- ${reference.referenceName}: use ${reference.borrowed}; do not use ${reference.notBorrowed}`).join('\n'),
+      generationIntent: isGeneralProject ? `${generalProductionState.generationIntent.toUpperCase()} intent with ${generalProductionState.designFreedom.toUpperCase()} design freedom. ${generalProductionState.generationIntent === 'explore' ? 'Allow mood, material, and styling exploration only; major architecture remains locked and Creative never unlocks architecture automatically.' : generalProductionState.generationIntent === 'develop' ? 'Apply approved Visual Direction while preserving layout/design; allow moderate material, lighting, environment, and styling adjustment only inside approved scopes.' : generalProductionState.generationIntent === 'polish' ? 'Zero geometry freedom, zero material-zone relocation, no furniture movement, and realism improvements only.' : 'Only approved comments, explicitly editable elements, and scoped revision targets may change; all other elements remain locked.'}` : undefined,
+      sceneContract: isGeneralProject ? baselinePromptLines(generalProductionState.sceneContract).join('\n') : undefined,
+      atmosphereRecipe: isGeneralProject ? atmospherePromptLines(generalProductionState.atmosphereRecipe).join('\n') : undefined,
+      referenceBorrowMap: isGeneralProject ? borrowMapPromptLines(generalProductionState.borrowMaps, referenceDirectionState.references).join('\n') : undefined,
+      spaceBaseline: isGeneralProject ? `${spaceTypeLabel(generalProductionState.spaceType)} baseline. Preserve usable circulation, plausible scale, coherent lighting/reflections, and do not invent decorative architecture.` : undefined,
       providerSuffix: providerIsGoogle ? 'Google image adapter receives this final compiled prompt plus base image/current result image and scoped project material references when present.' : undefined,
     });
   };
@@ -1918,19 +2156,24 @@ export default function App() {
     const addPeopleSelected = goalIds.has('add_people') || goalIds.has('opening_day');
     const environmentSelected = goalIds.has('better_environment') || goalIds.has('night_view');
     const activePassPrompt = selectedRenderPass ? activePromptTextForPass(selectedRenderPass.type) : '';
+    const projectPhotographyContext = isGeneralProject ? 'a completed built architectural project' : 'a completed premium retail interior';
+    const projectEnvironmentContext = isGeneralProject ? 'the existing site/context visible in the Base Render' : 'a real premium shopping mall';
+    const protectedDesignSummary = isGeneralProject
+      ? 'Preserve exact camera, perspective, geometry, proportions, composition, layout, openings, built-ins, furniture positions, fixtures, equipment, floor/material zoning, signage, logo, and architectural form.'
+      : 'Preserve exact camera, perspective, geometry, proportions, layout, furniture position, counter, canopy, columns, ceiling, floor pattern, lighting fixture positions, signage, logo, and architectural form.';
     return [
       'VISUAL LOCAL QUICK GENERATE PREVIEW',
       '',
       '1. ROLE',
       'You are a senior architectural photographer and digital retoucher.',
       'The uploaded image is a completed built project, not concept art.',
-      'Behave like a photographer documenting and retouching a completed premium retail interior, not like a concept artist.',
+      `Behave like a photographer documenting and retouching ${projectPhotographyContext}, not like a concept artist.`,
       '',
       '2. SOURCE OF TRUTH',
       'The base render is the source of truth.',
       'Do not redesign, reinterpret, replace, move, add, or remove architecture.',
-      'Document the project as if it has already opened in a real premium shopping mall.',
-      'Preserve exact camera, perspective, geometry, proportions, layout, furniture position, counter, canopy, columns, ceiling, floor pattern, lighting fixture positions, signage, logo, and architectural form.',
+      `Document the project as if it has already opened in ${projectEnvironmentContext}.`,
+      protectedDesignSummary,
       '',
       '3. SCENE GRAPH',
       ...sceneGraphLines(),
@@ -2063,7 +2306,7 @@ export default function App() {
     const mimeMatch = header.match(/^data:(.*?);base64$/);
     return { mime_type: mimeMatch?.[1] || 'image/jpeg', data };
   };
-  const callGoogleImageAdapter = async (apiKey: string, prompt: string, baseImage: string, providerId: GenerationProviderId, sourceOfTruth?: ProjectSourceOfTruth) => {
+  const callGoogleImageAdapter = async (apiKey: string, prompt: string, baseImage: string, providerId: GenerationProviderId, sourceOfTruth?: ProjectSourceOfTruth, generalReferences: GeneralReferenceDirection[] = []) => {
     const imageInput = await dataUrlToGoogleImageInput(baseImage);
     const materialReferenceInputs: any[] = [];
     for (const { rule, ref } of applicableProjectRuleReferences(sourceOfTruth)) {
@@ -2073,6 +2316,15 @@ export default function App() {
         text: `Project material source-of-truth reference for "${rule.name}". Use as ${ref.scopes.map(referenceScopeLabel).join(', ')}. Do not copy architecture, composition, form, camera, or layout unless explicitly allowed. ${ref.notes || ''}`.trim(),
       });
       materialReferenceInputs.push({ type: 'image', ...refInput });
+    }
+    const generalReferenceInputs: any[] = [];
+    for (const reference of generalReferences.filter((item) => item.included).slice(0, 6)) {
+      const refInput = await dataUrlToGoogleImageInput(reference.dataUrl);
+      generalReferenceInputs.push({
+        type: 'text',
+        text: `General visual-direction reference "${reference.name}". Role: ${reference.role}. Use only for: ${reference.allowedInfluence || reference.userNote || reference.role}. Allowed scopes: ${reference.scopes.map((scope) => scope.replace(/_/g, ' ')).join(', ')}. Forbidden influence: ${reference.forbiddenInfluence || 'do not copy architecture, geometry, furniture form, composition, camera, or signage/branding'}. This reference is directional evidence only, not a replacement design.`,
+      });
+      generalReferenceInputs.push({ type: 'image', ...refInput });
     }
     const endpoint = 'https://generativelanguage.googleapis.com/v1beta/interactions';
     const model = providerId === 'google_pro_image' ? GOOGLE_PRO_IMAGE_MODEL_ID : GOOGLE_LITE_IMAGE_MODEL_ID;
@@ -2090,6 +2342,7 @@ export default function App() {
           { type: 'text', text: prompt },
           { type: 'image', ...imageInput },
           ...materialReferenceInputs,
+          ...generalReferenceInputs,
         ],
         response_format: {
           type: 'image',
@@ -2159,6 +2412,18 @@ export default function App() {
       compiledPromptTrace: compiledTrace,
       activeMaterialRuleIds: compiledTrace?.activeRuleIds || activeMaterialRules.map((rule) => rule.id),
       projectSourceOfTruthSnapshot: projectSourceOfTruth,
+      projectProfileSnapshot: projectProfile,
+      generalProductionSnapshot: isGeneralProject ? {
+        spaceType: generalProductionState.spaceType,
+        generationIntent: generalProductionState.generationIntent,
+        designFreedom: generalProductionState.designFreedom,
+        sceneContract: generalProductionState.sceneContract,
+        atmosphereRecipe: generalProductionState.atmosphereRecipe,
+        borrowMaps: generalProductionState.borrowMaps,
+        activeVisualDirectionVersionId: generalProductionState.activeVisualDirectionVersionId,
+        sceneSetId: generalProductionState.sceneSetId,
+      } : undefined,
+      providerCapabilitySnapshot: isGeneralProject ? generalProviderCapability : undefined,
     };
     return round;
   };
@@ -2256,7 +2521,7 @@ export default function App() {
       const startedAt = performance.now();
       try {
         const prompt = promptForTelemetry;
-        const result = await callGoogleImageAdapter(apiKey, prompt, sourceImage, effectiveProviderId, projectSourceOfTruth);
+        const result = await callGoogleImageAdapter(apiKey, prompt, sourceImage, effectiveProviderId, projectSourceOfTruth, referenceDirectionState.appliedAnalysis ? referenceDirectionState.references : []);
         const round = buildQuickGeneratedRound(
           result.imageDataUrl,
           selectedGoals,
@@ -2408,6 +2673,12 @@ export default function App() {
     if (!scene.baseImage) {
       setProductionStage('upload');
       showToast('Upload a raw render first.', 'warn');
+      return;
+    }
+    if (isGeneralProject && !explicitParentRound && !referenceDirectionState.appliedAnalysis && !referenceDirectionState.skippedForFirstGeneration) {
+      setProductionStage('references');
+      setQuickGenerateError('Review and apply Visual Direction, or explicitly choose Generate without references, before the first General preview.');
+      showToast('Review Visual Direction before the first preview.', 'warn');
       return;
     }
     const resolveProductionProviderId = (): GenerationProviderId => {
@@ -3920,6 +4191,7 @@ export default function App() {
     const summary = {
       schemaVersion: 'render-handoff-v1',
       projectName: project.name,
+      projectProfile,
       sceneName: cleanedScene.name,
       sceneType: cleanedScene.type,
       createdAt: new Date().toISOString(),
@@ -3942,6 +4214,30 @@ export default function App() {
       appliedSuggestionsCount,
       directorNotes: cleanedScene.directorNotes || defaultDirectorNotes,
       inferenceMode: cleanedScene.directorNotes?.inferenceMode || 'balanced',
+      referenceDirection: {
+        appliedScope: referenceDirectionState.appliedScope || null,
+        skippedForFirstGeneration: Boolean(referenceDirectionState.skippedForFirstGeneration),
+        appliedVisualDirection: referenceDirectionState.appliedAnalysis || null,
+        references: referenceDirectionState.references.map((reference) => ({ id: reference.id, name: reference.name, role: reference.role, included: reference.included, priority: reference.priority, scopes: reference.scopes, userNote: reference.userNote, allowedInfluence: reference.allowedInfluence, forbiddenInfluence: reference.forbiddenInfluence })),
+      },
+      generalProduction: isGeneralProject ? {
+        schemaVersion: generalProductionState.schemaVersion,
+        spaceType: generalProductionState.spaceType,
+        customSpaceTypeLabel: generalProductionState.customSpaceTypeLabel,
+        sceneContract: generalProductionState.sceneContract,
+        atmosphereRecipe: generalProductionState.atmosphereRecipe,
+        materialRecipes: generalProductionState.materialRecipes,
+        landscapeRecipe: generalProductionState.landscapeRecipe || null,
+        photographyRecipe: generalProductionState.photographyRecipe || null,
+        borrowMaps: generalProductionState.borrowMaps,
+        conflicts: generalProductionState.conflicts,
+        generationIntent: generalProductionState.generationIntent,
+        designFreedom: generalProductionState.designFreedom,
+        activeVisualDirectionVersionId: generalProductionState.activeVisualDirectionVersionId || null,
+        sceneSetId: generalProductionState.sceneSetId || null,
+        qc: generalProductionState.generalQc || null,
+        providerCapability: generalProviderCapability,
+      } : null,
       quickGenerate: {
         provider: renderPassState.quickGenerateProvider || 'mock_local',
         mode: renderPassState.quickGenerateMode || 'draft',
@@ -4092,6 +4388,7 @@ export default function App() {
     data.file('brand-context.json', JSON.stringify(renderPassState.brandContext, null, 2));
     data.file('production-context.json', JSON.stringify(renderPassState.productionContext, null, 2));
     data.file('reference-intelligence.json', JSON.stringify(renderPassState.references, null, 2));
+    data.file('general-reference-direction.json', JSON.stringify(referenceDirectionState, null, 2));
     data.file('camera-system.json', JSON.stringify(renderPassState.cameraSystem, null, 2));
     data.file('lighting-graph.json', JSON.stringify(renderPassState.lightingGraph, null, 2));
     data.file('material-profiles.json', JSON.stringify(renderPassState.materialProfiles, null, 2));
@@ -4132,7 +4429,8 @@ export default function App() {
     data.file('qc-review.json', JSON.stringify(renderPassState.qcReview, null, 2));
     data.file('pass-plan.json', JSON.stringify(renderPassState.passes.map((pass) => ({ type: pass.type, enabled: pass.enabled, title: pass.title, objective: pass.objective, status: pass.status, activeVersionId: pass.activeVersionId, approvedVersionId: pass.approvedVersionId, versionsCount: pass.promptVersions?.length || 0, updatedAt: pass.updatedAt })), null, 2));
     data.file('project-source-of-truth.json', JSON.stringify(projectSourceOfTruth, null, 2));
-    data.file('prompt-package.json', JSON.stringify({ schemaVersion: 'visual-local-render-pass-prompts-v2', generatedAt: renderPassState.generatedAt, workflowPhase: renderPassState.workflowPhase, selectedModelAdapter: renderPassState.selectedModelAdapter || 'generic', sceneSetup: renderPassState.sceneSetup, projectSourceOfTruth, projectKnowledgeBase: renderPassState.projectKnowledgeBase, references: renderPassState.references, renderPassInputs: renderPassState.renderPassInputs.map((input) => ({ id: input.id, type: input.type, name: input.name, enabled: input.enabled, notes: input.notes || '', colorLegend: input.colorLegend || [] })), cameraSystem: renderPassState.cameraSystem, lightingGraph: renderPassState.lightingGraph, materialProfiles: renderPassState.materialProfiles, sceneIntelligence: renderPassState.sceneIntelligence, materialIntelligence: renderPassState.materialIntelligence, workPlan: renderPassState.workPlan, approvedWorkPlan: renderPassState.approvedWorkPlan, revisionHistory: renderPassState.revisionHistory || [], visualDirectionPreset: renderPassState.visualDirectionPreset, environmentLibraryPreset: renderPassState.environmentLibraryPreset, modes: { visualDirectionMode: renderPassState.visualDirectionMode, lightingMode: renderPassState.lightingMode, environmentMode: renderPassState.environmentMode, materialEnhancementLevel: renderPassState.materialEnhancementLevel, peopleActivityLayer: renderPassState.peopleActivityLayer }, passes: generated.map((pass) => ({ ...pass, activePromptVersion: getActivePromptVersion(pass), approvedPromptVersion: getApprovedPromptVersion(pass), promptVersions: pass.promptVersions || [] })), negativePrompt: renderPassState.negativePrompt || buildRenderPassNegativePrompt(renderPassState, undefined, projectSourceOfTruth) }, null, 2));
+    data.file('general-production.json', JSON.stringify(isGeneralProject ? { ...generalProductionState, providerCapability: generalProviderCapability, projectProfile } : { profile: 'karun', note: 'General production records are intentionally inactive for Karun projects.' }, null, 2));
+    data.file('prompt-package.json', JSON.stringify({ schemaVersion: 'visual-local-render-pass-prompts-v2', generatedAt: renderPassState.generatedAt, workflowPhase: renderPassState.workflowPhase, selectedModelAdapter: renderPassState.selectedModelAdapter || 'generic', sceneSetup: renderPassState.sceneSetup, projectSourceOfTruth, projectProfile, generalProduction: isGeneralProject ? generalProductionState : undefined, projectKnowledgeBase: renderPassState.projectKnowledgeBase, references: renderPassState.references, renderPassInputs: renderPassState.renderPassInputs.map((input) => ({ id: input.id, type: input.type, name: input.name, enabled: input.enabled, notes: input.notes || '', colorLegend: input.colorLegend || [] })), cameraSystem: renderPassState.cameraSystem, lightingGraph: renderPassState.lightingGraph, materialProfiles: renderPassState.materialProfiles, sceneIntelligence: renderPassState.sceneIntelligence, materialIntelligence: renderPassState.materialIntelligence, workPlan: renderPassState.workPlan, approvedWorkPlan: renderPassState.approvedWorkPlan, revisionHistory: renderPassState.revisionHistory || [], visualDirectionPreset: renderPassState.visualDirectionPreset, environmentLibraryPreset: renderPassState.environmentLibraryPreset, modes: { visualDirectionMode: renderPassState.visualDirectionMode, lightingMode: renderPassState.lightingMode, environmentMode: renderPassState.environmentMode, materialEnhancementLevel: renderPassState.materialEnhancementLevel, peopleActivityLayer: renderPassState.peopleActivityLayer }, passes: generated.map((pass) => ({ ...pass, activePromptVersion: getActivePromptVersion(pass), approvedPromptVersion: getApprovedPromptVersion(pass), promptVersions: pass.promptVersions || [] })), negativePrompt: renderPassState.negativePrompt || buildRenderPassNegativePrompt(renderPassState, undefined, projectSourceOfTruth) }, null, 2));
     const prompts = root.folder('prompts')!;
     generated.forEach((pass) => prompts.file(renderPassFileNames[pass.type], getActivePromptVersion(pass)?.prompt || pass.prompt));
     prompts.file('negative_prompt.txt', renderPassState.negativePrompt || buildRenderPassNegativePrompt(renderPassState, undefined, projectSourceOfTruth));
@@ -4246,10 +4544,12 @@ export default function App() {
       schemaVersion: 'visual-local-render-pass-handoff-v1',
       createdAt: new Date().toISOString(),
       projectName: project.name,
+      projectProfile,
       sceneName: scene.name,
       sceneType: scene.type,
       directorNotes: scene.directorNotes || defaultDirectorNotes,
       inferenceMode: scene.directorNotes?.inferenceMode || 'balanced',
+      referenceDirection: referenceDirectionState,
       selectedPassType: selected.type,
       selectedPassTitle: selected.title,
       selectedAdapter,
@@ -4379,17 +4679,18 @@ export default function App() {
     const overlaySmall = overlay ? await resizeDataUrl(overlay, 1600, 'image/png') : '';
     const board = overlay ? await resizeDataUrl(overlay, 2000, 'image/png') : '';
     const stale = boardsGeneratedAt && new Date(boardsGeneratedAt).getTime() < new Date(project.updatedAt).getTime();
-    const manifest = { schemaVersion: 'visual-brief-package-v1', packageStatus: cleanedScene.packageStatus, project: { id: project.id, name: project.name }, scene: { id: cleanedScene.id, name: cleanedScene.name, type: cleanedScene.type }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), appVersion: '0.3.0', files: { baseImage: 'images/base/scene_base_small.jpg', mappingOverlay: 'images/overlays/scene_mapping_overlay.png', aiBrief: 'data/ai-brief.json', boards: ['boards/material_board.png', 'boards/prop_board.png', 'boards/lighting_board.png', 'boards/environment_board.png', 'boards/atmosphere_board.png', 'boards/package_summary.png', 'boards/mapping_overlay_board.png'] }, boards: { generatedAt: boards.generatedAt, boardStatus: stale ? 'stale' : 'generated' }, promptPackagesCount: cleanedScene.promptPackages?.length || 0, activePromptPackageId: cleanedScene.activePromptPackageId || null, revisionPromptsCount: cleanedScene.revisionPrompts?.length || 0, outputSpec: cleanedScene.outputSpec };
+    const manifest = { schemaVersion: 'visual-brief-package-v2', packageStatus: cleanedScene.packageStatus, project: { id: project.id, name: project.name, profile: projectProfile }, scene: { id: cleanedScene.id, name: cleanedScene.name, type: cleanedScene.type, spaceType: generalProductionState.spaceType }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), appVersion: '0.4.0', files: { baseImage: 'images/base/scene_base_small.jpg', mappingOverlay: 'images/overlays/scene_mapping_overlay.png', aiBrief: 'data/ai-brief.json', generalProduction: 'data/general-production.json', boards: ['boards/material_board.png', 'boards/prop_board.png', 'boards/lighting_board.png', 'boards/environment_board.png', 'boards/atmosphere_board.png', 'boards/package_summary.png', 'boards/mapping_overlay_board.png'] }, boards: { generatedAt: boards.generatedAt, boardStatus: stale ? 'stale' : 'generated' }, promptPackagesCount: cleanedScene.promptPackages?.length || 0, activePromptPackageId: cleanedScene.activePromptPackageId || null, revisionPromptsCount: cleanedScene.revisionPrompts?.length || 0, outputSpec: cleanedScene.outputSpec };
     root.file('manifest.json', JSON.stringify(manifest, null, 2));
     root.file('README_FOR_AI.txt', [
       'Read ai-brief.json and these visual boards: mapping_overlay_board.png for tag placement; material_board.png for material tone/finish/texture; prop_board.png for styling/prop intent; lighting_board.png for light direction and glow; environment_board.png for background/site context; atmosphere_board.png for photography mood/output size; package_summary.png for overview.',
       'prompts/imported-prompt-package.json may contain previous Jarvis B prompt outputs. prompts/revision-prompts.json may contain follow-up correction prompts.',
       'Director Notes may be used to infer missing material/lighting/atmosphere details from reference images, mapping locations, visual instruction board, and local prompt.',
+      'For General / Custom projects, read data/general-production.json and data/general-reference-direction.json. Their Scene Contract, Atmosphere Recipe, structured Borrow Map, conflict resolutions, and per-reference scopes are authoritative; references never authorize copying architecture, geometry, furniture form, composition, camera, or signage unless explicitly permitted.',
       'Preserve geometry, camera, perspective, architectural form, layout, and mapped material placement. Do not infer or redesign structural geometry, camera, furniture layout, or architectural form.',
       'Thai descriptions are design intent to convert into precise English prompt language. Image-only references allow moderate creative interpretation.',
       'Return prompt package outputs and dashboard import JSON.',
     ].join(' '));
-    root.folder('data')!.file('project.json', JSON.stringify({ id: project.id, name: project.name, sourceOfTruth: projectSourceOfTruth }, null, 2)).file('scene.json', JSON.stringify({ ...exportedScene, projectSourceOfTruth }, null, 2)).file('slots.json', JSON.stringify(cleanedScene.slots, null, 2)).file('mapping.json', JSON.stringify(cleanedScene.slots.map((s) => ({ slotId: s.id, pins: s.pins, regions: s.regions })), null, 2)).file('output-spec.json', JSON.stringify(cleanedScene.outputSpec, null, 2)).file('project-source-of-truth.json', JSON.stringify(projectSourceOfTruth, null, 2)).file('ai-brief.json', JSON.stringify({ schemaVersion: 'visual-brief-ai-export-v1', mode: 'archviz_prompt_generation', scene: exportedScene, projectSourceOfTruth, sourceOfTruthPromptLines: materialRulePromptLines(projectSourceOfTruth), scopedColorCastCorrection: scopedColorCastCorrectionLine(projectSourceOfTruth), preserveRules: cleanedScene.preserveRules, directorNotes: cleanedScene.directorNotes || defaultDirectorNotes, inferenceMode: cleanedScene.directorNotes?.inferenceMode || 'balanced', materials: cleanedScene.slots.filter((s) => s.category === 'materials'), props: cleanedScene.slots.filter((s) => s.category === 'props'), lighting: cleanedScene.slots.filter((s) => s.category === 'lighting'), people: cleanedScene.people, environment: cleanedScene.slots.filter((s) => s.category === 'environment'), atmosphere: cleanedScene.atmosphere, outputSpec: cleanedScene.outputSpec, promptPackageImported: (cleanedScene.promptPackages?.length || 0) > 0, activePromptPackageSummary: activePromptPackage ? { id: activePromptPackage.id, assistantName: activePromptPackage.assistantName, importedAt: activePromptPackage.importedAt } : null, slotEnrichmentSuggestions: cleanedScene.slotEnrichmentSuggestions || [], aiEnrichmentSuggestions: cleanedScene.aiEnrichmentSuggestions || [], requestedOutputs: ['fullRenderPrompt', 'shortPrompt', 'materialPrompt', 'atmospherePrompt', 'negativePrompt', 'revisionPromptTemplate', 'dashboardImportJson'] }, null, 2));
+    root.folder('data')!.file('project.json', JSON.stringify({ id: project.id, name: project.name, profile: projectProfile, sourceOfTruth: projectSourceOfTruth, generalVisualDirectionDefault: project.generalVisualDirectionDefault || null, sceneSets: project.sceneSets || [], backupSchemaVersion: 'visual-local-project-backup-v2' }, null, 2)).file('scene.json', JSON.stringify({ ...exportedScene, projectProfile, projectSourceOfTruth, spaceType: generalProductionState.spaceType }, null, 2)).file('slots.json', JSON.stringify(cleanedScene.slots, null, 2)).file('mapping.json', JSON.stringify(cleanedScene.slots.map((s) => ({ slotId: s.id, pins: s.pins, regions: s.regions })), null, 2)).file('output-spec.json', JSON.stringify(cleanedScene.outputSpec, null, 2)).file('project-source-of-truth.json', JSON.stringify(projectSourceOfTruth, null, 2)).file('general-reference-direction.json', JSON.stringify(referenceDirectionState, null, 2)).file('general-production.json', JSON.stringify(isGeneralProject ? { ...generalProductionState, providerCapability: generalProviderCapability } : null, null, 2)).file('ai-brief.json', JSON.stringify({ schemaVersion: 'visual-brief-ai-export-v2', mode: 'archviz_prompt_generation', scene: exportedScene, projectProfile, projectSourceOfTruth, generalReferenceDirection: referenceDirectionState, generalProduction: isGeneralProject ? generalProductionState : undefined, providerCapability: isGeneralProject ? generalProviderCapability : undefined, sourceOfTruthPromptLines: materialRulePromptLines(projectSourceOfTruth), scopedColorCastCorrection: scopedColorCastCorrectionLine(projectSourceOfTruth), preserveRules: cleanedScene.preserveRules, directorNotes: cleanedScene.directorNotes || defaultDirectorNotes, inferenceMode: cleanedScene.directorNotes?.inferenceMode || 'balanced', materials: cleanedScene.slots.filter((s) => s.category === 'materials'), props: cleanedScene.slots.filter((s) => s.category === 'props'), lighting: cleanedScene.slots.filter((s) => s.category === 'lighting'), people: cleanedScene.people, environment: cleanedScene.slots.filter((s) => s.category === 'environment'), atmosphere: cleanedScene.atmosphere, outputSpec: cleanedScene.outputSpec, promptPackageImported: (cleanedScene.promptPackages?.length || 0) > 0, activePromptPackageSummary: activePromptPackage ? { id: activePromptPackage.id, assistantName: activePromptPackage.assistantName, importedAt: activePromptPackage.importedAt } : null, slotEnrichmentSuggestions: cleanedScene.slotEnrichmentSuggestions || [], aiEnrichmentSuggestions: cleanedScene.aiEnrichmentSuggestions || [], requestedOutputs: ['fullRenderPrompt', 'shortPrompt', 'materialPrompt', 'atmospherePrompt', 'negativePrompt', 'revisionPromptTemplate', 'dashboardImportJson'] }, null, 2));
     if (baseSmall) root.folder('images')!.folder('base')!.file('scene_base_small.jpg', baseSmall.split(',')[1], { base64: true });
     if (overlaySmall) root.folder('images')!.folder('overlays')!.file('scene_mapping_overlay.png', overlaySmall.split(',')[1], { base64: true });
     if (board) root.folder('images')!.folder('previews')!.file('scene_board_preview.png', board.split(',')[1], { base64: true });
@@ -4504,6 +4805,7 @@ export default function App() {
     if (!file) return;
     const zip = await JSZip.loadAsync(file);
     const manifestText = await zip.file('visual-brief-package/manifest.json')?.async('text');
+    const projectText = await zip.file('visual-brief-package/data/project.json')?.async('text');
     const sceneText = await zip.file('visual-brief-package/data/scene.json')?.async('text');
     const slotsText = await zip.file('visual-brief-package/data/slots.json')?.async('text');
     const localPrompt = await zip.file('visual-brief-package/prompts/local-prompt.txt')?.async('text');
@@ -4511,6 +4813,7 @@ export default function App() {
     const revisionPromptsText = await zip.file('visual-brief-package/prompts/revision-prompts.json')?.async('text');
     const importedPromptText = await zip.file('visual-brief-package/prompts/imported-prompt-package.json')?.async('text');
     const manifest = manifestText ? JSON.parse(manifestText) : null;
+    const importedProjectData = projectText ? JSON.parse(projectText) : null;
     const importedScene = sceneText ? JSON.parse(sceneText) : null;
     const importedSlots = slotsText ? JSON.parse(slotsText) : [];
     const health = await zipHealth(zip);
@@ -4536,14 +4839,17 @@ export default function App() {
       activePromptFound: Boolean(importedPromptText && importedPromptText.trim() && importedPromptText.trim() !== '{}'),
       existingProjects: projectsIndex,
       selectedMergeProjectId: project.id,
+      importedProjectData,
     });
   };
 
   const commitImport = async (mode: 'new' | 'merge') => {
     if (!importReview) return;
     const sceneText = await importReview.zip.file('visual-brief-package/data/scene.json')?.async('text');
+    const projectText = await importReview.zip.file('visual-brief-package/data/project.json')?.async('text');
     if (!sceneText) return;
     const importedScene = JSON.parse(sceneText) as Scene;
+    const importedProjectData = projectText ? JSON.parse(projectText) : importReview.importedProjectData || {};
     const promptHistoryText = await importReview.zip.file('visual-brief-package/prompts/prompt-history.json')?.async('text');
     const revisionPromptsText = await importReview.zip.file('visual-brief-package/prompts/revision-prompts.json')?.async('text');
     const importedPromptText = await importReview.zip.file('visual-brief-package/prompts/imported-prompt-package.json')?.async('text');
@@ -4558,7 +4864,7 @@ export default function App() {
     });
     if (mode === 'new') {
       const sceneNew = { ...normalizedScene, id: id() };
-      updateProject({ id: id(), name: importReview.projectName || 'Imported Project', updatedAt: new Date().toISOString(), scenes: [sceneNew], activeSceneId: sceneNew.id });
+      updateProject(normalizeProjectRuntime({ id: id(), name: importReview.projectName || 'Imported Project', updatedAt: new Date().toISOString(), scenes: [sceneNew], activeSceneId: sceneNew.id, profile: importedProjectData.profile, sourceOfTruth: importedProjectData.sourceOfTruth, generalVisualDirectionDefault: importedProjectData.generalVisualDirectionDefault }));
     } else {
       const target = projectsIndex.find((p) => p.id === importReview.selectedMergeProjectId) || project;
       const conflict = target.scenes.some((s) => s.id === normalizedScene.id || s.name === normalizedScene.name);
@@ -5229,6 +5535,9 @@ export default function App() {
   const productionStageMeta: Record<ProductionStage, { label: string; description: string }> = {
     project: { label: 'Project', description: 'Confirm project rules and production readiness.' },
     upload: { label: 'Upload', description: 'Upload the raw render that becomes the source of truth.' },
+    references: { label: 'References', description: 'Add scoped visual direction references.' },
+    analyze: { label: 'Analyze', description: 'Analyze references before generation.' },
+    direction: { label: 'Direction', description: 'Review and apply the proposed Visual Direction.' },
     preview: { label: 'Preview', description: 'Generate the first project-aware draft.' },
     review: { label: 'Review', description: 'Compare base and result, then mark comments.' },
     revise: { label: 'Revise', description: 'Process comments into a focused revision plan.' },
@@ -5236,7 +5545,9 @@ export default function App() {
   };
   const productionEstimate = selectedGenerationAdapter.id === 'google_lite_image' ? googleLiteCostPerImage : selectedGenerationAdapter.id === 'google_pro_image' ? googleProCostPerImage : 0;
   const renderProductionFlow = () => {
-    const stages: ProductionStage[] = ['project', 'upload', 'preview', 'review', 'revise', 'approve'];
+    const stages: ProductionStage[] = isGeneralProject
+      ? ['project', 'upload', 'references', 'analyze', 'direction', 'preview', 'review', 'revise', 'approve']
+      : ['project', 'upload', 'preview', 'review', 'revise', 'approve'];
     const activeStageIndex = stages.indexOf(productionStage);
     const sourceName = projectSourceOfTruth?.profileName || 'Project Source of Truth';
     const productionProviderId: GenerationProviderId = selectedGenerationAdapter.id !== 'mock_local'
@@ -5260,6 +5571,7 @@ export default function App() {
           <div className="flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#ffb15c]">
             <span>Production Flow</span>
             {projectSourceOfTruth && <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-1 text-emerald-200">{sourceName} active</span>}
+            <span data-testid="active-project-profile" className="rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-1 text-sky-200">Profile: {projectProfile.displayName}</span>
           </div>
           <h2 className="mt-2 text-2xl font-black text-white">{project.name}</h2>
           <p className="mt-1 text-sm font-semibold text-slate-400">{scene.name} - {productionStageMeta[productionStage].description}</p>
@@ -5271,7 +5583,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="mt-4 grid flex-none grid-cols-6 gap-2">
+      <div className="mt-4 grid flex-none gap-2" style={{ gridTemplateColumns: `repeat(${stages.length}, minmax(0, 1fr))` }}>
         {stages.map((stage, index) => <button key={stage} data-testid={`production-stage-${stage}`} className={`rounded-2xl border px-3 py-3 text-left transition ${productionStage === stage ? 'border-[#ff8800] bg-[#ff8800] text-white shadow-[0_12px_30px_rgba(255,136,0,0.22)]' : index <= activeStageIndex ? 'border-white/10 bg-white/[0.08] text-slate-100' : 'border-white/10 bg-white/[0.04] text-slate-500'}`} onClick={() => setProductionStage(stage)}>
           <div className="text-[10px] font-black uppercase tracking-[0.18em] opacity-75">{String(index + 1).padStart(2, '0')}</div>
           <div className="mt-1 text-sm font-black">{productionStageMeta[stage].label}</div>
@@ -5280,7 +5592,7 @@ export default function App() {
 
       <div className="mt-4 grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_340px] gap-4">
         <div className="min-h-0 overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.06] shadow-[0_24px_80px_rgba(0,0,0,0.25)]">
-          {scene.baseImage && activeResultRound ? <div data-testid="qc-compare-main" className="flex h-full min-h-0 flex-col bg-slate-950 p-4">
+          {productionStage === 'project' ? <div data-testid="project-profile-selector" className="h-full overflow-auto bg-slate-950 p-8 text-slate-100"><div className="mx-auto max-w-4xl"><p className="text-xs font-black uppercase tracking-[0.2em] text-[#ffb15c]">Project profile</p><h2 className="mt-2 text-3xl font-black">What kind of project are you working on?</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">The selected profile controls which source of truth is active. Changing it never deletes prior rules, references, directions, or versions.</p><div className="mt-7 grid gap-4 md:grid-cols-2"><button className={`rounded-3xl border p-6 text-left transition ${projectProfile.sourceOfTruthProfileId === 'karun' ? 'border-[#ff8800] bg-[#ff8800]/10 ring-2 ring-[#ff8800]/25' : 'border-white/10 bg-white/[0.05] hover:border-[#ff8800]/50'}`} onClick={() => updateProjectProfile('karun')}><span className="inline-flex rounded-full bg-[#ff8800] px-3 py-1 text-xs font-black text-white">Branded</span><h3 className="mt-5 text-2xl font-black">Karun</h3><p className="mt-2 text-sm leading-6 text-slate-400">Uses the approved Karun Brand Guide, protected assets, material rules, project references, and scoped color/lighting constraints.</p></button><button className={`rounded-3xl border p-6 text-left transition ${isGeneralProject ? 'border-[#ff8800] bg-[#ff8800]/10 ring-2 ring-[#ff8800]/25' : 'border-white/10 bg-white/[0.05] hover:border-[#ff8800]/50'}`} onClick={() => updateProjectProfile('general')}><span className="inline-flex rounded-full bg-sky-400/15 px-3 py-1 text-xs font-black text-sky-200">General / Custom</span><h3 className="mt-5 text-2xl font-black">General / Custom</h3><p className="mt-2 text-sm leading-6 text-slate-400">For houses, interiors, architecture, landscape, and everyday visualization work. Build direction from the Base Render and scoped references.</p></button></div>{isGeneralProject && <div className="mt-5 rounded-3xl border border-white/10 bg-white/[0.05] p-4"><label className="text-xs font-black uppercase tracking-wide text-slate-400">Space type<select data-testid="general-space-type-setup" className="mt-2 block h-10 w-full max-w-md rounded-xl border border-white/10 bg-slate-900 px-3 text-sm text-white" value={generalProductionState.spaceType} onChange={(event) => setGeneralSpaceType(event.target.value as SpaceType)}>{spaceTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><p className="mt-2 text-xs text-slate-400">A strict, editable Scene Contract is created from this baseline. Other is intentionally unclassified until you choose a specific type.</p></div>}<div className="mt-6 flex justify-end"><button className="inline-flex h-11 items-center justify-center rounded-2xl bg-[#ff8800] px-5 text-sm font-black text-white" onClick={() => setProductionStage('upload')}>Continue to Upload</button></div></div></div> : isGeneralProject && (productionStage === 'references' || productionStage === 'analyze' || productionStage === 'direction') ? <ReferenceDirectionWorkspace baseImage={scene.baseImage} references={referenceDirectionState.references} analysis={referenceDirectionState.latestAnalysis} analyzing={isReferenceAnalyzing} roleOptions={generalReferenceRoleOptions} scopeOptions={generalReferenceScopeOptions} onUpload={addGeneralReferences} onUpdate={updateGeneralReference} onRemove={removeGeneralReference} onAnalyze={analyzeReferencesForGeneralProject} onApply={applyGeneralVisualDirection} onSkip={skipGeneralReferenceDirection} visionAvailable={Boolean(geminiApiKey.trim())} visionApproved={Boolean(referenceDirectionState.visionApproved)} onVisionApprovalChange={setGeneralReferenceVisionApproval} generalProduction={generalProductionState} providerCapability={generalProviderCapability} spaceTypeOptions={spaceTypeOptions} onSpaceTypeChange={setGeneralSpaceType} onGenerationChange={setGeneralIntent} onResolveConflict={resolveGeneralReferenceConflict} /> : scene.baseImage && activeResultRound ? <div data-testid="qc-compare-main" className="flex h-full min-h-0 flex-col bg-slate-950 p-4">
             <div className={`relative min-h-0 flex-1 overflow-hidden rounded-2xl border bg-slate-900 ${productionCommentMode === 'point' ? 'cursor-crosshair border-[#ff8800]' : 'border-white/10'}`} onClick={handleProductionResultClick}>
               {(resultCompareMode === 'slider' || resultCompareMode === 'overlay' || resultCompareMode === 'base' || resultCompareMode === 'difference') && <img src={scene.baseImage} alt="base render for review" className="absolute inset-0 h-full w-full object-contain" />}
               {resultCompareMode === 'slider' && <div className="absolute inset-0 overflow-hidden" style={{ clipPath: `inset(0 0 0 ${resultCompareSplit}%)` }}><img ref={productionCommentImageRef} src={activeResultRound.imageDataUrl} alt="generated result for review" className="h-full w-full object-contain" /></div>}
@@ -5408,18 +5720,28 @@ export default function App() {
             </div>
           </div>
 
+          {isGeneralProject && <div data-testid="general-production-summary" className="mt-3 rounded-2xl border border-sky-400/20 bg-sky-400/[0.07] p-4">
+            <div className="text-xs font-black uppercase tracking-[0.18em] text-sky-200">General production</div>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-xs"><div className="rounded-xl bg-black/20 p-2"><span className="block text-slate-500">Space</span><b className="text-white">{spaceTypeLabel(generalProductionState.spaceType)}</b></div><div className="rounded-xl bg-black/20 p-2"><span className="block text-slate-500">Intent</span><b className="text-white">{generalProductionState.generationIntent} / {generalProductionState.designFreedom}</b></div><div className="rounded-xl bg-black/20 p-2"><span className="block text-slate-500">Contract</span><b className="text-white">{generalProductionState.sceneContract.lockedElements.length} locked</b></div><div className="rounded-xl bg-black/20 p-2"><span className="block text-slate-500">Atmosphere</span><b className="text-white">{generalProductionState.atmosphereRecipe.timeOfDay.replace(/_/g, ' ')}</b></div></div>
+            <div className="mt-3 flex items-center justify-between gap-2"><span className="text-[11px] text-slate-400">{generalProductionState.sceneSetId ? (project.sceneSets || []).find((set) => set.id === generalProductionState.sceneSetId)?.name || 'Scene Set active' : 'No Scene Set assigned'}</span><button data-testid="assign-scene-set" className="rounded-lg border border-sky-300/25 bg-white/10 px-2 py-1.5 text-[11px] font-black text-sky-100" onClick={assignSceneToSet}>{generalProductionState.sceneSetId ? 'Scene Set active' : 'Assign Scene Set'}</button></div>
+            {sceneSetMismatchWarning((project.sceneSets || []).find((set) => set.id === generalProductionState.sceneSetId), generalProductionState.activeVisualDirectionVersionId) && <p className="mt-2 text-[11px] text-amber-200">{sceneSetMismatchWarning((project.sceneSets || []).find((set) => set.id === generalProductionState.sceneSetId), generalProductionState.activeVisualDirectionVersionId)}</p>}
+          </div>}
+
+          {isGeneralProject && activeResultRound && generalProductionState.generalQc && <details className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-4"><summary className="cursor-pointer list-none text-sm font-black text-white">General Preservation QC <span className="ml-2 text-[11px] font-semibold text-slate-400">user reviewed · {generalProductionState.generalQc.analysisMode}</span></summary><p className="mt-2 text-[11px] leading-5 text-slate-400">This is a structured user checklist. It does not claim automatic visual certainty without vision analysis.</p><div className="mt-3 space-y-2">{[['preservation', 'Camera / geometry / circulation'], ['direction', 'Atmosphere / materials / photography'], ['artifacts', 'Warping / scale / reflections']] .map(([section, label]) => <div key={section} className="rounded-xl border border-white/10 p-2"><div className="text-xs font-black text-slate-200">{label}</div><div className="mt-2 flex flex-wrap gap-1">{Object.entries(generalProductionState.generalQc![section as 'preservation' | 'direction' | 'artifacts']).slice(0, section === 'artifacts' ? 4 : 5).map(([key, status]) => <button key={key} className={`rounded-lg px-2 py-1 text-[10px] font-black ${status === 'pass' ? 'bg-emerald-400/15 text-emerald-200' : status === 'fail' ? 'bg-red-400/15 text-red-200' : 'bg-white/10 text-slate-300'}`} onClick={() => updateGeneralQc(section as 'preservation' | 'direction' | 'artifacts', key, status === 'unchecked' ? 'pass' : status === 'pass' ? 'warning' : status === 'warning' ? 'fail' : 'unchecked')}>{key.replace(/([A-Z])/g, ' $1')}: {status}</button>)}</div></div>)}</div></details>}
+
           <div className="mt-3 rounded-2xl border border-[#ff8800]/25 bg-[#ff8800]/10 p-4">
             <div className="text-xs font-black uppercase tracking-[0.18em] text-[#ffb15c]">Next action</div>
-            <h3 className="mt-2 text-lg font-black text-white">{!scene.baseImage ? 'Upload Raw Render' : activeResultRound ? 'Generate Revision / Approve' : 'Generate Preview'}</h3>
+            <h3 className="mt-2 text-lg font-black text-white">{!scene.baseImage ? 'Upload Raw Render' : isGeneralProject && !referenceDirectionState.appliedAnalysis && !referenceDirectionState.skippedForFirstGeneration ? 'Add / review Visual Direction' : activeResultRound ? 'Generate Revision / Approve' : 'Generate Preview'}</h3>
             <ul className="mt-3 space-y-1.5 text-xs font-semibold leading-5 text-orange-50">
               <li>- Improve: Better Materials, Better Lighting, Photographic Finish</li>
               <li>- Protect: camera, geometry, signage, furniture, fixture positions</li>
               <li>- Provider: {productionProvider.label}{productionProviderId === 'mock_local' ? ' (local mock)' : ''}</li>
+              {isGeneralProject && !referenceDirectionState.appliedAnalysis && !referenceDirectionState.skippedForFirstGeneration && <li>- General flow: add references, apply direction, or explicitly continue without references</li>}
               {!productionProviderReady && <li>- Setup required: connect an image provider before generating</li>}
               <li>- Estimated cost: THB {productionProviderEstimate.toFixed(2)}</li>
             </ul>
-            <button data-testid="production-primary-action" className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-2xl bg-[#ff8800] px-4 text-sm font-black text-white shadow-[0_12px_28px_rgba(255,136,0,0.28)] disabled:cursor-not-allowed disabled:opacity-60" disabled={isQuickGenerating || productionRevisionBlocked} title={productionRevisionBlocked ? 'Apply the Agent revision plan before generating a revision.' : undefined} onClick={!scene.baseImage ? () => baseImageInputRef.current?.click() : activeResultRound?.status === 'approved' ? () => setProductionStage('approve') : () => createProductionPreview(activeResultRound)}>
-              {isQuickGenerating ? 'Generating...' : !scene.baseImage ? 'Upload Raw Render' : activeResultRound ? 'Generate Revision' : 'Generate Preview'}
+            <button data-testid="production-primary-action" className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-2xl bg-[#ff8800] px-4 text-sm font-black text-white shadow-[0_12px_28px_rgba(255,136,0,0.28)] disabled:cursor-not-allowed disabled:opacity-60" disabled={isQuickGenerating || productionRevisionBlocked} title={productionRevisionBlocked ? 'Apply the Agent revision plan before generating a revision.' : undefined} onClick={!scene.baseImage ? () => baseImageInputRef.current?.click() : isGeneralProject && !referenceDirectionState.appliedAnalysis && !referenceDirectionState.skippedForFirstGeneration ? () => setProductionStage('references') : activeResultRound?.status === 'approved' ? () => setProductionStage('approve') : () => createProductionPreview(activeResultRound)}>
+              {isQuickGenerating ? 'Generating...' : !scene.baseImage ? 'Upload Raw Render' : isGeneralProject && !referenceDirectionState.appliedAnalysis && !referenceDirectionState.skippedForFirstGeneration ? 'Set Visual Direction' : activeResultRound ? 'Generate Revision' : 'Generate Preview'}
             </button>
           </div>
 

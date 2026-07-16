@@ -15,6 +15,19 @@ page.on('dialog', async (dialog) => dialog.accept());
 
 async function openBuilder() {
   await page.goto('http://127.0.0.1:5173/visual-local', { waitUntil: 'networkidle' });
+  await page.evaluate(async () => {
+    localStorage.clear();
+    const databases = await indexedDB.databases();
+    await Promise.all(databases.map((database) => database.name ? new Promise((resolve) => {
+      const request = indexedDB.deleteDatabase(database.name);
+      request.onsuccess = request.onerror = request.onblocked = () => resolve(undefined);
+    }) : undefined));
+    localStorage.setItem('visual-local-product-mode', 'quick');
+    localStorage.setItem('visual-local-production-stage-v1', 'project');
+  });
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.getByTestId('project-profile-selector').waitFor({ state: 'visible', timeout: 5000 });
+  await page.getByTestId('project-profile-selector').getByRole('button').filter({ hasText: 'Karun' }).click();
   const renderPassButton = page.getByRole('button', { name: 'Render Pass Builder' }).first();
   if (await renderPassButton.count()) await renderPassButton.click();
   await page.getByTestId('visual-local-copilot').waitFor({ state: 'visible', timeout: 5000 });

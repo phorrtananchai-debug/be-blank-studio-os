@@ -46,6 +46,7 @@ import {
   projectRuleReferenceInstructions,
   scopedColorCastCorrectionLine,
 } from './projectSourceOfTruth';
+import { defaultReferenceDirectionState, normalizeReferenceDirectionState, visualDirectionPromptLines } from './referenceDirection';
 
 export const renderPassLabels: Record<RenderPassType, string> = {
   analyze_site: 'PASS 00 - Analyze Site',
@@ -690,6 +691,8 @@ export function defaultRenderPassBuilderState(): RenderPassBuilderState {
       equipment: { summary: '', notes: '', confidence: 0 },
     },
     references: [],
+    referenceDirection: defaultReferenceDirectionState(),
+    generalProduction: undefined,
     knowledgeConfidence: { ...defaultKnowledgeConfidence },
     cameraSystem: { ...defaultCameraSystem },
     lightingGraph: { ...defaultLightingGraph },
@@ -818,6 +821,8 @@ export function normalizeRenderPassBuilderState(input?: Partial<RenderPassBuilde
       equipment: { ...defaults.productionContext.equipment, ...(input?.productionContext?.equipment || {}) },
     },
     references: input?.references || defaults.references,
+    referenceDirection: normalizeReferenceDirectionState(input?.referenceDirection),
+    generalProduction: input?.generalProduction,
     knowledgeConfidence: { ...defaults.knowledgeConfidence, ...(input?.knowledgeConfidence || {}) },
     cameraSystem: { ...defaults.cameraSystem, ...(input?.cameraSystem || {}) },
     lightingGraph: { ...defaults.lightingGraph, ...(input?.lightingGraph || {}) },
@@ -1906,6 +1911,8 @@ export function generateRenderPassPrompts(state: RenderPassBuilderState, scene: 
       model: nextState.selectedModelAdapter,
       mode: pass.type,
       activeGoals: [enrichedPass.title],
+      visualDirection: visualDirectionPromptLines(nextState.referenceDirection?.appliedAnalysis).join('\n'),
+      referenceDirectionUsage: nextState.referenceDirection?.appliedAnalysis?.referenceUsageMap.map((reference) => `- ${reference.referenceName}: ${reference.borrowed}; do not borrow ${reference.notBorrowed}`).join('\n'),
     });
     const version = {
       ...makePromptVersion(enrichedPass, prompt, nextState, now),

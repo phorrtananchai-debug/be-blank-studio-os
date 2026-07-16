@@ -218,6 +218,287 @@ export type ReferenceAsset = {
   createdAt: string;
 };
 
+export type ProjectProfileType = 'branded' | 'general' | 'custom';
+
+export type SpaceType =
+  | 'residential_exterior'
+  | 'living_room'
+  | 'dining_room'
+  | 'kitchen'
+  | 'bedroom'
+  | 'bathroom'
+  | 'home_office'
+  | 'walk_in_closet'
+  | 'garage_carport'
+  | 'garden_landscape'
+  | 'pool_terrace'
+  | 'courtyard'
+  | 'facade_detail'
+  | 'multi_purpose_room'
+  | 'other';
+
+export type GenerationIntent = 'explore' | 'develop' | 'polish' | 'fix';
+export type DesignFreedom = 'strict' | 'balanced' | 'creative';
+export type SceneElementFlexibility = 'locked' | 'flexible' | 'editable';
+export type MaterialZoneType = 'floor' | 'wall' | 'ceiling' | 'cabinetry' | 'countertop' | 'backsplash' | 'upholstery' | 'loose_furniture' | 'metal' | 'glass_glazing' | 'curtain_fabric' | 'landscape' | 'water' | 'exterior_ground_driveway' | 'custom';
+
+export type MaterialZone = {
+  id: string;
+  label: string;
+  type: MaterialZoneType;
+  currentMaterialDescription: string;
+  flexibility: SceneElementFlexibility;
+  allowedChanges: string[];
+  forbiddenChanges: string[];
+  linkedReferenceIds: string[];
+  userNotes: string;
+};
+
+export type CameraContract = {
+  lockMode: 'strict' | 'balanced' | 'flexible';
+  preserveViewpoint: boolean;
+  preserveCrop: boolean;
+  preserveAspectRatio: boolean;
+  preservePerspectiveCharacter: boolean;
+  preserveHorizon: boolean;
+  preserveVerticalCorrection: boolean;
+  preserveLensCharacter: boolean;
+  cameraMovementAllowance: string;
+  cropTolerance: string;
+  notes: string;
+};
+
+export type SceneContract = {
+  id: string;
+  projectId: string;
+  sceneId: string;
+  version: number;
+  spaceType: SpaceType;
+  lockedElements: string[];
+  flexibleElements: string[];
+  explicitlyEditableElements: string[];
+  forbiddenChanges: string[];
+  materialZones: MaterialZone[];
+  cameraContract: CameraContract;
+  consistencyContract: string[];
+  source: 'default_baseline' | 'user' | 'approved_agent_plan';
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AtmosphereRecipe = {
+  id: string;
+  version: number;
+  timeOfDay: 'dawn' | 'morning' | 'midday' | 'afternoon' | 'late_afternoon' | 'sunset' | 'blue_hour' | 'night' | 'mixed_custom';
+  sunCharacter: string;
+  sunDirectionDescription: string;
+  shadowLength: string;
+  shadowSoftness: string;
+  skyCondition: 'clear' | 'soft_cloudy' | 'overcast' | 'dramatic_cloud' | 'rainy' | 'humid_haze' | 'custom';
+  weather: string;
+  daylightStrength: string;
+  artificialLightingState: string;
+  interiorExteriorBalance: string;
+  whiteBalance: 'neutral' | 'neutral_warm' | 'warm' | 'cool' | 'mixed';
+  exposure: string;
+  contrast: string;
+  saturation: string;
+  bloom: string;
+  haze: string;
+  reflectionCharacter: string;
+  imageClarity: string;
+  emotionalTone: string;
+  photographyCharacter: string;
+  sourceReferenceIds: string[];
+  userNotes: string;
+  confidence: number;
+  analysisMode: 'not_analyzed' | 'metadata' | 'vision';
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type VisualRecipe = { id: string; version: number; summary: string; sourceReferenceIds: string[]; forbiddenCopying: string[]; updatedAt: string };
+export type ReferenceBorrowMap = {
+  referenceId: string;
+  target: 'whole_scene' | 'atmosphere' | 'material_zone' | 'landscape' | 'people' | 'styling' | 'photography' | 'custom';
+  targetZoneId?: string;
+  borrowAttributes: string[];
+  forbiddenAttributes: string[];
+  priority: 'low' | 'medium' | 'high';
+  confidence: number;
+  conflictGroup?: string;
+  selectedResolution?: 'winner' | 'blend' | 'suppressed' | 'pending';
+  reason: string;
+  active: boolean;
+  analysisMode: 'metadata' | 'vision' | 'not_analyzed';
+};
+
+export type ReferenceConflict = {
+  id: string;
+  type: 'time_of_day' | 'material_direction' | 'other';
+  affectedTarget: string;
+  referenceIds: string[];
+  proposedWinnerId?: string;
+  reason: string;
+  requiresUserChoice: boolean;
+  resolvedReferenceId?: string;
+};
+
+export type ProviderCapabilitySummary = {
+  providerId: string;
+  providerLabel: string;
+  model: string;
+  supportsVision: boolean;
+  supportsMultipleReferences: 'yes' | 'limited' | 'no';
+  effectiveReferenceCount?: number;
+  baseImageSent: boolean;
+  editableResultSent: boolean;
+  referenceImagesSent: string[];
+  textOnlyReferences: string[];
+  omittedReferences: Array<{ name: string; reason: string }>;
+  seedSupport: boolean;
+  maskRegionSupport: boolean;
+  mode: string;
+};
+
+export type GeneralQcRecord = {
+  id: string;
+  createdAt: string;
+  analysisMode: 'not_analyzed' | 'metadata' | 'vision';
+  preservation: Record<'camera' | 'crop' | 'geometry' | 'openings' | 'furniture' | 'fixtures' | 'materialZones' | 'signage' | 'circulation', 'pass' | 'warning' | 'fail' | 'unchecked'>;
+  direction: Record<'atmosphere' | 'lighting' | 'timeOfDay' | 'materials' | 'landscape' | 'photography' | 'forbiddenCopying', 'pass' | 'warning' | 'fail' | 'unchecked'>;
+  artifacts: Record<'warpedGeometry' | 'duplicatedObjects' | 'distortedFurniture' | 'brokenReflections' | 'inconsistentShadows' | 'incorrectScale' | 'textDistortion' | 'impossibleGlazing' | 'peopleArtifacts' | 'vegetationArtifacts', 'pass' | 'warning' | 'fail' | 'unchecked'>;
+  comments: string[];
+};
+
+export type SceneSet = { id: string; projectId: string; name: string; spaceType: SpaceType; sharedSceneContractId?: string; sharedVisualDirectionVersionId?: string; sharedAtmosphereRecipeId?: string; sharedMaterialRecipeIds: string[]; sharedLandscapeRecipeId?: string; viewIds: string[]; createdAt: string; updatedAt: string };
+
+export type GeneralProductionState = {
+  schemaVersion: 'visual-local-general-production-v1';
+  spaceType: SpaceType;
+  customSpaceTypeLabel: string;
+  sceneGroupId?: string;
+  sceneContract: SceneContract;
+  atmosphereRecipe: AtmosphereRecipe;
+  materialRecipes: VisualRecipe[];
+  landscapeRecipe?: VisualRecipe;
+  photographyRecipe?: VisualRecipe;
+  borrowMaps: ReferenceBorrowMap[];
+  conflicts: ReferenceConflict[];
+  generationIntent: GenerationIntent;
+  designFreedom: DesignFreedom;
+  visualDirectionVersions: Array<{ id: string; parentVersionId?: string; changeSummary: string; scope: VisualDirectionApplyScope; sceneContractVersion: number; atmosphereRecipeVersion: number; borrowMaps: ReferenceBorrowMap[]; analysisMode: 'metadata' | 'vision'; provider?: string; model?: string; createdAt: string }>;
+  activeVisualDirectionVersionId?: string;
+  sceneSetId?: string;
+  generalQc?: GeneralQcRecord;
+};
+
+export type ProjectProfile = {
+  id: string;
+  displayName: string;
+  profileType: ProjectProfileType;
+  sourceOfTruthProfileId: string;
+  projectSpecificOverrides?: string[];
+  defaultWorkflowPreset: 'karun_production' | 'general_reference_first';
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type GeneralReferenceRole =
+  | 'overall_mood'
+  | 'lighting'
+  | 'time_of_day'
+  | 'materials'
+  | 'color_palette'
+  | 'landscape'
+  | 'people_activity'
+  | 'styling_props'
+  | 'photography_camera'
+  | 'environment_site'
+  | 'custom';
+
+export type GeneralReferenceScope =
+  | 'mood_only'
+  | 'atmosphere_only'
+  | 'color_palette_only'
+  | 'material_color_only'
+  | 'texture_only'
+  | 'finish_only'
+  | 'lighting_only'
+  | 'time_of_day_only'
+  | 'landscape_character_only'
+  | 'people_activity_only'
+  | 'photographic_treatment_only'
+  | 'do_not_copy_architecture'
+  | 'do_not_copy_geometry'
+  | 'do_not_copy_furniture_form'
+  | 'do_not_copy_composition'
+  | 'do_not_copy_camera'
+  | 'do_not_copy_signage_branding';
+
+export type GeneralReferenceDirection = {
+  id: string;
+  name: string;
+  dataUrl: string;
+  role: GeneralReferenceRole;
+  included: boolean;
+  priority: 'low' | 'medium' | 'high';
+  scopes: GeneralReferenceScope[];
+  userNote: string;
+  allowedInfluence: string;
+  forbiddenInfluence: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type VisualDirectionReferenceUsage = {
+  referenceId: string;
+  referenceName: string;
+  borrowed: string;
+  notBorrowed: string;
+  baseApplication: string;
+  confidence: number;
+  ambiguity?: string;
+};
+
+export type VisualDirectionAnalysis = {
+  id: string;
+  status: 'draft' | 'applied' | 'stale';
+  analysisSource: 'metadata' | 'vision';
+  provider?: string;
+  model?: string;
+  createdAt: string;
+  updatedAt: string;
+  existingDesignSummary: string;
+  protectedBaseElements: string[];
+  overallAtmosphere: string;
+  lightingDirection: string;
+  timeOfDayWeather: string;
+  materialDirection: string;
+  colorPalette: string;
+  landscapeEnvironmentDirection: string;
+  peopleActivityDirection: string;
+  stylingDirection: string;
+  photographicTreatment: string;
+  referenceUsageMap: VisualDirectionReferenceUsage[];
+  conflicts: string[];
+  missingInformation: string[];
+  designDriftRisks: string[];
+  proposedFirstGenerationPlan: string;
+  finalGenerationPromptDraft: string;
+};
+
+export type VisualDirectionApplyScope = 'image' | 'scene' | 'project';
+
+export type ReferenceDirectionState = {
+  references: GeneralReferenceDirection[];
+  latestAnalysis?: VisualDirectionAnalysis;
+  appliedAnalysis?: VisualDirectionAnalysis;
+  appliedScope?: VisualDirectionApplyScope;
+  skippedForFirstGeneration?: boolean;
+  visionApproved?: boolean;
+};
+
 export type KnowledgeConfidence = {
   project: number;
   site: number;
@@ -960,6 +1241,9 @@ export type ResultRound = {
   compiledPromptTrace?: CompiledPromptTrace;
   activeMaterialRuleIds?: string[];
   projectSourceOfTruthSnapshot?: ProjectSourceOfTruth;
+  projectProfileSnapshot?: ProjectProfile;
+  generalProductionSnapshot?: Pick<GeneralProductionState, 'spaceType' | 'generationIntent' | 'designFreedom' | 'sceneContract' | 'atmosphereRecipe' | 'borrowMaps' | 'activeVisualDirectionVersionId' | 'sceneSetId'>;
+  providerCapabilitySnapshot?: ProviderCapabilitySummary;
 };
 
 export type ConversationTimelineEntry = {
@@ -998,6 +1282,8 @@ export type RenderPassBuilderState = {
     equipment: ProductionContextNode;
   };
   references: ReferenceAsset[];
+  referenceDirection?: ReferenceDirectionState;
+  generalProduction?: GeneralProductionState;
   knowledgeConfidence: KnowledgeConfidence;
   cameraSystem: CameraSystem;
   lightingGraph: LightingGraph;
@@ -1142,6 +1428,11 @@ export type Scene = {
   slotEnrichmentSuggestions: SlotEnrichmentSuggestion[];
   aiEnrichmentSuggestions: AiEnrichmentSuggestion[];
   renderPassBuilder: RenderPassBuilderState;
+  spaceType?: SpaceType;
+  customSpaceTypeLabel?: string;
+  sceneGroupId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type Project = {
@@ -1151,6 +1442,10 @@ export type Project = {
   scenes: Scene[];
   activeSceneId: string;
   sourceOfTruth?: ProjectSourceOfTruth;
+  profile?: ProjectProfile;
+  generalVisualDirectionDefault?: VisualDirectionAnalysis;
+  sceneSets?: SceneSet[];
+  backupSchemaVersion?: 'visual-local-project-backup-v2';
 };
 
 export type HealthStatus = 'healthy' | 'warning' | 'error';
